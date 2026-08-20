@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codex 配置助手</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="/main.js" defer></script>
+  </head>
+
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <div class="title-brand-wrapper">
+          <img src="assets/logo_minimal.png" alt="Codex Logo" class="app-logo" />
+          <div class="title-group">
+            <h1>Codex 配置助手</h1>
+            <p class="subtitle">轻松切换与修改 Codex 接口配置</p>
+          </div>
+        </div>
+        <div class="status-indicator" id="status-badge" title="当前状态">
+          <span class="status-dot" id="status-dot"></span>
+          <span class="status-text" id="status-text">检测中...</span>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <form id="config-form" class="config-form">
+          <div class="input-group">
+            <label for="api-key">API Key</label>
+            <div class="password-wrapper">
+              <input 
+                type="password" 
+                id="api-key" 
+                placeholder="请输入您的 Bearer Token / Key" 
+                required 
+                autocomplete="off"
+              />
+              <button type="button" id="toggle-key-visibility" class="icon-button" title="显示/隐藏 Key">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="provider-url">模型提供商 (Base URL)</label>
+            <input 
+              type="text" 
+              id="provider-url" 
+              value="LingAI"
+              placeholder="自定义 Base URL，输入 'LingAI' 自动映射" 
+              required
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="actions">
+            <button type="submit" id="save-btn" class="btn btn-primary">
+              <span>保存配置</span>
+              <div class="btn-glow"></div>
+            </button>
+            <button type="button" id="restore-btn" class="btn btn-secondary">
+              恢复默认
+            </button>
+          </div>
+        </form>
+      </main>
+
+      <footer class="app-footer">
+        <div id="toast-message" class="toast hidden"></div>
+      </footer>
+    </div>
+  </body>
+</html>
