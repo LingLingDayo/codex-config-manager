@@ -1,0 +1,76 @@
+@use 'variables' as *;
+
+// 玻璃态卡片混入
+@mixin glass-card {
+  background: $bg-card;
+  backdrop-filter: blur(12px);
+  border: 1px solid $border-card;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+// 按钮基础混入
+@mixin button-base {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  border-radius: $border-radius-md;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 输入框基础混入
+@mixin input-base {
+  width: 100%;
+  background-color: $bg-secondary;
+  border: 1px solid $border-color;
+  color: $text-main;
+  padding: 8px 12px;
+  border-radius: $border-radius-md;
+  font-size: 0.84rem;
+  outline: none;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &::placeholder {
+    color: rgba($text-muted, 0.45);
+    font-size: 0.8rem;
+  }
+
+  &:focus {
+    border-color: $border-focus;
+    box-shadow: 0 0 0 3px rgba($accent-blue, 0.15);
+    background-color: $bg-tertiary;
+  }
+}
+
+// 滚动条样式混入
+@mixin custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+}
