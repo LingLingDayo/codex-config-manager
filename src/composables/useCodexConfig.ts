@@ -9,7 +9,7 @@ export function useCodexConfig() {
 
   const currentConfig = reactive<CodexConfig>({
     key: '',
-    provider_url: 'LingAI',
+    provider_url: '',
     is_enabled: false,
   });
 
@@ -23,7 +23,7 @@ export function useCodexConfig() {
     try {
       const config = await invoke<CodexConfig>('get_codex_config');
       currentConfig.key = config.key || '';
-      currentConfig.provider_url = normalizeUrl(config.provider_url) || 'LingAI';
+      currentConfig.provider_url = normalizeUrl(config.provider_url) || '';
       currentConfig.is_enabled = config.is_enabled;
     } catch (err) {
       console.error('加载配置失败:', err);
@@ -70,7 +70,7 @@ export function useCodexConfig() {
     try {
       await invoke('restore_codex_default');
       currentConfig.key = '';
-      currentConfig.provider_url = 'LingAI';
+      currentConfig.provider_url = '';
       currentConfig.is_enabled = false;
       showToast('已成功恢复默认（已移除 API 登录）');
       return true;

@@ -14,7 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const apiKey = ref<string>('');
-const providerUrl = ref<string>('LingAI');
+const providerUrl = ref<string>('');
 const showKey = ref<boolean>(false);
 
 // 同步外部配置
@@ -31,6 +31,7 @@ watch(
 const handleProviderInput = () => {
   const trimmed = providerUrl.value.trim().replace(/\/+$/, '');
   if (
+    trimmed.toLowerCase() === 'lingai' ||
     trimmed === 'https://lingai.linglingdayo.top' ||
     trimmed === 'https://lingai.linglingdayo.top/v1'
   ) {

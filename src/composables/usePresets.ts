@@ -6,6 +6,16 @@ import { useToast } from './useToast';
 
 const PRESETS_STORAGE_KEY = 'codex_presets';
 
+export const DEFAULT_PRESETS: PresetConfig[] = [
+  {
+    id: 'preset_lingai_default',
+    name: 'LingAI (推荐)',
+    provider_url: 'LingAI',
+    key: '',
+    updated_at: Date.now(),
+  },
+];
+
 export function usePresets() {
   const { showToast } = useToast();
   const presets = ref<PresetConfig[]>([]);
@@ -21,6 +31,8 @@ export function usePresets() {
       const backendPresets = await invoke<PresetConfig[]>('get_presets');
       if (backendPresets && Array.isArray(backendPresets) && backendPresets.length > 0) {
         presets.value = backendPresets;
+      } else if (backendPresets && Array.isArray(backendPresets)) {
+        presets.value = backendPresets;
       } else {
         // 降级从 localStorage 读取
         const localData = localStorage.getItem(PRESETS_STORAGE_KEY);
@@ -29,7 +41,8 @@ export function usePresets() {
           // 同步回后端
           await invoke('save_presets', { presets: presets.value }).catch(() => {});
         } else {
-          presets.value = [];
+          presets.value = DEFAULT_PRESETS;
+          await persistPresets(DEFAULT_PRESETS);
         }
       }
     } catch (e) {
@@ -39,8 +52,10 @@ export function usePresets() {
         try {
           presets.value = JSON.parse(localData);
         } catch {
-          presets.value = [];
+          presets.value = DEFAULT_PRESETS;
         }
+      } else {
+        presets.value = DEFAULT_PRESETS;
       }
     } finally {
       isPresetsLoading.value = false;
