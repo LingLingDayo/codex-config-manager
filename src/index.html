@@ -7,18 +7,19 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script type="module" src="/main.js" defer></script>
   </head>
 
   <body>
     <div class="app-container">
+      <!-- 头部 -->
       <header class="app-header">
         <div class="title-brand-wrapper">
           <img src="assets/logo_minimal.png" alt="Codex Logo" class="app-logo" />
           <div class="title-group">
             <h1>Codex 配置助手</h1>
-            <p class="subtitle">轻松切换与修改 Codex 接口配置</p>
+            <p class="subtitle">轻松管理与快捷切换多中转站 API 配置</p>
           </div>
         </div>
         <div class="status-indicator" id="status-badge" title="当前状态">
@@ -27,51 +28,173 @@
         </div>
       </header>
 
+      <!-- 主内容区域（可滚动） -->
       <main class="app-main">
-        <form id="config-form" class="config-form">
-          <div class="input-group">
-            <label for="api-key">API Key</label>
-            <div class="password-wrapper">
-              <input 
-                type="password" 
-                id="api-key" 
-                placeholder="请输入您的 Bearer Token / Key" 
-                required 
-                autocomplete="off"
-              />
-              <button type="button" id="toggle-key-visibility" class="icon-button" title="显示/隐藏 Key">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              </button>
+        <!-- 1. 当前生效配置卡片 -->
+        <section class="card config-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-icon"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <h2>当前生效配置</h2>
             </div>
+            <button type="button" id="save-as-preset-btn" class="btn-text-action" title="将当前填写的配置存为新预设">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <span>存为预设</span>
+            </button>
           </div>
 
+          <form id="config-form" class="config-form">
+            <div class="input-group">
+              <div class="input-label-row">
+                <label for="api-key">API Key</label>
+              </div>
+              <div class="password-wrapper">
+                <input 
+                  type="password" 
+                  id="api-key" 
+                  placeholder="请输入您的 Bearer Token / Key" 
+                  required 
+                  autocomplete="off"
+                />
+                <button type="button" id="toggle-key-visibility" class="icon-button" title="显示/隐藏 Key">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="provider-url">模型提供商 (Base URL)</label>
+              <input 
+                type="text" 
+                id="provider-url" 
+                value="LingAI"
+                placeholder="自定义 Base URL，输入 'LingAI' 自动映射" 
+                required
+                autocomplete="off"
+              />
+            </div>
+
+            <div class="actions">
+              <button type="submit" id="save-btn" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span>保存并生效</span>
+              </button>
+              <button type="button" id="restore-btn" class="btn btn-secondary" title="恢复 Codex 官方默认设置">
+                恢复默认
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 2. 中转站预设管理列表 -->
+        <section class="card preset-section">
+          <div class="card-header">
+            <div class="card-title-group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="card-icon"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path><path d="m14 9 3 3-3 3"></path></svg>
+              <h2>中转站配置库</h2>
+              <span class="count-badge" id="preset-count-badge">0</span>
+            </div>
+            <button type="button" id="add-preset-btn" class="btn btn-sm btn-accent" title="添加新的中转站配置">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>新增配置</span>
+            </button>
+          </div>
+
+          <!-- 预设列表容器 -->
+          <div class="preset-list" id="preset-list">
+            <!-- 动态通过 JS 渲染 -->
+          </div>
+
+          <!-- 列表空状态 -->
+          <div class="empty-state hidden" id="empty-state">
+            <div class="empty-icon-wrap">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+            </div>
+            <p class="empty-title">暂无中转站预设</p>
+            <p class="empty-desc">添加多个常用中转站 Key，随时一键切换使用</p>
+            <button type="button" id="empty-add-btn" class="btn btn-sm btn-secondary">
+              + 立即添加第一个配置
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <!-- 底部 Toast 提示 -->
+      <footer class="app-footer">
+        <div id="toast-message" class="toast hidden"></div>
+      </footer>
+    </div>
+
+    <!-- 新增 / 编辑预设模态弹窗 -->
+    <div class="modal-backdrop hidden" id="preset-modal-backdrop">
+      <div class="modal-dialog" id="preset-modal-dialog">
+        <div class="modal-header">
+          <h3 id="modal-title">新增中转站配置</h3>
+          <button type="button" class="modal-close-btn" id="modal-close-btn" title="关闭">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <form id="preset-form" class="modal-form">
+          <input type="hidden" id="modal-preset-id" />
+          
           <div class="input-group">
-            <label for="provider-url">模型提供商 (Base URL)</label>
+            <label for="modal-preset-name">配置别名 / 命名 <span class="required">*</span></label>
             <input 
               type="text" 
-              id="provider-url" 
-              value="LingAI"
-              placeholder="自定义 Base URL，输入 'LingAI' 自动映射" 
-              required
+              id="modal-preset-name" 
+              placeholder="例如：LingAI 主力站、个人备用、公司服务等" 
+              required 
               autocomplete="off"
             />
           </div>
 
-          <div class="actions">
-            <button type="submit" id="save-btn" class="btn btn-primary">
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="modal-preset-url">模型提供商 (Base URL) <span class="required">*</span></label>
+            </div>
+            <!-- 快捷标签 -->
+            <div class="preset-chips">
+              <span class="chip" data-url="LingAI">LingAI</span>
+              <span class="chip" data-url="https://api.openai.com/v1">OpenAI 官方</span>
+              <span class="chip" data-url="https://api.deepseek.com/v1">DeepSeek</span>
+              <span class="chip" data-url="https://api.moonshot.cn/v1">Moonshot</span>
+            </div>
+            <input 
+              type="text" 
+              id="modal-preset-url" 
+              placeholder="例如：LingAI 或 https://api.openai.com/v1" 
+              required 
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="modal-preset-key">API Key / Token <span class="required">*</span></label>
+            </div>
+            <div class="password-wrapper">
+              <input 
+                type="password" 
+                id="modal-preset-key" 
+                placeholder="请输入中转站 API Key (如 sk-...)" 
+                required 
+                autocomplete="off"
+              />
+              <button type="button" id="modal-toggle-key" class="icon-button" title="显示/隐藏 Key">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" id="modal-cancel-btn" class="btn btn-secondary">取消</button>
+            <button type="submit" id="modal-save-btn" class="btn btn-primary">
               <span>保存配置</span>
-              <div class="btn-glow"></div>
-            </button>
-            <button type="button" id="restore-btn" class="btn btn-secondary">
-              恢复默认
             </button>
           </div>
         </form>
-      </main>
-
-      <footer class="app-footer">
-        <div id="toast-message" class="toast hidden"></div>
-      </footer>
+      </div>
     </div>
   </body>
 </html>
