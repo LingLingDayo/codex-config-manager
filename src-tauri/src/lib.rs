@@ -435,20 +435,34 @@ fn presets_file_name() -> &'static str {
     }
 }
 
+fn default_presets() -> Vec<PresetConfig> {
+    vec![PresetConfig {
+        id: "preset_lingai_default".to_string(),
+        name: "LingAI (推荐)".to_string(),
+        key: "".to_string(),
+        provider_url: "LingAI".to_string(),
+        updated_at: None,
+    }]
+}
+
 #[tauri::command]
 fn get_presets() -> Result<Vec<PresetConfig>, String> {
     let codex_dir = get_codex_dir()?;
     let presets_path = codex_dir.join(presets_file_name());
 
     if !presets_path.exists() {
-        return Ok(Vec::new());
+        let defaults = default_presets();
+        let _ = save_presets(defaults.clone());
+        return Ok(defaults);
     }
 
     let content = fs::read_to_string(&presets_path)
         .map_err(|e| format!("读取预设文件失败: {}", e))?;
 
     if content.trim().is_empty() {
-        return Ok(Vec::new());
+        let defaults = default_presets();
+        let _ = save_presets(defaults.clone());
+        return Ok(defaults);
     }
 
     let presets: Vec<PresetConfig> = serde_json::from_str(&content)

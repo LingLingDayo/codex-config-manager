@@ -28,6 +28,10 @@ const isPresetActive = (preset: PresetConfig): boolean => {
 };
 
 const handleCopyKey = async (key: string) => {
+  if (!key.trim()) {
+    showToast('该配置尚未填写 Key', 'warning');
+    return;
+  }
   const success = await copyToClipboard(key);
   if (success) {
     showToast('API Key 已复制到剪贴板');
@@ -132,12 +136,17 @@ const handleCardDblClick = (preset: PresetConfig) => {
 
         <div class="preset-card-body">
           <span class="preset-url-tag" :title="preset.provider_url">
-            {{ normalizeUrl(preset.provider_url) }}
+            {{ normalizeUrl(preset.provider_url) || '未设置 URL' }}
           </span>
-          <span class="preset-key-preview" title="点击右侧按钮复制完整 Key">
+          <span
+            class="preset-key-preview"
+            :class="{ 'is-empty': !preset.key }"
+            :title="preset.key ? '点击右侧按钮复制完整 Key' : '未设置 Key，请点击编辑填写'"
+          >
             {{ maskKey(preset.key) }}
           </span>
           <button
+            v-if="preset.key"
             type="button"
             class="btn-copy-key"
             title="复制 API Key"
@@ -465,6 +474,12 @@ const handleCardDblClick = (preset: PresetConfig) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  &.is-empty {
+    color: $text-dim;
+    font-style: italic;
+    letter-spacing: normal;
+  }
 }
 
 .btn-copy-key {

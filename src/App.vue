@@ -22,6 +22,11 @@ const modalInitialData = ref<PresetFormData | null>(null);
 
 // 快捷使用预设
 const handleApplyPreset = async (preset: PresetConfig) => {
+  if (!preset.key.trim()) {
+    showToast(`「${preset.name}」尚未填写 Key，请先编辑填写`, 'warning');
+    handleEditPreset(preset);
+    return;
+  }
   const success = await saveConfig(preset.key, preset.provider_url);
   if (success) {
     showToast(`已快捷切换至「${preset.name}」并生效！`);
@@ -37,8 +42,8 @@ const handleSaveAsPreset = (data: { key: string; providerUrl: string }) => {
 
   modalTitle.value = '新增中转站配置';
   modalInitialData.value = {
-    name: data.providerUrl === 'LingAI' ? 'LingAI 常用配置' : '中转站配置',
-    provider_url: data.providerUrl || 'LingAI',
+    name: data.providerUrl === 'LingAI' ? 'LingAI 常用配置' : (data.providerUrl ? '中转站配置' : ''),
+    provider_url: data.providerUrl || '',
     key: data.key,
   };
   isModalVisible.value = true;

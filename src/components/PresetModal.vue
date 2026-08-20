@@ -14,7 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const formName = ref<string>('');
-const formUrl = ref<string>('LingAI');
+const formUrl = ref<string>('');
 const formKey = ref<string>('');
 const showKey = ref<boolean>(false);
 const nameInputRef = ref<HTMLInputElement | null>(null);
@@ -36,7 +36,7 @@ watch(
         formKey.value = props.initialData.key;
       } else {
         formName.value = '';
-        formUrl.value = 'LingAI';
+        formUrl.value = '';
         formKey.value = '';
       }
       showKey.value = false;
@@ -49,6 +49,17 @@ watch(
 
 const handleChipClick = (url: string) => {
   formUrl.value = url;
+};
+
+const handleUrlInput = () => {
+  const trimmed = formUrl.value.trim().replace(/\/+$/, '');
+  if (
+    trimmed.toLowerCase() === 'lingai' ||
+    trimmed === 'https://lingai.linglingdayo.top' ||
+    trimmed === 'https://lingai.linglingdayo.top/v1'
+  ) {
+    formUrl.value = 'LingAI';
+  }
 };
 
 const handleClose = () => {
@@ -143,6 +154,7 @@ onUnmounted(() => {
             placeholder="例如：LingAI 或 https://api.openai.com/v1"
             required
             autocomplete="off"
+            @input="handleUrlInput"
           />
         </div>
 
