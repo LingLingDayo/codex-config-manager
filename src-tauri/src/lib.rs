@@ -8,6 +8,16 @@ pub struct CodexConfig {
     is_enabled: bool,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct PresetConfig {
+    pub id: String,
+    pub name: String,
+    pub key: String,
+    pub provider_url: String,
+    #[serde(default)]
+    pub updated_at: Option<u64>,
+}
+
 fn get_codex_dir() -> Result<PathBuf, String> {
     let home = std::env::var("USERPROFILE")
         .or_else(|_| std::env::var("HOME"))
@@ -417,6 +427,53 @@ fn restore_codex_default() -> Result<(), String> {
     Ok(())
 }
 
+fn presets_file_name() -> &'static str {
+    if cfg!(debug_assertions) {
+        "presets_dev.json"
+    } else {
+        "presets.json"
+    }
+}
+
+#[tauri::command]
+fn get_presets() -> Result<Vec<PresetConfig>, String> {
+    let codex_dir = get_codex_dir()?;
+    let presets_path = codex_dir.join(presets_file_name());
+
+    if !presets_path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let content = fs::read_to_string(&presets_path)
+        .map_err(|e| format!("读取预设文件失败: {}", e))?;
+
+    if content.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let presets: Vec<PresetConfig> = serde_json::from_str(&content)
+        .map_err(|e| format!("解析预设配置失败: {}", e))?;
+
+    Ok(presets)
+}
+
+#[tauri::command]
+fn save_presets(presets: Vec<PresetConfig>) -> Result<(), String> {
+    let codex_dir = get_codex_dir()?;
+    if !codex_dir.exists() {
+        fs::create_dir_all(&codex_dir).map_err(|e| format!("创建 .codex 目录失败: {}", e))?;
+    }
+    let presets_path = codex_dir.join(presets_file_name());
+
+    let content = serde_json::to_string_pretty(&presets)
+        .map_err(|e| format!("序列化预设配置失败: {}", e))?;
+
+    fs::write(&presets_path, content)
+        .map_err(|e| format!("写入预设文件失败: {}", e))?;
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -424,7 +481,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_codex_config,
             save_codex_config,
-            restore_codex_default
+            restore_codex_default,
+            get_presets,
+            save_presets
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
