@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import type { PresetFormData } from '../types/config';
+import { LINGAI_URL, isLingAI } from '../utils/format';
 
 const props = defineProps<{
   visible: boolean;
@@ -20,11 +21,18 @@ const showKey = ref<boolean>(false);
 const nameInputRef = ref<HTMLInputElement | null>(null);
 
 const presetChips = [
-  { label: 'LingAI', url: 'LingAI' },
+  { label: 'LingAI', url: LINGAI_URL },
   { label: 'OpenAI 官方', url: 'https://api.openai.com/v1' },
   { label: 'DeepSeek', url: 'https://api.deepseek.com/v1' },
   { label: 'Moonshot', url: 'https://api.moonshot.cn/v1' },
 ];
+
+const isChipActive = (chipUrl: string) => {
+  if (chipUrl === LINGAI_URL) {
+    return isLingAI(formUrl.value);
+  }
+  return formUrl.value === chipUrl;
+};
 
 watch(
   () => props.visible,
@@ -32,7 +40,9 @@ watch(
     if (newVal) {
       if (props.initialData) {
         formName.value = props.initialData.name;
-        formUrl.value = props.initialData.provider_url;
+        formUrl.value = isLingAI(props.initialData.provider_url)
+          ? LINGAI_URL
+          : props.initialData.provider_url;
         formKey.value = props.initialData.key;
       } else {
         formName.value = '';
@@ -53,12 +63,8 @@ const handleChipClick = (url: string) => {
 
 const handleUrlInput = () => {
   const trimmed = formUrl.value.trim().replace(/\/+$/, '');
-  if (
-    trimmed.toLowerCase() === 'lingai' ||
-    trimmed === 'https://lingai.linglingdayo.top' ||
-    trimmed === 'https://lingai.linglingdayo.top/v1'
-  ) {
-    formUrl.value = 'LingAI';
+  if (trimmed.toLowerCase() === 'lingai') {
+    formUrl.value = LINGAI_URL;
   }
 };
 
@@ -141,7 +147,7 @@ onUnmounted(() => {
               v-for="chip in presetChips"
               :key="chip.label"
               class="chip"
-              :class="{ active: formUrl === chip.url }"
+              :class="{ active: isChipActive(chip.url) }"
               @click="handleChipClick(chip.url)"
             >
               {{ chip.label }}
@@ -151,7 +157,7 @@ onUnmounted(() => {
             id="modal-preset-url"
             v-model="formUrl"
             type="text"
-            placeholder="例如：LingAI 或 https://api.openai.com/v1"
+            placeholder="例如：https://lingai.linglingdayo.top 或输入 'LingAI' 自动识别"
             required
             autocomplete="off"
             @input="handleUrlInput"

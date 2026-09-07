@@ -1,15 +1,26 @@
+export const LINGAI_URL = 'https://lingai.linglingdayo.top';
+
+/**
+ * 判断是否为 LingAI 标识或地址
+ */
+export function isLingAI(url?: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim().replace(/\/+$/, '').toLowerCase();
+  return (
+    trimmed === 'lingai' ||
+    trimmed === 'https://lingai.linglingdayo.top' ||
+    trimmed === 'https://lingai.linglingdayo.top/v1'
+  );
+}
+
 /**
  * 标准化 URL，处理 LingAI 映射与去除末尾斜杠
  */
 export function normalizeUrl(url: string): string {
   if (!url) return '';
   const trimmed = url.trim().replace(/\/+$/, '');
-  if (
-    trimmed === 'https://lingai.linglingdayo.top' ||
-    trimmed === 'https://lingai.linglingdayo.top/v1' ||
-    trimmed.toLowerCase() === 'lingai'
-  ) {
-    return 'LingAI';
+  if (isLingAI(trimmed)) {
+    return LINGAI_URL;
   }
   return trimmed;
 }

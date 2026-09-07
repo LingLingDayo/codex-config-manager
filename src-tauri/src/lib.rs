@@ -440,7 +440,7 @@ fn default_presets() -> Vec<PresetConfig> {
         id: "preset_lingai_default".to_string(),
         name: "LingAI (推荐)".to_string(),
         key: "".to_string(),
-        provider_url: "LingAI".to_string(),
+        provider_url: "https://lingai.linglingdayo.top".to_string(),
         updated_at: None,
     }]
 }
@@ -465,8 +465,14 @@ fn get_presets() -> Result<Vec<PresetConfig>, String> {
         return Ok(defaults);
     }
 
-    let presets: Vec<PresetConfig> = serde_json::from_str(&content)
+    let mut presets: Vec<PresetConfig> = serde_json::from_str(&content)
         .map_err(|e| format!("解析预设配置失败: {}", e))?;
+
+    for p in &mut presets {
+        if p.provider_url.eq_ignore_ascii_case("lingai") {
+            p.provider_url = "https://lingai.linglingdayo.top".to_string();
+        }
+    }
 
     Ok(presets)
 }

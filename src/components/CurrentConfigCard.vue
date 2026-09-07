@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { CodexConfig } from '../types/config';
+import { LINGAI_URL, isLingAI } from '../utils/format';
 
 const props = defineProps<{
   config: CodexConfig;
@@ -25,7 +26,7 @@ watch(
   () => props.config,
   (newVal) => {
     apiKey.value = newVal.key;
-    providerUrl.value = newVal.provider_url;
+    providerUrl.value = isLingAI(newVal.provider_url) ? LINGAI_URL : newVal.provider_url;
   },
   { immediate: true, deep: true }
 );
@@ -33,12 +34,8 @@ watch(
 // 监听提供商输入框变化，自动映射特定地址
 const handleProviderInput = () => {
   const trimmed = providerUrl.value.trim().replace(/\/+$/, '');
-  if (
-    trimmed.toLowerCase() === 'lingai' ||
-    trimmed === 'https://lingai.linglingdayo.top' ||
-    trimmed === 'https://lingai.linglingdayo.top/v1'
-  ) {
-    providerUrl.value = 'LingAI';
+  if (trimmed.toLowerCase() === 'lingai') {
+    providerUrl.value = LINGAI_URL;
   }
 };
 
@@ -197,7 +194,7 @@ const handleSaveAsPreset = () => {
           id="provider-url"
           v-model="providerUrl"
           type="text"
-          placeholder="自定义 Base URL，输入 'LingAI' 自动映射"
+          placeholder="例如：https://lingai.linglingdayo.top 或输入 'LingAI' 自动填充"
           required
           autocomplete="off"
           @input="handleProviderInput"

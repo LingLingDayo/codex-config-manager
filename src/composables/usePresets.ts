@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import type { CodexConfig, PresetConfig, PresetFormData } from '../types/config';
-import { normalizeUrl } from '../utils/format';
+import { normalizeUrl, LINGAI_URL, isLingAI } from '../utils/format';
 import { useToast } from './useToast';
 
 const PRESETS_STORAGE_KEY = 'codex_presets';
@@ -10,7 +10,7 @@ export const DEFAULT_PRESETS: PresetConfig[] = [
   {
     id: 'preset_lingai_default',
     name: 'LingAI (推荐)',
-    provider_url: 'LingAI',
+    provider_url: LINGAI_URL,
     key: '',
     updated_at: Date.now(),
   },
@@ -21,6 +21,15 @@ export function usePresets() {
   const presets = ref<PresetConfig[]>([]);
   const isPresetsLoading = ref<boolean>(false);
 
+  const normalizePresetList = (list: PresetConfig[]): PresetConfig[] => {
+    return list.map((p) => {
+      if (isLingAI(p.provider_url) && p.provider_url !== LINGAI_URL) {
+        return { ...p, provider_url: LINGAI_URL };
+      }
+      return p;
+    });
+  };
+
   /**
    * 从后端/本地存储加载预设
    */
@@ -30,14 +39,14 @@ export function usePresets() {
       // 优先从 Rust 后端读取
       const backendPresets = await invoke<PresetConfig[]>('get_presets');
       if (backendPresets && Array.isArray(backendPresets) && backendPresets.length > 0) {
-        presets.value = backendPresets;
+        presets.value = normalizePresetList(backendPresets);
       } else if (backendPresets && Array.isArray(backendPresets)) {
-        presets.value = backendPresets;
+        presets.value = normalizePresetList(backendPresets);
       } else {
         // 降级从 localStorage 读取
         const localData = localStorage.getItem(PRESETS_STORAGE_KEY);
         if (localData) {
-          presets.value = JSON.parse(localData);
+          presets.value = normalizePresetList(JSON.parse(localData));
           // 同步回后端
           await invoke('save_presets', { presets: presets.value }).catch(() => {});
         } else {
@@ -50,7 +59,7 @@ export function usePresets() {
       const localData = localStorage.getItem(PRESETS_STORAGE_KEY);
       if (localData) {
         try {
-          presets.value = JSON.parse(localData);
+          presets.value = normalizePresetList(JSON.parse(localData));
         } catch {
           presets.value = DEFAULT_PRESETS;
         }
