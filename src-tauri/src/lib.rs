@@ -122,6 +122,43 @@ fn get_codex_config() -> Result<CodexConfig, String> {
     })
 }
 
+fn get_default_station_name() -> String {
+    std::env::var("VITE_DEFAULT_STATION_NAME")
+        .ok()
+        .or_else(|| option_env!("VITE_DEFAULT_STATION_NAME").map(|s| s.to_string()))
+        .or_else(|| std::env::var("VITE_DEFAULT_STATION_IDENTIFIER").ok())
+        .or_else(|| option_env!("VITE_DEFAULT_STATION_IDENTIFIER").map(|s| s.to_string()))
+        .or_else(|| std::env::var("VITE_STATION_NAME").ok())
+        .or_else(|| option_env!("VITE_STATION_NAME").map(|s| s.to_string()))
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| "LingAI".to_string())
+}
+
+fn get_default_station_url() -> String {
+    std::env::var("VITE_DEFAULT_STATION_URL")
+        .ok()
+        .or_else(|| option_env!("VITE_DEFAULT_STATION_URL").map(|s| s.to_string()))
+        .or_else(|| std::env::var("VITE_STATION_URL").ok())
+        .or_else(|| option_env!("VITE_STATION_URL").map(|s| s.to_string()))
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| "https://lingai.linglingdayo.top".to_string())
+}
+
+fn is_default_station(url: &str) -> bool {
+    let trimmed = url.trim().trim_end_matches('/');
+    let def_name = get_default_station_name();
+    let def_url = get_default_station_url();
+    let def_url_trimmed = def_url.trim_end_matches('/');
+
+    trimmed.eq_ignore_ascii_case(&def_name)
+        || trimmed == def_url_trimmed
+        || trimmed == format!("{}/v1", def_url_trimmed)
+        // 兼容原生 LingAI 默认识别
+        || trimmed.eq_ignore_ascii_case("lingai")
+        || trimmed == "https://lingai.linglingdayo.top"
+        || trimmed == "https://lingai.linglingdayo.top/v1"
+}
+
 #[tauri::command]
 fn save_codex_config(key: String, provider_url: String) -> Result<(), String> {
     let codex_dir = get_codex_dir()?;
@@ -134,12 +171,8 @@ fn save_codex_config(key: String, provider_url: String) -> Result<(), String> {
     }
 
     // 映射 provider_url
-    let trimmed_url = provider_url.trim();
-    let real_url = if trimmed_url.eq_ignore_ascii_case("lingai")
-        || trimmed_url.trim_end_matches('/') == "https://lingai.linglingdayo.top"
-        || trimmed_url.trim_end_matches('/') == "https://lingai.linglingdayo.top/v1"
-    {
-        "https://lingai.linglingdayo.top".to_string()
+    let real_url = if is_default_station(&provider_url) {
+        get_default_station_url()
     } else {
         provider_url
     };
@@ -436,11 +469,13 @@ fn presets_file_name() -> &'static str {
 }
 
 fn default_presets() -> Vec<PresetConfig> {
+    let name = get_default_station_name();
+    let url = get_default_station_url();
     vec![PresetConfig {
-        id: "preset_lingai_default".to_string(),
-        name: "LingAI (推荐)".to_string(),
+        id: "preset_default_station".to_string(),
+        name: format!("{} (推荐)", name),
         key: "".to_string(),
-        provider_url: "https://lingai.linglingdayo.top".to_string(),
+        provider_url: url,
         updated_at: None,
     }]
 }
@@ -468,9 +503,10 @@ fn get_presets() -> Result<Vec<PresetConfig>, String> {
     let mut presets: Vec<PresetConfig> = serde_json::from_str(&content)
         .map_err(|e| format!("解析预设配置失败: {}", e))?;
 
+    let def_url = get_default_station_url();
     for p in &mut presets {
-        if p.provider_url.eq_ignore_ascii_case("lingai") {
-            p.provider_url = "https://lingai.linglingdayo.top".to_string();
+        if is_default_station(&p.provider_url) && p.provider_url != def_url {
+            p.provider_url = def_url.clone();
         }
     }
 

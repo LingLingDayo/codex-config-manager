@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import type { PresetFormData } from '../types/config';
-import { LINGAI_URL, isLingAI } from '../utils/format';
+import {
+  DEFAULT_STATION_NAME,
+  DEFAULT_STATION_URL,
+  isDefaultStation,
+} from '../utils/format';
 
 const props = defineProps<{
   visible: boolean;
@@ -21,15 +25,15 @@ const showKey = ref<boolean>(false);
 const nameInputRef = ref<HTMLInputElement | null>(null);
 
 const presetChips = [
-  { label: 'LingAI', url: LINGAI_URL },
+  { label: DEFAULT_STATION_NAME, url: DEFAULT_STATION_URL },
   { label: 'OpenAI 官方', url: 'https://api.openai.com/v1' },
   { label: 'DeepSeek', url: 'https://api.deepseek.com/v1' },
   { label: 'Moonshot', url: 'https://api.moonshot.cn/v1' },
 ];
 
 const isChipActive = (chipUrl: string) => {
-  if (chipUrl === LINGAI_URL) {
-    return isLingAI(formUrl.value);
+  if (chipUrl === DEFAULT_STATION_URL) {
+    return isDefaultStation(formUrl.value);
   }
   return formUrl.value === chipUrl;
 };
@@ -40,8 +44,8 @@ watch(
     if (newVal) {
       if (props.initialData) {
         formName.value = props.initialData.name;
-        formUrl.value = isLingAI(props.initialData.provider_url)
-          ? LINGAI_URL
+        formUrl.value = isDefaultStation(props.initialData.provider_url)
+          ? DEFAULT_STATION_URL
           : props.initialData.provider_url;
         formKey.value = props.initialData.key;
       } else {
@@ -63,8 +67,11 @@ const handleChipClick = (url: string) => {
 
 const handleUrlInput = () => {
   const trimmed = formUrl.value.trim().replace(/\/+$/, '');
-  if (trimmed.toLowerCase() === 'lingai') {
-    formUrl.value = LINGAI_URL;
+  if (
+    trimmed.toLowerCase() === DEFAULT_STATION_NAME.toLowerCase() ||
+    trimmed.toLowerCase() === 'lingai'
+  ) {
+    formUrl.value = DEFAULT_STATION_URL;
   }
 };
 
@@ -129,7 +136,7 @@ onUnmounted(() => {
             ref="nameInputRef"
             v-model="formName"
             type="text"
-            placeholder="例如：LingAI 主力站、个人备用、公司服务等"
+            :placeholder="`例如：${DEFAULT_STATION_NAME} 主力站、个人备用、公司服务等`"
             required
             autocomplete="off"
           />
@@ -157,7 +164,7 @@ onUnmounted(() => {
             id="modal-preset-url"
             v-model="formUrl"
             type="text"
-            placeholder="例如：https://lingai.linglingdayo.top 或输入 'LingAI' 自动识别"
+            :placeholder="`例如：${DEFAULT_STATION_URL} 或输入 '${DEFAULT_STATION_NAME}' 自动识别`"
             required
             autocomplete="off"
             @input="handleUrlInput"

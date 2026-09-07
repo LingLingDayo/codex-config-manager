@@ -1,16 +1,21 @@
 import { ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import type { CodexConfig, PresetConfig, PresetFormData } from '../types/config';
-import { normalizeUrl, LINGAI_URL, isLingAI } from '../utils/format';
+import {
+  normalizeUrl,
+  DEFAULT_STATION_NAME,
+  DEFAULT_STATION_URL,
+  isDefaultStation,
+} from '../utils/format';
 import { useToast } from './useToast';
 
 const PRESETS_STORAGE_KEY = 'codex_presets';
 
 export const DEFAULT_PRESETS: PresetConfig[] = [
   {
-    id: 'preset_lingai_default',
-    name: 'LingAI (推荐)',
-    provider_url: LINGAI_URL,
+    id: 'preset_default_station',
+    name: `${DEFAULT_STATION_NAME} (推荐)`,
+    provider_url: DEFAULT_STATION_URL,
     key: '',
     updated_at: Date.now(),
   },
@@ -23,8 +28,8 @@ export function usePresets() {
 
   const normalizePresetList = (list: PresetConfig[]): PresetConfig[] => {
     return list.map((p) => {
-      if (isLingAI(p.provider_url) && p.provider_url !== LINGAI_URL) {
-        return { ...p, provider_url: LINGAI_URL };
+      if (isDefaultStation(p.provider_url) && p.provider_url !== DEFAULT_STATION_URL) {
+        return { ...p, provider_url: DEFAULT_STATION_URL };
       }
       return p;
     });

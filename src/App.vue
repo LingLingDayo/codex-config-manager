@@ -9,7 +9,11 @@ import ToastMessage from './components/ToastMessage.vue';
 import { useCodexConfig } from './composables/useCodexConfig';
 import { usePresets } from './composables/usePresets';
 import { useToast } from './composables/useToast';
-import { isLingAI, LINGAI_URL } from './utils/format';
+import {
+  DEFAULT_STATION_NAME,
+  DEFAULT_STATION_URL,
+  isDefaultStation,
+} from './utils/format';
 import type { PresetConfig, PresetFormData } from './types/config';
 
 const { currentConfig, isLoading, loadConfig, saveConfig, restoreDefault } = useCodexConfig();
@@ -49,11 +53,11 @@ const handleSaveAsPreset = (data: { key: string; providerUrl: string }) => {
     return;
   }
 
-  const isLing = isLingAI(data.providerUrl);
+  const isDefault = isDefaultStation(data.providerUrl);
   modalTitle.value = '新增中转站配置';
   modalInitialData.value = {
-    name: isLing ? 'LingAI 常用配置' : (data.providerUrl ? '中转站配置' : ''),
-    provider_url: isLing ? LINGAI_URL : (data.providerUrl || ''),
+    name: isDefault ? `${DEFAULT_STATION_NAME} 常用配置` : (data.providerUrl ? '中转站配置' : ''),
+    provider_url: isDefault ? DEFAULT_STATION_URL : (data.providerUrl || ''),
     key: data.key,
   };
   isModalVisible.value = true;
@@ -72,7 +76,7 @@ const handleEditPreset = (preset: PresetConfig) => {
   modalInitialData.value = {
     id: preset.id,
     name: preset.name,
-    provider_url: isLingAI(preset.provider_url) ? LINGAI_URL : preset.provider_url,
+    provider_url: isDefaultStation(preset.provider_url) ? DEFAULT_STATION_URL : preset.provider_url,
     key: preset.key,
   };
   isModalVisible.value = true;
