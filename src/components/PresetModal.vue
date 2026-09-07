@@ -225,7 +225,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1100;
   padding: 16px;
   animation: fadeIn 0.2s ease forwards;
 }

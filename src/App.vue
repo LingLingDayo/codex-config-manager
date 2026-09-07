@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import AppHeader from './components/AppHeader.vue';
 import CurrentConfigCard from './components/CurrentConfigCard.vue';
-import PresetListCard from './components/PresetListCard.vue';
+import PresetListModal from './components/PresetListModal.vue';
 import PresetModal from './components/PresetModal.vue';
 import ToastMessage from './components/ToastMessage.vue';
 
@@ -12,13 +12,21 @@ import { useToast } from './composables/useToast';
 import type { PresetConfig, PresetFormData } from './types/config';
 
 const { currentConfig, isLoading, loadConfig, saveConfig, restoreDefault } = useCodexConfig();
-const { presets, loadPresets, saveOrUpdatePreset, deletePreset } = usePresets();
+const { presets, loadPresets, saveOrUpdatePreset, deletePreset, isPresetActive } = usePresets();
 const { showToast } = useToast();
 
-// 模态弹窗状态
+// 预设配置管理弹窗状态
+const isPresetListModalVisible = ref<boolean>(false);
+
+// 新增 / 编辑预设表单弹窗状态
 const isModalVisible = ref<boolean>(false);
 const modalTitle = ref<string>('新增中转站配置');
 const modalInitialData = ref<PresetFormData | null>(null);
+
+// 计算当前匹配的生效预设
+const activePreset = computed(() => {
+  return presets.value.find((p) => isPresetActive(p, currentConfig));
+});
 
 // 快捷使用预设
 const handleApplyPreset = async (preset: PresetConfig) => {
@@ -88,30 +96,35 @@ onMounted(async () => {
 
     <!-- 主体区域 -->
     <main class="app-main">
-      <!-- 1. 当前生效配置卡片 -->
+      <!-- 当前生效配置卡片 -->
       <CurrentConfigCard
         :config="currentConfig"
         :is-loading="isLoading"
+        :presets-count="presets.length"
+        :active-preset-name="activePreset?.name"
         @save-config="(data) => saveConfig(data.key, data.providerUrl)"
         @restore-default="restoreDefault"
         @save-as-preset="handleSaveAsPreset"
-      />
-
-      <!-- 2. 中转站预设管理列表 -->
-      <PresetListCard
-        :presets="presets"
-        :current-config="currentConfig"
-        @add-preset="handleAddPreset"
-        @edit-preset="handleEditPreset"
-        @delete-preset="deletePreset"
-        @apply-preset="handleApplyPreset"
+        @open-presets="isPresetListModalVisible = true"
       />
     </main>
 
     <!-- 底部 Toast 提示 -->
     <ToastMessage />
 
-    <!-- 新增 / 编辑预设模态框 -->
+    <!-- 中转站预设配置列表轻量弹窗 -->
+    <PresetListModal
+      :visible="isPresetListModalVisible"
+      :presets="presets"
+      :current-config="currentConfig"
+      @close="isPresetListModalVisible = false"
+      @add-preset="handleAddPreset"
+      @edit-preset="handleEditPreset"
+      @delete-preset="deletePreset"
+      @apply-preset="handleApplyPreset"
+    />
+
+    <!-- 新增 / 编辑预设表单模态框 -->
     <PresetModal
       :visible="isModalVisible"
       :title="modalTitle"
@@ -129,10 +142,10 @@ onMounted(async () => {
 .app-container {
   width: 100%;
   height: 100%;
-  padding: 18px 20px 14px;
+  padding: 20px 22px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   overflow: hidden;
 }
 
@@ -140,7 +153,8 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 14px;
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 2px;
