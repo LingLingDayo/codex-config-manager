@@ -44,9 +44,6 @@ onUnmounted(() => {
     <Transition name="drawer">
       <div v-if="visible" class="drawer-backdrop" @click.self="emit('close')">
         <div class="drawer-panel">
-          <!-- 极简顶部指示条，点击亦可收起 -->
-          <div class="drawer-pill" title="点击收起" @click="emit('close')"></div>
-
           <!-- 抽屉设置项列表主体 -->
           <div class="drawer-content">
             <div class="setting-item">
@@ -113,24 +110,9 @@ onUnmounted(() => {
   box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
-  padding: 10px 22px 20px;
+  padding: 20px 22px;
   overflow: hidden;
   will-change: transform;
-}
-
-.drawer-pill {
-  width: 36px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.22);
-  border-radius: 2px;
-  margin: 0 auto 18px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba($accent-blue, 0.6);
-    width: 48px;
-  }
 }
 
 .drawer-content {
