@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-08-20
+## [0.2.0] - 2026-09-08
 
 ### ✨ Features
 - ⚡ **当前生效配置管理**：支持实时展示与保存 Codex API Key、中转地址（Provider URL）与启用状态。
