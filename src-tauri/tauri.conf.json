@@ -14,10 +14,10 @@
     "windows": [
       {
         "title": "Codex 配置助手",
-        "width": 580,
-        "height": 395,
+        "width": 520,
+        "height": 350,
         "minWidth": 520,
-        "minHeight": 380,
+        "minHeight": 350,
         "resizable": true
       }
     ],
