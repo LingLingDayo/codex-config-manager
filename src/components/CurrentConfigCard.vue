@@ -382,7 +382,6 @@ const handleSaveAsPreset = () => {
     background: rgba($accent-blue, 0.2);
     border-color: $accent-blue;
     color: #fff;
-    box-shadow: 0 2px 8px rgba($accent-blue, 0.2);
   }
 
   .header-count-pill {
@@ -499,8 +498,7 @@ const handleSaveAsPreset = () => {
   flex: 2;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba($accent-blue, 0.4);
+    filter: brightness(1.08);
   }
 }
 

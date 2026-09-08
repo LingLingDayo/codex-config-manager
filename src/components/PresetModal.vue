@@ -401,8 +401,7 @@ onUnmounted(() => {
   box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px rgba($accent-blue, 0.4);
+    filter: brightness(1.08);
   }
 }
 

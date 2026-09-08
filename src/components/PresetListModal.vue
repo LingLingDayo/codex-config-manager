@@ -339,7 +339,7 @@ onUnmounted(() => {
     background: $accent-gradient;
     color: #fff;
     border-color: transparent;
-    box-shadow: 0 2px 8px rgba($accent-blue, 0.3);
+    filter: brightness(1.08);
   }
 }
 
@@ -387,8 +387,6 @@ onUnmounted(() => {
   &:hover {
     background: rgba($bg-secondary, 0.95);
     border-color: rgba($accent-blue, 0.35);
-    transform: translateY(-1px);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
 
     .preset-name {
       color: #fff;
@@ -506,7 +504,7 @@ onUnmounted(() => {
     background: $accent-gradient;
     color: #fff;
     border-color: transparent;
-    box-shadow: 0 2px 8px rgba($accent-blue, 0.3);
+    filter: brightness(1.08);
   }
 }
 
@@ -588,7 +586,7 @@ onUnmounted(() => {
       background: $accent-gradient;
       color: #fff;
       border-color: transparent;
-      box-shadow: 0 2px 8px rgba($accent-blue, 0.3);
+      filter: brightness(1.08);
     }
   }
 }
