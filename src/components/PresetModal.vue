@@ -26,9 +26,10 @@ const nameInputRef = ref<HTMLInputElement | null>(null);
 
 const presetChips = [
   { label: DEFAULT_STATION_NAME, url: DEFAULT_STATION_URL },
-  { label: 'OpenAI 官方', url: 'https://api.openai.com/v1' },
+  { label: 'OpenAI', url: 'https://api.openai.com/v1' },
   { label: 'DeepSeek', url: 'https://api.deepseek.com/v1' },
   { label: 'Moonshot', url: 'https://api.moonshot.cn/v1' },
+  { label: '智谱 GLM', url: 'https://open.bigmodel.cn/api/paas/v4' },
 ];
 
 const isChipActive = (chipUrl: string) => {
