@@ -61,7 +61,6 @@ const handleSave = () => {
 };
 
 const handleRestore = () => {
-  customModel.value = '';
   emit('restore-default');
 };
 

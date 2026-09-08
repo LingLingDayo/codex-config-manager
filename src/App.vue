@@ -5,10 +5,12 @@ import CurrentConfigCard from './components/CurrentConfigCard.vue';
 import PresetListModal from './components/PresetListModal.vue';
 import PresetModal from './components/PresetModal.vue';
 import ToastMessage from './components/ToastMessage.vue';
+import ConfirmModal from './components/ConfirmModal.vue';
 
 import { useCodexConfig } from './composables/useCodexConfig';
 import { usePresets } from './composables/usePresets';
 import { useToast } from './composables/useToast';
+import { useConfirm } from './composables/useConfirm';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
@@ -26,6 +28,7 @@ const {
 } = useCodexConfig();
 const { presets, loadPresets, saveOrUpdatePreset, deletePreset, isPresetActive } = usePresets();
 const { showToast } = useToast();
+const { showConfirm } = useConfirm();
 
 // 预设配置管理弹窗状态
 const isPresetListModalVisible = ref<boolean>(false);
@@ -50,6 +53,21 @@ const handleApplyPreset = async (preset: PresetConfig) => {
   const success = await saveConfig(preset.key, preset.provider_url, preset.model);
   if (success) {
     showToast(`已快捷切换至「${preset.name}」并生效，请重新打开 Codex`);
+  }
+};
+
+// 恢复官方默认配置二次确认
+const handleRestoreDefault = async () => {
+  const confirmed = await showConfirm({
+    title: '恢复官方默认配置',
+    message: '确定要恢复为 Codex 官方默认设置吗？',
+    detail: '当前的自定义中转站地址和 API Key 将被重置为官方默认设置。',
+    type: 'warning',
+    confirmText: '恢复默认',
+    cancelText: '取消',
+  });
+  if (confirmed) {
+    await restoreDefault();
   }
 };
 
@@ -118,7 +136,7 @@ onMounted(async () => {
         :presets-count="presets.length"
         :active-preset-name="activePreset?.name"
         @save-config="(data) => saveConfig(data.key, data.providerUrl, data.model)"
-        @restore-default="restoreDefault"
+        @restore-default="handleRestoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"
       />
@@ -129,6 +147,9 @@ onMounted(async () => {
 
     <!-- 顶部 Toast 提示 -->
     <ToastMessage />
+
+    <!-- 通用操作确认弹窗 -->
+    <ConfirmModal />
 
     <!-- 中转站预设配置列表轻量弹窗 -->
     <PresetListModal

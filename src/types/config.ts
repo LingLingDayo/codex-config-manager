@@ -29,3 +29,21 @@ export interface PresetFormData {
   key: string;
   model?: string;
 }
+
+export type ConfirmType = 'danger' | 'warning' | 'info' | 'success';
+
+export interface ConfirmOptions {
+  title?: string;
+  message: string;
+  detail?: string;
+  type?: ConfirmType;
+  confirmText?: string;
+  cancelText?: string;
+  showCancel?: boolean;
+}
+
+export interface ConfirmState extends ConfirmOptions {
+  visible: boolean;
+  resolve?: (value: boolean) => void;
+}
+

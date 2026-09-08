@@ -1,12 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import { usePresets, DEFAULT_PRESETS } from '../usePresets';
+import { useConfirm } from '../useConfirm';
 import { DEFAULT_STATION_URL } from '../../utils/format';
 import type { CodexConfig, PresetConfig } from '../../types/config';
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
+
+vi.mock('../useConfirm', () => {
+  const showConfirm = vi.fn();
+  return {
+    useConfirm: () => ({
+      showConfirm,
+      confirm: showConfirm,
+    }),
+  };
+});
+
 
 describe('usePresets composable', () => {
   const mockedInvoke = vi.mocked(invoke);
@@ -134,7 +146,8 @@ describe('usePresets composable', () => {
 
   describe('deletePreset', () => {
     it('用户取消确认时应返回 false 且不删除', async () => {
-      window.confirm = vi.fn().mockReturnValue(false);
+      const { showConfirm } = useConfirm();
+      vi.mocked(showConfirm).mockResolvedValueOnce(false);
       const { presets, deletePreset } = usePresets();
       const target: PresetConfig = {
         id: 'p1',
@@ -147,10 +160,17 @@ describe('usePresets composable', () => {
       const res = await deletePreset(target);
       expect(res).toBe(false);
       expect(presets.value).toHaveLength(1);
+      expect(showConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'danger',
+          title: '删除配置预设',
+        })
+      );
     });
 
     it('用户确认删除后应从列表中移除并持久化', async () => {
-      window.confirm = vi.fn().mockReturnValue(true);
+      const { showConfirm } = useConfirm();
+      vi.mocked(showConfirm).mockResolvedValueOnce(true);
       mockedInvoke.mockResolvedValue(undefined);
       const { presets, deletePreset } = usePresets();
       const target: PresetConfig = {

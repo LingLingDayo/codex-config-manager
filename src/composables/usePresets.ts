@@ -8,6 +8,7 @@ import {
   isDefaultStation,
 } from '../utils/format';
 import { useToast } from './useToast';
+import { useConfirm } from './useConfirm';
 
 const PRESETS_STORAGE_KEY = 'codex_presets';
 
@@ -23,6 +24,7 @@ export const DEFAULT_PRESETS: PresetConfig[] = [
 
 export function usePresets() {
   const { showToast } = useToast();
+  const { showConfirm } = useConfirm();
   const presets = ref<PresetConfig[]>([]);
   const isPresetsLoading = ref<boolean>(false);
 
@@ -137,7 +139,14 @@ export function usePresets() {
    * 删除预设
    */
   const deletePreset = async (preset: PresetConfig): Promise<boolean> => {
-    const confirmed = window.confirm(`确定要删除配置预设「${preset.name}」吗？`);
+    const confirmed = await showConfirm({
+      title: '删除配置预设',
+      message: `确定要删除配置预设「${preset.name}」吗？`,
+      detail: '删除后此预设配置将无法找回，请谨慎操作。',
+      type: 'danger',
+      confirmText: '确认删除',
+      cancelText: '取消',
+    });
     if (!confirmed) return false;
 
     const newList = presets.value.filter((p) => p.id !== preset.id);
