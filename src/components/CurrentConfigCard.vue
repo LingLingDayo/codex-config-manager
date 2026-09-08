@@ -108,7 +108,7 @@ const handleSaveAsPreset = () => {
         <button
           type="button"
           class="btn-header-preset"
-          title="点击打开中转站预设配置库"
+          title="点击打开中转站配置列表"
           @click="emit('open-presets')"
         >
           <svg
@@ -126,14 +126,14 @@ const handleSaveAsPreset = () => {
             <path d="M9 3v18" />
             <path d="m14 9 3 3-3 3" />
           </svg>
-          <span>配置库</span>
+          <span>配置列表</span>
         </button>
 
-        <!-- 存为预设 -->
+        <!-- 保存配置 -->
         <button
           type="button"
           class="btn-text-action"
-          title="将当前填写的配置存为新预设"
+          title="将当前填写的配置保存到配置列表"
           @click="handleSaveAsPreset"
         >
           <svg
@@ -151,7 +151,7 @@ const handleSaveAsPreset = () => {
               points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
             />
           </svg>
-          <span>存为预设</span>
+          <span>保存配置</span>
         </button>
       </div>
     </div>
@@ -211,7 +211,7 @@ const handleSaveAsPreset = () => {
 
       <!-- 操作按钮行 -->
       <div class="actions">
-        <!-- 1. 保存生效主按钮 -->
+        <!-- 1. 保存并使用主按钮 -->
         <button type="submit" class="btn btn-primary" :disabled="isLoading">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -228,35 +228,10 @@ const handleSaveAsPreset = () => {
             <polyline points="17 21 17 13 7 13 7 21" />
             <polyline points="7 3 7 8 15 8" />
           </svg>
-          <span>{{ isLoading ? '保存中...' : '保存并生效' }}</span>
+          <span>{{ isLoading ? '保存中...' : '保存并使用' }}</span>
         </button>
 
-        <!-- 2. 选择预设按钮 -->
-        <button
-          type="button"
-          class="btn btn-preset"
-          title="选择或切换已保存的中转站配置"
-          @click="emit('open-presets')"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect width="18" height="18" x="3" y="3" rx="2" />
-            <path d="M9 3v18" />
-            <path d="m14 9 3 3-3 3" />
-          </svg>
-          <span>配置库</span>
-        </button>
-
-        <!-- 3. 恢复默认按钮 -->
+        <!-- 2. 恢复默认按钮 -->
         <button
           type="button"
           class="btn btn-secondary"
@@ -270,7 +245,7 @@ const handleSaveAsPreset = () => {
 
       <!-- 底部提示信息 -->
       <div class="form-tip">
-        <span>💡 点击「配置库」可打开配置库一键切换，也可随时将当前输入「存为预设」</span>
+        <span>💡 点击「配置列表」可打开列表一键切换，也可随时将当前输入「保存配置」</span>
       </div>
     </form>
   </section>
@@ -486,21 +461,6 @@ const handleSaveAsPreset = () => {
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 14px rgba($accent-blue, 0.4);
-  }
-}
-
-.btn-preset {
-  background-color: rgba($accent-blue, 0.08);
-  border: 1px solid rgba($accent-blue, 0.25);
-  color: $accent-blue;
-  flex: 1.1;
-
-  &:hover {
-    background-color: rgba($accent-blue, 0.16);
-    border-color: rgba($accent-blue, 0.4);
-    color: #fff;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 10px rgba($accent-blue, 0.15);
   }
 }
 

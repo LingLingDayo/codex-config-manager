@@ -46,7 +46,7 @@ const handleApplyPreset = async (preset: PresetConfig) => {
   }
 };
 
-// 当前配置卡片点击“存为预设”
+// 当前配置卡片点击“保存配置”
 const handleSaveAsPreset = (data: { key: string; providerUrl: string }) => {
   if (!data.key.trim()) {
     showToast('请先在上方输入 API Key', 'error');

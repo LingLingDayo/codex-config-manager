@@ -69,7 +69,7 @@ onUnmounted(() => {
             <path d="M9 3v18" />
             <path d="m14 9 3 3-3 3" />
           </svg>
-          <h3>中转站配置库</h3>
+          <h3>中转站配置列表</h3>
         </div>
 
         <div class="header-actions">
