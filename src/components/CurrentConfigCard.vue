@@ -218,7 +218,7 @@ const handleSaveAsPreset = () => {
 
       <!-- 操作按钮行 -->
       <div class="actions">
-        <!-- 1. 保存并使用主按钮 -->
+        <!-- 1. 使用配置主按钮 -->
         <button type="submit" class="btn btn-primary" :disabled="isLoading">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -231,11 +231,10 @@ const handleSaveAsPreset = () => {
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <polyline points="17 21 17 13 7 13 7 21" />
-            <polyline points="7 3 7 8 15 8" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
           </svg>
-          <span>{{ isLoading ? '保存中...' : '保存并使用' }}</span>
+          <span>{{ isLoading ? '保存中...' : '使用配置' }}</span>
         </button>
 
         <!-- 2. 恢复默认按钮 -->
@@ -497,7 +496,7 @@ const handleSaveAsPreset = () => {
   color: #fff;
   border: none;
   box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
-  flex: 1.2;
+  flex: 2;
 
   &:hover {
     transform: translateY(-1px);
