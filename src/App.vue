@@ -49,7 +49,7 @@ const handleApplyPreset = async (preset: PresetConfig) => {
   }
   const success = await saveConfig(preset.key, preset.provider_url, preset.model);
   if (success) {
-    showToast(`已快捷切换至「${preset.name}」并生效！`);
+    showToast(`已快捷切换至「${preset.name}」并生效，请重新打开 Codex`);
   }
 };
 
