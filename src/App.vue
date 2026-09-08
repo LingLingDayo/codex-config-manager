@@ -14,6 +14,7 @@ import {
   DEFAULT_STATION_URL,
   isDefaultStation,
 } from './utils/format';
+import { APP_VERSION } from './constants/version';
 import type { PresetConfig, PresetFormData } from './types/config';
 
 const {
@@ -123,6 +124,9 @@ onMounted(async () => {
       />
     </main>
 
+    <!-- 右下角版本号展示 -->
+    <span class="app-version" :title="`当前版本: ${APP_VERSION}`">{{ APP_VERSION }}</span>
+
     <!-- 底部 Toast 提示 -->
     <ToastMessage />
 
@@ -154,6 +158,7 @@ onMounted(async () => {
 @use './styles/mixins' as *;
 
 .app-container {
+  position: relative;
   width: 100%;
   height: 100%;
   padding: 14px 18px 12px;
@@ -169,5 +174,24 @@ onMounted(async () => {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+.app-version {
+  position: fixed;
+  right: 14px;
+  bottom: 3px;
+  font-size: 10px;
+  line-height: 1;
+  font-family: $font-family-mono;
+  color: rgba(255, 255, 255, 0.22);
+  user-select: none;
+  cursor: default;
+  letter-spacing: 0.4px;
+  z-index: 10;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.45);
+  }
 }
 </style>
