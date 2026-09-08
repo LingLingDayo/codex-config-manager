@@ -8,7 +8,11 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "changelog:extract": "node scripts/extract-changelog.js"
+    "changelog:extract": "node scripts/extract-changelog.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:all": "npm run test && npm run test:rust"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",
@@ -17,9 +21,12 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2.2.0",
     "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.5.0",
+    "happy-dom": "^20.14.0",
     "sass": "^1.85.0",
     "typescript": "^5.7.3",
     "vite": "^6.1.0",
+    "vitest": "^5.0.0",
     "vue-tsc": "^2.2.0"
   }
 }
