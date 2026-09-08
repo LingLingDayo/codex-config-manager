@@ -1,26 +1,40 @@
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+---
 
 ## [0.2.0] - 2026-09-08
 
-### ✨ Features
-- ⚡ **当前生效配置管理**：支持实时展示与保存 Codex API Key、中转地址（Provider URL）与启用状态。
-- 📑 **多中转站预设管理**：支持自定义增删改查多个中转服务商预设，并支持一键应用覆写。
-- 🔄 **一键重置**：支持快速恢复 Codex 官方默认配置并重置鉴权信息。
-- 🛡️ **环境隔离**：区分开发与生产环境配置路径（`config.toml` 与 `config_dev.toml`），保障本地环境安全。
-- 🎨 **现代化 UI 设计**：基于 Vue 3 + Sass 构建的高质感卡片布局与平滑动画反馈。
+✨ Features
+feat: 支持多中转站配置预设管理与一键快捷切换
+feat: 支持通过环境变量配置默认中转站标识与真实地址
+feat: 默认预设支持展示完整中转站地址并兼容标识识别
+feat: 支持当前配置更多设置抽屉与自定义模型配置
+feat: 移除默认URL占位并在预设中新增LingAI选项
+feat: 在主窗口右下角展示轻量风格的版本号标记
 
-### 🔧 Improvements
-- 优化前端组件模块化与组合式函数状态管理架构。
-- 完善 Rust 端配置文件读写安全性与异常错误提示。
+⚡ Perf & Refactor
+refactor: 前端重构为Vue 3与TypeScript及Sass模块化架构
+refactor: 拆分后端lib.rs为模型与命令等多模块工程架构
+refactor: 将预设列表收纳至快捷入口并简化交互布局
+refactor: 将预设列表更名为配置库并移除数量徽标展示
+refactor: 调整配置列表与保存配置文案并精简操作按钮
+refactor: 移除抽屉自动聚焦并精简标题与提示属性
+
+🌈 UI & Style
+style: 调整主窗口为横向紧凑比例并消除底部留白
+style: 移除设置抽屉顶部指示条并调整整体内边距
+style: 优化模型标签说明文案与各配置项行高间距
+style: 更新主操作按钮文案为使用配置并采用箭头图标
+style: 调整当前配置卡片布局并将APIKey项移至BaseURL下方
+style: 移除交互元素悬浮时的位移动画与重阴影效果
+
+🔧 Fixes
+fix: 修复配置保存与恢复默认的多项边界处理缺陷
+fix: 修复Vite配置文件与TSConfig输入匹配问题
 
 ---
 
-## [0.1.0] - 2026-08-10
+## [0.1.0] - 2026-08-20
 
-### 🚀 Initial Release
-- 项目原型初始化与基础框架搭建。
+✨ Features
+feat: 初始化项目工程与基础配置管理框架
+
+---
