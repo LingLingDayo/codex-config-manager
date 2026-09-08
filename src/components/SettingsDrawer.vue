@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, nextTick, watch, ref } from 'vue';
+import { onMounted, onUnmounted } from 'vue';
 
 const props = defineProps<{
   visible: boolean;
@@ -10,19 +10,6 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
   (e: 'close'): void;
 }>();
-
-const inputRef = ref<HTMLInputElement | null>(null);
-
-watch(
-  () => props.visible,
-  (val) => {
-    if (val) {
-      nextTick(() => {
-        inputRef.value?.focus();
-      });
-    }
-  }
-);
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.visible) {
@@ -47,10 +34,15 @@ onUnmounted(() => {
           <!-- 抽屉设置项列表主体 -->
           <div class="drawer-content">
             <div class="setting-item">
-              <label for="custom-model-input">自定义模型 (Model)</label>
+              <label
+                for="custom-model-input"
+                class="setting-label"
+                title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
+              >
+                自定义模型
+              </label>
               <input
                 id="custom-model-input"
-                ref="inputRef"
                 :value="modelValue"
                 type="text"
                 placeholder="例如: gpt-5.6-sol"
@@ -129,11 +121,13 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 8px;
 
-  label {
+  .setting-label {
     font-size: 0.86rem;
     font-weight: 600;
     color: $text-main;
     letter-spacing: -0.1px;
+    cursor: help;
+    width: fit-content;
   }
 
   input {
