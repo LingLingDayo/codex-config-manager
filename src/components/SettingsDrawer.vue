@@ -31,6 +31,29 @@ onUnmounted(() => {
     <Transition name="drawer">
       <div v-if="visible" class="drawer-backdrop" @click.self="emit('close')">
         <div class="drawer-panel">
+          <!-- 右上角定位关闭按钮 -->
+          <button
+            type="button"
+            class="btn-drawer-close"
+            title="关闭 (Esc)"
+            @click="emit('close')"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+
           <!-- 抽屉设置项列表主体 -->
           <div class="drawer-content">
             <div class="setting-item">
@@ -39,7 +62,7 @@ onUnmounted(() => {
                 class="setting-label"
                 title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
               >
-                自定义模型
+                自定义模型 (Model)
               </label>
               <input
                 id="custom-model-input"
@@ -105,6 +128,28 @@ onUnmounted(() => {
   padding: 20px 22px;
   overflow: hidden;
   will-change: transform;
+}
+
+.btn-drawer-close {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  background: transparent;
+  border: none;
+  color: $text-muted;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: $border-radius-sm;
+  transition: all 0.2s ease;
+  z-index: 10;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: $text-main;
+  }
 }
 
 .drawer-content {

@@ -280,10 +280,7 @@ const handleSaveAsPreset = () => {
         </button>
       </div>
 
-      <!-- 底部提示信息 -->
-      <div class="form-tip">
-        <span>💡 点击「配置列表」可打开列表一键切换，也可随时将当前输入「保存配置」</span>
-      </div>
+
     </form>
 
     <!-- 底部向上弹出 80% 高度更多设置抽屉 -->
@@ -538,15 +535,5 @@ const handleSaveAsPreset = () => {
   }
 }
 
-.form-tip {
-  display: flex;
-  align-items: center;
-  padding-top: 2px;
 
-  span {
-    font-size: 0.72rem;
-    color: $text-dim;
-    line-height: 1.35;
-  }
-}
 </style>

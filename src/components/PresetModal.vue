@@ -323,6 +323,7 @@ onUnmounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  line-height: 1.5;
   margin-bottom: 2px;
 }
 
