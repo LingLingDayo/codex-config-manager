@@ -2,6 +2,7 @@ export interface CodexConfig {
   key: string;
   provider_url: string;
   is_enabled: boolean;
+  model?: string;
 }
 
 export interface PresetConfig {
@@ -9,6 +10,7 @@ export interface PresetConfig {
   name: string;
   key: string;
   provider_url: string;
+  model?: string;
   updated_at?: number;
 }
 
@@ -25,4 +27,5 @@ export interface PresetFormData {
   name: string;
   provider_url: string;
   key: string;
+  model?: string;
 }

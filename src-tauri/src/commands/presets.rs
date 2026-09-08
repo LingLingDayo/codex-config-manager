@@ -14,6 +14,7 @@ pub fn default_presets() -> Vec<PresetConfig> {
         name: format!("{} (推荐)", name),
         key: "".to_string(),
         provider_url: url,
+        model: "".to_string(),
         updated_at: None,
     }]
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import SettingsDrawer from './SettingsDrawer.vue';
 import type { CodexConfig } from '../types/config';
 import {
   DEFAULT_STATION_NAME,
@@ -15,15 +16,17 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'save-config', data: { key: string; providerUrl: string }): void;
+  (e: 'save-config', data: { key: string; providerUrl: string; model?: string }): void;
   (e: 'restore-default'): void;
-  (e: 'save-as-preset', data: { key: string; providerUrl: string }): void;
+  (e: 'save-as-preset', data: { key: string; providerUrl: string; model?: string }): void;
   (e: 'open-presets'): void;
 }>();
 
 const apiKey = ref<string>('');
 const providerUrl = ref<string>('');
+const customModel = ref<string>('');
 const showKey = ref<boolean>(false);
+const isDrawerOpen = ref<boolean>(false);
 
 // 同步外部配置
 watch(
@@ -33,6 +36,7 @@ watch(
     providerUrl.value = isDefaultStation(newVal.provider_url)
       ? DEFAULT_STATION_URL
       : newVal.provider_url;
+    customModel.value = newVal.model || '';
   },
   { immediate: true, deep: true }
 );
@@ -52,10 +56,12 @@ const handleSave = () => {
   emit('save-config', {
     key: apiKey.value,
     providerUrl: providerUrl.value,
+    model: customModel.value,
   });
 };
 
 const handleRestore = () => {
+  customModel.value = '';
   emit('restore-default');
 };
 
@@ -63,6 +69,7 @@ const handleSaveAsPreset = () => {
   emit('save-as-preset', {
     key: apiKey.value,
     providerUrl: providerUrl.value,
+    model: customModel.value,
   });
 };
 </script>
@@ -241,6 +248,36 @@ const handleSaveAsPreset = () => {
         >
           恢复默认
         </button>
+
+        <!-- 3. 更多设置按钮 (放到 恢复默认 的边上) -->
+        <button
+          type="button"
+          class="btn btn-secondary btn-more"
+          title="更多设置（自定义模型等）"
+          :disabled="isLoading"
+          @click="isDrawerOpen = true"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="4" x2="20" y1="21" y2="21" />
+            <line x1="4" x2="20" y1="3" y2="3" />
+            <line x1="12" x2="20" y1="12" y2="12" />
+            <line x1="4" x2="8" y1="12" y2="12" />
+            <circle cx="8" cy="12" r="2" />
+            <circle cx="14" cy="3" r="2" />
+            <circle cx="16" cy="21" r="2" />
+          </svg>
+          <span>更多设置</span>
+        </button>
       </div>
 
       <!-- 底部提示信息 -->
@@ -248,6 +285,13 @@ const handleSaveAsPreset = () => {
         <span>💡 点击「配置列表」可打开列表一键切换，也可随时将当前输入「保存配置」</span>
       </div>
     </form>
+
+    <!-- 底部向上弹出 80% 高度更多设置抽屉 -->
+    <SettingsDrawer
+      :visible="isDrawerOpen"
+      v-model="customModel"
+      @close="isDrawerOpen = false"
+    />
   </section>
 </template>
 
@@ -456,7 +500,7 @@ const handleSaveAsPreset = () => {
   color: #fff;
   border: none;
   box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
-  flex: 1.3;
+  flex: 1.2;
 
   &:hover {
     transform: translateY(-1px);
@@ -474,6 +518,23 @@ const handleSaveAsPreset = () => {
     border-color: rgba(255, 255, 255, 0.2);
     color: $text-main;
     background-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.btn-more {
+  flex: 0.85;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  svg {
+    color: $accent-blue;
+    transition: transform 0.25s ease;
+  }
+
+  &:hover svg {
+    transform: rotate(30deg);
   }
 }
 

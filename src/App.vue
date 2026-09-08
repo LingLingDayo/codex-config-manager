@@ -16,7 +16,13 @@ import {
 } from './utils/format';
 import type { PresetConfig, PresetFormData } from './types/config';
 
-const { currentConfig, isLoading, loadConfig, saveConfig, restoreDefault } = useCodexConfig();
+const {
+  currentConfig,
+  isLoading,
+  loadConfig,
+  saveConfig,
+  restoreDefault,
+} = useCodexConfig();
 const { presets, loadPresets, saveOrUpdatePreset, deletePreset, isPresetActive } = usePresets();
 const { showToast } = useToast();
 
@@ -40,14 +46,14 @@ const handleApplyPreset = async (preset: PresetConfig) => {
     handleEditPreset(preset);
     return;
   }
-  const success = await saveConfig(preset.key, preset.provider_url);
+  const success = await saveConfig(preset.key, preset.provider_url, preset.model);
   if (success) {
     showToast(`已快捷切换至「${preset.name}」并生效！`);
   }
 };
 
 // 当前配置卡片点击“保存配置”
-const handleSaveAsPreset = (data: { key: string; providerUrl: string }) => {
+const handleSaveAsPreset = (data: { key: string; providerUrl: string; model?: string }) => {
   if (!data.key.trim()) {
     showToast('请先在上方输入 API Key', 'error');
     return;
@@ -59,6 +65,7 @@ const handleSaveAsPreset = (data: { key: string; providerUrl: string }) => {
     name: isDefault ? `${DEFAULT_STATION_NAME} 常用配置` : (data.providerUrl ? '中转站配置' : ''),
     provider_url: isDefault ? DEFAULT_STATION_URL : (data.providerUrl || ''),
     key: data.key,
+    model: data.model || '',
   };
   isModalVisible.value = true;
 };
@@ -78,6 +85,7 @@ const handleEditPreset = (preset: PresetConfig) => {
     name: preset.name,
     provider_url: isDefaultStation(preset.provider_url) ? DEFAULT_STATION_URL : preset.provider_url,
     key: preset.key,
+    model: preset.model || '',
   };
   isModalVisible.value = true;
 };
@@ -108,7 +116,7 @@ onMounted(async () => {
         :is-loading="isLoading"
         :presets-count="presets.length"
         :active-preset-name="activePreset?.name"
-        @save-config="(data) => saveConfig(data.key, data.providerUrl)"
+        @save-config="(data) => saveConfig(data.key, data.providerUrl, data.model)"
         @restore-default="restoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"
