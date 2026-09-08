@@ -166,6 +166,19 @@ const handleSaveAsPreset = () => {
     <!-- 表单主体 -->
     <form class="config-form" @submit.prevent="handleSave">
       <div class="input-group">
+        <label for="provider-url">模型提供商 (Base URL)</label>
+        <input
+          id="provider-url"
+          v-model="providerUrl"
+          type="text"
+          :placeholder="`例如：${DEFAULT_STATION_URL} 或输入 '${DEFAULT_STATION_NAME}' 自动填充`"
+          required
+          autocomplete="off"
+          @input="handleProviderInput"
+        />
+      </div>
+
+      <div class="input-group">
         <div class="input-label-row">
           <label for="api-key">API Key</label>
         </div>
@@ -201,19 +214,6 @@ const handleSaveAsPreset = () => {
             </svg>
           </button>
         </div>
-      </div>
-
-      <div class="input-group">
-        <label for="provider-url">模型提供商 (Base URL)</label>
-        <input
-          id="provider-url"
-          v-model="providerUrl"
-          type="text"
-          :placeholder="`例如：${DEFAULT_STATION_URL} 或输入 '${DEFAULT_STATION_NAME}' 自动填充`"
-          required
-          autocomplete="off"
-          @input="handleProviderInput"
-        />
       </div>
 
       <!-- 操作按钮行 -->
