@@ -261,23 +261,23 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 16px;
+  padding: 10px;
   animation: fadeIn 0.2s ease forwards;
 }
 
 .modal-dialog {
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   background: $bg-tertiary;
   border: 1px solid $border-card;
   border-radius: $border-radius-xl;
-  padding: 18px 20px 16px;
+  padding: 12px 16px 10px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
   animation: scaleIn 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  max-height: 85vh;
+  max-height: calc(100vh - 20px);
 }
 
 .modal-header {

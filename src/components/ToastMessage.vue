@@ -17,15 +17,19 @@ const { message, type, visible } = useToast();
 @use '../styles/animations' as *;
 
 .app-footer {
-  position: relative;
-  min-height: 24px;
+  position: fixed;
+  bottom: 18px;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-shrink: 0;
+  pointer-events: none;
+  z-index: 999;
 }
 
 .toast {
+  pointer-events: auto;
   background-color: $bg-tertiary;
   border: 1px solid $border-color;
   padding: 5px 14px;

@@ -283,11 +283,13 @@ const handleSaveAsPreset = () => {
 
 .config-card {
   @include glass-card;
-  padding: 18px 20px;
+  padding: 14px 18px 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  flex-shrink: 0;
+  justify-content: space-between;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .card-header {
@@ -297,7 +299,7 @@ const handleSaveAsPreset = () => {
   flex-wrap: wrap;
   gap: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 12px;
+  padding-bottom: 8px;
 }
 
 .card-title-group {
@@ -404,23 +406,25 @@ const handleSaveAsPreset = () => {
 .config-form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  flex: 1;
+  justify-content: space-between;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 
   label {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: $text-muted;
   }
 
   input[type='text'] {
     @include input-base;
-    padding: 9px 12px;
+    padding: 8px 12px;
   }
 }
 
@@ -430,7 +434,7 @@ const handleSaveAsPreset = () => {
 
   input {
     @include input-base;
-    padding: 9px 36px 9px 12px;
+    padding: 8px 36px 8px 12px;
   }
 }
 
@@ -464,12 +468,12 @@ const handleSaveAsPreset = () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .btn {
   @include button-base;
-  padding: 9px 14px;
+  padding: 8px 12px;
   white-space: nowrap;
 }
 
@@ -517,12 +521,12 @@ const handleSaveAsPreset = () => {
 .form-tip {
   display: flex;
   align-items: center;
-  padding-top: 4px;
+  padding-top: 2px;
 
   span {
     font-size: 0.72rem;
     color: $text-dim;
-    line-height: 1.4;
+    line-height: 1.35;
   }
 }
 </style>

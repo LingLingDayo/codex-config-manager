@@ -148,10 +148,10 @@ onMounted(async () => {
 .app-container {
   width: 100%;
   height: 100%;
-  padding: 20px 22px 16px;
+  padding: 14px 18px 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   overflow: hidden;
 }
 
@@ -159,11 +159,7 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 14px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 2px;
-  @include custom-scrollbar;
+  min-height: 0;
+  overflow: hidden;
 }
 </style>
