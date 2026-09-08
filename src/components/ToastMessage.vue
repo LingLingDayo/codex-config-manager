@@ -5,27 +5,27 @@ const { message, type, visible } = useToast();
 </script>
 
 <template>
-  <footer class="app-footer">
+  <div class="toast-container">
     <div class="toast" :class="[type, { hidden: !visible }]">
       <span>{{ message }}</span>
     </div>
-  </footer>
+  </div>
 </template>
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
 @use '../styles/animations' as *;
 
-.app-footer {
+.toast-container {
   position: fixed;
-  bottom: 18px;
+  top: 14px;
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   pointer-events: none;
-  z-index: 999;
+  z-index: 2000;
 }
 
 .toast {
@@ -37,6 +37,7 @@ const { message, type, visible } = useToast();
   font-size: 0.76rem;
   font-weight: 500;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -49,7 +50,7 @@ const { message, type, visible } = useToast();
 
   &.hidden {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(-8px);
     pointer-events: none;
   }
 

@@ -127,7 +127,7 @@ onMounted(async () => {
     <!-- 右下角版本号展示 -->
     <span class="app-version" :title="`当前版本: ${APP_VERSION}`">{{ APP_VERSION }}</span>
 
-    <!-- 底部 Toast 提示 -->
+    <!-- 顶部 Toast 提示 -->
     <ToastMessage />
 
     <!-- 中转站预设配置列表轻量弹窗 -->
