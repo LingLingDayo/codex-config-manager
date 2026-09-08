@@ -68,3 +68,19 @@ pub fn save_presets(presets: Vec<PresetConfig>) -> Result<(), String> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_presets() {
+        let presets = default_presets();
+        assert_eq!(presets.len(), 1);
+        assert_eq!(presets[0].id, "preset_default_station");
+        assert!(presets[0].name.contains("(推荐)"));
+        assert_eq!(presets[0].provider_url, get_default_station_url());
+        assert_eq!(presets[0].key, "");
+    }
+}
+
