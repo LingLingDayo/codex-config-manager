@@ -70,7 +70,6 @@ onUnmounted(() => {
             <path d="m14 9 3 3-3 3" />
           </svg>
           <h3>中转站配置库</h3>
-          <span class="count-badge">{{ presets.length }}</span>
         </div>
 
         <div class="header-actions">

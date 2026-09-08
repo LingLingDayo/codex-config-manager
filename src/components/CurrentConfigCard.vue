@@ -126,8 +126,7 @@ const handleSaveAsPreset = () => {
             <path d="M9 3v18" />
             <path d="m14 9 3 3-3 3" />
           </svg>
-          <span>预设列表</span>
-          <span v-if="presetsCount !== undefined" class="header-count-pill">{{ presetsCount }}</span>
+          <span>配置库</span>
         </button>
 
         <!-- 存为预设 -->
@@ -254,7 +253,7 @@ const handleSaveAsPreset = () => {
             <path d="M9 3v18" />
             <path d="m14 9 3 3-3 3" />
           </svg>
-          <span>选择预设 ({{ presetsCount ?? 0 }})</span>
+          <span>配置库</span>
         </button>
 
         <!-- 3. 恢复默认按钮 -->
@@ -271,7 +270,7 @@ const handleSaveAsPreset = () => {
 
       <!-- 底部提示信息 -->
       <div class="form-tip">
-        <span>💡 点击「选择预设」可打开配置库一键切换，也可随时将当前输入「存为预设」</span>
+        <span>💡 点击「配置库」可打开配置库一键切换，也可随时将当前输入「存为预设」</span>
       </div>
     </form>
   </section>

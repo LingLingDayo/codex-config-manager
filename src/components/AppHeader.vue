@@ -48,7 +48,6 @@ defineProps<{
   height: 34px;
   object-fit: contain;
   border-radius: $border-radius-md;
-  filter: drop-shadow(0 2px 8px rgba($accent-blue, 0.3));
 }
 
 .title-group {
