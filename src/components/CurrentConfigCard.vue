@@ -307,8 +307,8 @@ const handleSaveAsPreset = () => {
         <button
           type="button"
           class="btn btn-secondary btn-icon btn-restore"
-          title="回复默认配置"
-          aria-label="回复默认配置"
+          title="恢复默认配置"
+          aria-label="恢复默认配置"
           :disabled="isLoading"
           @click="handleRestore"
         >

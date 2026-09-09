@@ -50,7 +50,7 @@ describe('CurrentConfigCard.vue component', () => {
 
     const launchBtn = wrapper.find('.btn-launch');
     expect(launchBtn.exists()).toBe(true);
-    expect(launchBtn.text()).toContain('启动Codex');
+    expect(launchBtn.text()).toContain('启动 Codex');
     expect(launchBtn.attributes('title')).toBe('以当前配置启动Codex/ChatGPT');
 
     await launchBtn.trigger('click');
@@ -85,7 +85,7 @@ describe('CurrentConfigCard.vue component', () => {
     expect(moreBtn.attributes('title')).toBe('更多配置');
   });
 
-  it('恢复默认按钮仅为图标，且具备回复默认配置 hover 提示与触发 restore-default', async () => {
+  it('恢复默认按钮仅为图标，且具备恢复默认配置 hover 提示与触发 restore-default', async () => {
     const wrapper = mount(CurrentConfigCard, {
       props: {
         config: mockConfig,
@@ -96,7 +96,7 @@ describe('CurrentConfigCard.vue component', () => {
     const restoreBtn = wrapper.find('.btn-restore');
     expect(restoreBtn.exists()).toBe(true);
     expect(restoreBtn.text()).toBe(''); // 纯图标无文字
-    expect(restoreBtn.attributes('title')).toBe('回复默认配置');
+    expect(restoreBtn.attributes('title')).toBe('恢复默认配置');
 
     await restoreBtn.trigger('click');
     expect(wrapper.emitted('restore-default')).toBeTruthy();
