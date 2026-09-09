@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src=".temp/pic.png" alt="Codex 配置助手界面预览" width="560" />
+  <img src="assets/preview.png" alt="Codex 配置助手界面预览" width="560" />
 </p>
 
 ---
