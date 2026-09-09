@@ -237,17 +237,16 @@ const handleSaveAsPreset = () => {
         <button type="submit" class="btn btn-primary" :disabled="isLoading">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="15"
-            height="15"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="2.5"
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
+            <polyline points="20 6 9 17 4 12" />
           </svg>
           <span>{{ isLoading ? '保存中...' : '保存配置' }}</span>
         </button>
@@ -269,9 +268,9 @@ const handleSaveAsPreset = () => {
             fill="currentColor"
             class="launch-icon"
           >
-            <polygon points="6 3 20 12 6 21 6 3" />
+            <polygon points="5 3 19 12 5 21 5 3" />
           </svg>
-          <span class="launch-text">{{ isLaunching ? '重启中...' : '启动' }}</span>
+          <span class="launch-text">{{ isLaunching ? '重启中...' : '启动Codex' }}</span>
         </button>
 
         <!-- 3. 更多配置按钮 (纯图标) -->
@@ -537,16 +536,33 @@ const handleSaveAsPreset = () => {
 
 .btn {
   @include button-base;
-  padding: 8px 12px;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0 12px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border: 1px solid transparent;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
 }
 
 .btn-primary {
   background: $accent-gradient;
   color: #fff;
-  border: none;
+  border: 1px solid transparent;
   box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
-  flex: 1.2;
+  flex: 1;
 
   &:hover:not(:disabled) {
     filter: brightness(1.08);
@@ -554,20 +570,20 @@ const handleSaveAsPreset = () => {
 }
 
 .btn-launch {
-  background: rgba($accent-blue, 0.12);
-  border: 1px solid rgba($accent-blue, 0.35);
-  color: $accent-blue;
+  background: $accent-gradient;
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
   flex: 1;
 
   .launch-icon {
+    fill: #ffffff;
     transition: transform 0.2s ease;
   }
 
   &:hover:not(:disabled) {
-    background: rgba($accent-blue, 0.22);
-    border-color: $accent-blue;
-    color: #ffffff;
-    box-shadow: 0 2px 12px rgba($accent-blue, 0.25);
+    filter: brightness(1.08);
+    box-shadow: 0 3px 14px rgba($accent-blue, 0.35);
 
     .launch-icon {
       transform: scale(1.1);
@@ -575,8 +591,10 @@ const handleSaveAsPreset = () => {
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: wait;
+    filter: none;
+    box-shadow: none;
   }
 
   &.launching .launch-icon {

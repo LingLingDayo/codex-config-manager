@@ -50,7 +50,7 @@ describe('CurrentConfigCard.vue component', () => {
 
     const launchBtn = wrapper.find('.btn-launch');
     expect(launchBtn.exists()).toBe(true);
-    expect(launchBtn.text()).toContain('启动');
+    expect(launchBtn.text()).toContain('启动Codex');
     expect(launchBtn.attributes('title')).toBe('以当前配置启动Codex/ChatGPT');
 
     await launchBtn.trigger('click');
