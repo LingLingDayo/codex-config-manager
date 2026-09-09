@@ -544,24 +544,28 @@ const handleSaveAsPreset = () => {
   align-items: center;
   justify-content: center;
   line-height: 1;
-  border: 1px solid transparent;
+  border: none;
+  outline: none;
 
   span {
     display: inline-flex;
     align-items: center;
     line-height: 1;
+    transform: translateY(1px);
   }
 
   svg {
     flex-shrink: 0;
+    transform: translateY(1px);
   }
 }
 
 .btn-primary {
   background: $accent-gradient;
   color: #fff;
-  border: 1px solid transparent;
-  box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
+  border: none;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 4px rgba($accent-blue, 0.2);
   flex: 1;
 
   &:hover:not(:disabled) {
@@ -572,8 +576,9 @@ const handleSaveAsPreset = () => {
 .btn-launch {
   background: $accent-gradient;
   color: #ffffff;
-  border: 1px solid transparent;
-  box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
+  border: none;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 4px rgba($accent-blue, 0.2);
   flex: 1;
 
   .launch-icon {
@@ -583,7 +588,7 @@ const handleSaveAsPreset = () => {
 
   &:hover:not(:disabled) {
     filter: brightness(1.08);
-    box-shadow: 0 3px 14px rgba($accent-blue, 0.35);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35), 0 2px 6px rgba($accent-blue, 0.25);
 
     .launch-icon {
       transform: scale(1.1);
@@ -604,7 +609,7 @@ const handleSaveAsPreset = () => {
 
 .btn-secondary {
   background-color: rgba(255, 255, 255, 0.04);
-  border-color: $border-color;
+  border: 1px solid $border-color;
   color: $text-muted;
 
   &:hover:not(:disabled) {
@@ -627,6 +632,7 @@ const handleSaveAsPreset = () => {
   svg {
     color: $text-muted;
     transition: color 0.2s ease;
+    transform: none;
   }
 
   &:hover:not(:disabled) svg {
