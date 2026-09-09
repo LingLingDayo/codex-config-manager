@@ -68,52 +68,15 @@
 
 ```text
 codex-config-manager/
-├── src/                          # 前端源码
-│   ├── assets/                   # 静态图标与多平台资源
-│   ├── components/               # Vue 业务组件
-│   │   ├── config/               # 生效配置卡片子组件
-│   │   │   ├── ConfigCardHeader.vue  # 配置卡片头部
-│   │   │   └── ConfigCardActions.vue # 启动与保存操作栏
-│   │   ├── settings/             # 通用设置控件与弹窗
-│   │   │   ├── SettingItem.vue       # 表单项通用容器
-│   │   │   ├── SettingInput.vue      # 文本输入框
-│   │   │   ├── SettingSwitch.vue     # 开关控件
-│   │   │   ├── SettingPathPicker.vue # 物理路径选择器
-│   │   │   └── SettingsModal.vue     # 全屏设置弹窗
-│   │   ├── AppHeader.vue         # 顶部标题栏与快捷入口
-│   │   ├── ConfigDrawer.vue      # 80% 高度扩展配置抽屉
-│   │   ├── ConfirmModal.vue      # 通用二次确认弹窗
-│   │   ├── CurrentConfigCard.vue # 生效配置主卡片
-│   │   ├── PresetListModal.vue   # 中转配置库列表
-│   │   ├── PresetModal.vue       # 预设编辑与新增弹窗
-│   │   └── ToastMessage.vue      # 顶部居中轻提示
-│   ├── composables/              # 组合式函数 (状态切片)
-│   │   ├── useCodexConfig.ts     # 生效配置核心逻辑
-│   │   ├── useConfirm.ts         # 确认弹窗调度
-│   │   ├── usePresets.ts         # 预设库持久化与切换
-│   │   ├── useSettings.ts        # 全局设置与进程启动
-│   │   └── useToast.ts           # 全局提示管理
-│   ├── constants/                # 常量定义 (如 APP_VERSION)
-│   ├── styles/                   # SCSS 样式变量、动画与混入
-│   ├── types/                    # TypeScript 类型定义
-│   ├── utils/                    # 剪贴板与字符串格式化工具
-│   ├── App.vue                   # 根组件
-│   └── main.ts                   # 前端入口文件
-├── src-tauri/                    # Tauri / Rust 后端源码
-│   ├── src/
-│   │   ├── commands/             # IPC 通信指令模块
-│   │   │   ├── config.rs         # 配置读写与 TOML 修补指令
-│   │   │   ├── presets.rs        # 预设方案持久化指令
-│   │   │   └── settings.rs       # 进程探测拉起与设置指令
-│   │   ├── models.rs             # 数据结构定义与序列化
-│   │   ├── utils.rs              # 路径解析、系统进程管理工具
-│   │   ├── lib.rs                # Tauri 插件注册与命令分发
-│   │   └── main.rs               # 后端主入口
-│   ├── capabilities/             # Tauri 权限策略
-│   ├── tauri.conf.json           # Tauri 应用配置 (窗口尺寸、标识等)
-│   └── Cargo.toml                # Rust 依赖声明
-├── package.json
-└── vite.config.ts
+├── src/                          # 前端源码 (Vue 3 + TypeScript + Sass)
+│   ├── components/               # 配置卡片、设置弹窗等 UI 组件
+│   ├── composables/              # 配置读写、预设管理与进程调度逻辑
+│   └── styles/                   # 极简暗黑主题与全局样式
+├── src-tauri/                    # 桌面端后端 (Tauri 2 + Rust)
+│   ├── src/                      # 系统进程探测、TOML 安全修补与 IPC 指令
+│   └── tauri.conf.json           # 桌面端窗口与权限配置
+├── scripts/                      # 发布自动化与日志解析脚本
+└── assets/                       # 项目预览与展示资源
 ```
 
 ---
