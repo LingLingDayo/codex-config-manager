@@ -13,6 +13,10 @@
   <img src="https://img.shields.io/badge/License-MIT-green" alt="License" />
 </p>
 
+<p align="center">
+  <img src=".temp/pic.png" alt="Codex 配置助手界面预览" width="560" />
+</p>
+
 ---
 
 ## 📖 项目简介
