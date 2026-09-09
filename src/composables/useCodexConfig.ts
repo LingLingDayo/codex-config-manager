@@ -69,7 +69,8 @@ export function useCodexConfig() {
   const saveConfig = async (
     key: string,
     providerUrl: string,
-    model?: string
+    model?: string,
+    options?: { silent?: boolean }
   ): Promise<boolean> => {
     const trimmedKey = key.trim();
     const trimmedUrl = providerUrl.trim();
@@ -96,7 +97,9 @@ export function useCodexConfig() {
       }
 
       localStorage.setItem(CODEX_CONFIG_STORAGE_KEY, JSON.stringify(currentConfig));
-      showToast('配置保存成功，请重启 Codex 以使用新配置');
+      if (!options?.silent) {
+        showToast('配置保存成功，请重启 Codex 以使用新配置');
+      }
       return true;
     } catch (err) {
       showToast(`保存失败: ${err}`, 'error');

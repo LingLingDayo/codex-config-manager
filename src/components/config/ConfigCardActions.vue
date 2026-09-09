@@ -43,7 +43,7 @@ const emit = defineEmits<{
       class="btn btn-launch"
       :class="{ launching: isLaunching }"
       :disabled="isLoading || isLaunching"
-      title="以当前配置启动Codex/ChatGPT"
+      title="保存当前配置并启动 Codex/ChatGPT"
       @click="emit('launch')"
     >
       <svg

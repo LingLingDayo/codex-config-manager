@@ -88,6 +88,19 @@ describe('useCodexConfig composable', () => {
       expect(currentConfig.model).toBe('gpt-4o');
       expect(localStorage.getItem('codex_current_config')).toBeTruthy();
     });
+
+    it('当传入 options.silent 为 true 时应成功保存且静默', async () => {
+      (window as any).__TAURI_INTERNALS__ = {};
+      mockedInvoke.mockResolvedValueOnce(undefined);
+
+      const { currentConfig, saveConfig } = useCodexConfig();
+      const success = await saveConfig('sk-silent-key', 'https://api.openai.com/v1', 'gpt-4o', {
+        silent: true,
+      });
+
+      expect(success).toBe(true);
+      expect(currentConfig.key).toBe('sk-silent-key');
+    });
   });
 
   describe('saveModel', () => {

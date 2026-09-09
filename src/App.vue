@@ -77,6 +77,30 @@ const handleRestoreDefault = async () => {
   }
 };
 
+// 保存当前配置并启动应用
+const handleLaunchApp = async (data?: { key: string; providerUrl: string; model?: string }) => {
+  if (isLaunching.value) return;
+
+  if (data) {
+    const trimmedKey = data.key.trim();
+    const trimmedUrl = data.providerUrl.trim();
+
+    // 若 Key 与 URL 均为空且当前处于官方默认登录模式（未启用中转），直接启动
+    if (!trimmedKey && !trimmedUrl && !currentConfig.is_enabled) {
+      await launchApp();
+      return;
+    }
+
+    // 先保存当前填写的配置（静默成功 Toast，避免与启动 Toast 冲突）
+    const saveSuccess = await saveConfig(data.key, data.providerUrl, data.model, { silent: true });
+    if (!saveSuccess) {
+      return;
+    }
+  }
+
+  await launchApp();
+};
+
 // 当前配置卡片点击“保存配置”
 const handleSaveAsPreset = (data: { key: string; providerUrl: string; model?: string }) => {
   if (!data.key.trim()) {
@@ -149,7 +173,7 @@ onMounted(async () => {
         @restore-default="handleRestoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"
-        @launch-app="launchApp"
+        @launch-app="handleLaunchApp"
       />
     </main>
 

@@ -21,6 +21,7 @@ describe('ConfigCardActions.vue component', () => {
 
     expect(launchBtn.exists()).toBe(true);
     expect(launchBtn.text()).toContain('启动 Codex');
+    expect(launchBtn.attributes('title')).toBe('保存当前配置并启动 Codex/ChatGPT');
 
     expect(moreBtn.exists()).toBe(true);
     expect(moreBtn.attributes('title')).toBe('更多配置');

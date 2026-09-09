@@ -29,7 +29,7 @@ const emit = defineEmits<{
   (e: 'restore-default'): void;
   (e: 'save-as-preset', data: { key: string; providerUrl: string; model?: string }): void;
   (e: 'open-presets'): void;
-  (e: 'launch-app'): void;
+  (e: 'launch-app', data?: { key: string; providerUrl: string; model?: string }): void;
 }>();
 
 const apiKey = ref<string>('');
@@ -80,6 +80,14 @@ const handleSave = () => {
 
 const handleRestore = () => {
   emit('restore-default');
+};
+
+const handleLaunch = () => {
+  emit('launch-app', {
+    key: apiKey.value,
+    providerUrl: providerUrl.value,
+    model: customModel.value,
+  });
 };
 
 const handleSaveAsPreset = () => {
@@ -157,7 +165,7 @@ const handleSaveAsPreset = () => {
       <ConfigCardActions
         :is-loading="isLoading"
         :is-launching="isLaunching"
-        @launch="emit('launch-app')"
+        @launch="handleLaunch"
         @open-drawer="openConfigDrawer"
         @restore="handleRestore"
       />

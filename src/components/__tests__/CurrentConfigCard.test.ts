@@ -51,10 +51,15 @@ describe('CurrentConfigCard.vue component', () => {
     const launchBtn = wrapper.find('.btn-launch');
     expect(launchBtn.exists()).toBe(true);
     expect(launchBtn.text()).toContain('启动 Codex');
-    expect(launchBtn.attributes('title')).toBe('以当前配置启动Codex/ChatGPT');
+    expect(launchBtn.attributes('title')).toBe('保存当前配置并启动 Codex/ChatGPT');
 
     await launchBtn.trigger('click');
     expect(wrapper.emitted('launch-app')).toBeTruthy();
+    expect(wrapper.emitted('launch-app')?.[0]?.[0]).toEqual({
+      key: mockConfig.key,
+      providerUrl: mockConfig.provider_url,
+      model: mockConfig.model,
+    });
   });
 
   it('isLaunching 为 true 时启动按钮处于禁用状态且文案变为重启中', () => {
