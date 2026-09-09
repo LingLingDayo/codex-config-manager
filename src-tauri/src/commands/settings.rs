@@ -147,44 +147,30 @@ pub fn pick_codex_path() -> Result<Option<String>, String> {
     }
 }
 
-/// 检查 ChatGPT / Codex 进程是否正在运行
-fn is_codex_running() -> bool {
+/// 检查指定可执行程序是否正在运行
+fn check_process_running(exe_name: &str) -> bool {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-        let output = std::process::Command::new("cmd")
-            .args(["/C", "tasklist /FI \"IMAGENAME eq ChatGPT.exe\" /NH"])
+        let filter = format!("IMAGENAME eq {}", exe_name);
+        let output = std::process::Command::new("tasklist")
+            .args(["/FI", &filter, "/NH"])
             .creation_flags(CREATE_NO_WINDOW)
             .output();
 
         if let Ok(out) = output {
             let text = String::from_utf8_lossy(&out.stdout).to_lowercase();
-            if text.contains("chatgpt.exe") {
-                return true;
-            }
+            return text.contains(&exe_name.to_lowercase());
         }
-
-        let output_codex = std::process::Command::new("cmd")
-            .args(["/C", "tasklist /FI \"IMAGENAME eq Codex.exe\" /NH"])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output();
-
-        if let Ok(out) = output_codex {
-            let text = String::from_utf8_lossy(&out.stdout).to_lowercase();
-            if text.contains("codex.exe") {
-                return true;
-            }
-        }
-
         false
     }
 
     #[cfg(not(windows))]
     {
-        let output = std::process::Command::new("sh")
-            .args(["-c", "pgrep -i chatgpt || pgrep -i codex"])
+        let output = std::process::Command::new("pgrep")
+            .args(["-i", "-f", exe_name])
             .output();
         if let Ok(out) = output {
             !out.stdout.is_empty()
@@ -194,32 +180,54 @@ fn is_codex_running() -> bool {
     }
 }
 
+/// 检查 ChatGPT / Codex 进程是否正在运行
+fn is_codex_running(custom_exe: Option<&str>) -> bool {
+    if check_process_running("ChatGPT.exe") || check_process_running("Codex.exe") {
+        return true;
+    }
+    if let Some(exe) = custom_exe {
+        if !exe.eq_ignore_ascii_case("ChatGPT.exe") && !exe.eq_ignore_ascii_case("Codex.exe") {
+            if check_process_running(exe) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 /// 强制终止 ChatGPT / Codex 进程
-fn kill_codex_processes() {
+fn kill_codex_processes(custom_exe: Option<&str>) {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-        let _ = std::process::Command::new("taskkill")
-            .args(["/F", "/T", "/IM", "ChatGPT.exe"])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output();
+        let mut targets = vec!["ChatGPT.exe", "Codex.exe"];
+        if let Some(exe) = custom_exe {
+            if !exe.eq_ignore_ascii_case("ChatGPT.exe") && !exe.eq_ignore_ascii_case("Codex.exe") {
+                targets.push(exe);
+            }
+        }
 
-        let _ = std::process::Command::new("taskkill")
-            .args(["/F", "/T", "/IM", "Codex.exe"])
-            .creation_flags(CREATE_NO_WINDOW)
-            .output();
+        for target in targets {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/T", "/IM", target])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output();
+        }
     }
 
     #[cfg(not(windows))]
     {
-        let _ = std::process::Command::new("pkill")
-            .args(["-f", "ChatGPT"])
-            .output();
-        let _ = std::process::Command::new("pkill")
-            .args(["-f", "Codex"])
-            .output();
+        let mut targets = vec!["ChatGPT", "Codex"];
+        if let Some(exe) = custom_exe {
+            targets.push(exe);
+        }
+        for target in targets {
+            let _ = std::process::Command::new("pkill")
+                .args(["-f", target])
+                .output();
+        }
     }
 }
 
@@ -231,9 +239,8 @@ fn spawn_target(target: &str) -> Result<(), String> {
         const DETACHED_PROCESS: u32 = 0x00000008;
 
         if target.starts_with("shell:AppsFolder\\") {
-            std::process::Command::new("cmd")
-                .args(["/C", "start", "", target])
-                .creation_flags(DETACHED_PROCESS)
+            std::process::Command::new("explorer")
+                .arg(target)
                 .spawn()
                 .map_err(|e| format!("启动应用失败: {}", e))?;
         } else {
@@ -267,14 +274,27 @@ fn spawn_target(target: &str) -> Result<(), String> {
 pub fn launch_codex_app() -> Result<LaunchResult, String> {
     let settings = get_app_settings().unwrap_or_default();
 
+    // 提取自定义可执行文件名（若有配置且指向具体程序）
+    let custom_exe_name = if !settings.codex_path.trim().is_empty() {
+        let p = Path::new(settings.codex_path.trim());
+        p.file_name().map(|n| n.to_string_lossy().to_string())
+    } else {
+        None
+    };
+
     // 1. 检查是否存在运行中的实例
-    let was_running = is_codex_running();
+    let was_running = is_codex_running(custom_exe_name.as_deref());
     let mut killed_previous = false;
 
     if was_running && settings.launch_kill_previous {
-        kill_codex_processes();
-        // 等待操作系统回收进程与端口句柄
-        std::thread::sleep(std::time::Duration::from_millis(600));
+        kill_codex_processes(custom_exe_name.as_deref());
+        // 轮询等待进程完全退出（最长等待 1.5 秒，每 100ms 检查一次）
+        for _ in 0..15 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            if !is_codex_running(custom_exe_name.as_deref()) {
+                break;
+            }
+        }
         killed_previous = true;
     }
 
@@ -347,5 +367,11 @@ mod tests {
         };
         let serialized = serde_json::to_string(&res).unwrap();
         assert!(serialized.contains("\"killed_previous\":true"));
+    }
+
+    #[test]
+    fn test_check_process_running_nonexistent() {
+        assert!(!check_process_running("DefinitelyNonExistentProcess12345.exe"));
+        assert!(!check_process_running("FakeProcessNeverRunning_9999.exe"));
     }
 }
