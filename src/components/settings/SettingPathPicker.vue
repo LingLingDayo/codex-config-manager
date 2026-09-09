@@ -93,15 +93,15 @@ const handleClear = () => {
     <!-- 自动识别状态展示条 -->
     <div class="path-status-bar">
       <template v-if="!modelValue">
-        <span class="status-tag auto">自动识别</span>
+        <span class="status-tag auto">默认</span>
         <span v-if="detectedPath" class="status-detected" :title="detectedPath">
-          默认识别目标: {{ detectedPath }}
+          默认检测路径: {{ detectedPath }}
         </span>
-        <span v-else class="status-hint">启动时将自动检测系统默认安装位置</span>
+        <span v-else class="status-hint">启动时将自动检索系统默认安装路径</span>
       </template>
       <template v-else>
-        <span class="status-tag custom">自定义路径</span>
-        <span class="status-hint custom" :title="modelValue">当前将优先使用指定路径启动</span>
+        <span class="status-tag custom">自定义</span>
+        <span class="status-hint custom" :title="modelValue">优先使用指定可执行文件路径</span>
       </template>
     </div>
   </div>

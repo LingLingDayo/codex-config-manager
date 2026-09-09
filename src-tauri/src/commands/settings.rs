@@ -43,12 +43,28 @@ pub fn save_app_settings(settings: AppSettings) -> Result<(), String> {
     Ok(())
 }
 
-/// 自动检测系统中的 ChatGPT / Codex 安装或调起路径
+/// 自动检测系统中的 ChatGPT / Codex 安装真实物理路径
 #[tauri::command]
 pub fn detect_codex_path() -> Result<Option<String>, String> {
     #[cfg(windows)]
     {
-        // 1. 检查环境变量中的常见安装路径
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        // 1. 优先检测当前正在运行的 ChatGPT / Codex 进程，直接读取真实物理路径
+        let ps_proc_script = r#"(Get-Process -Name ChatGPT, Codex -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Path -ErrorAction SilentlyContinue | Select-Object -First 1)"#;
+        if let Ok(output) = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", ps_proc_script])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
+            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path_str.is_empty() && Path::new(&path_str).exists() {
+                return Ok(Some(path_str));
+            }
+        }
+
+        // 2. 检查常见标准物理安装路径
         let mut candidates = Vec::new();
         if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
             candidates.push(PathBuf::from(&local_app_data).join("Programs").join("ChatGPT").join("ChatGPT.exe"));
@@ -70,18 +86,29 @@ pub fn detect_codex_path() -> Result<Option<String>, String> {
             }
         }
 
-        // 2. 检查 WindowsApps / Packages 目录下的 UWP/MSIX 应用包 (如 OpenAI.Codex_2p2nqsd0c76g0)
-        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
-            let packages_dir = Path::new(&local_app_data).join("Packages");
-            if packages_dir.exists() {
-                if let Ok(entries) = fs::read_dir(&packages_dir) {
-                    for entry in entries.flatten() {
-                        let name = entry.file_name().to_string_lossy().to_string();
-                        if name.starts_with("OpenAI.Codex_") || name.starts_with("OpenAI.ChatGPT_") {
-                            return Ok(Some(format!("shell:AppsFolder\\{}!App", name)));
-                        }
+        // 3. 检查 Windows 应用商店 (MSIX/Appx) 安装包的物理文件绝对路径
+        let ps_appx_script = r#"
+            $pkg = Get-AppxPackage -Name '*OpenAI*' | Select-Object -First 1
+            if ($pkg -and $pkg.InstallLocation) {
+                $subPaths = @('app\ChatGPT.exe', 'app\Codex.exe', 'ChatGPT.exe', 'Codex.exe')
+                foreach ($sub in $subPaths) {
+                    $full = Join-Path $pkg.InstallLocation $sub
+                    if (Test-Path $full) {
+                        Write-Output $full
+                        break
                     }
                 }
+            }
+        "#;
+
+        if let Ok(output) = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", ps_appx_script])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
+            let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path_str.is_empty() && Path::new(&path_str).exists() {
+                return Ok(Some(path_str));
             }
         }
 

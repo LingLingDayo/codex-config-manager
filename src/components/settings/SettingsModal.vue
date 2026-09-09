@@ -100,9 +100,9 @@ onUnmounted(() => {
             </button>
           </header>
 
-          <!-- 主体：简洁的路径选择组件 -->
+          <!-- 主体：简洁无框平铺的设置项 -->
           <main class="settings-body">
-            <div class="setting-row">
+            <div class="setting-item">
               <label
                 class="setting-label"
                 title="选择 ChatGPT / Codex 的安装路径，留空则自动识别系统默认安装路径"
@@ -173,14 +173,14 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 18px;
+  padding: 12px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba($bg-secondary, 0.5);
+  background: rgba($bg-secondary, 0.4);
   flex-shrink: 0;
 }
 
 .settings-title {
-  font-size: 0.98rem;
+  font-size: 0.96rem;
   font-weight: 700;
   color: $text-main;
   letter-spacing: -0.2px;
@@ -208,22 +208,23 @@ onUnmounted(() => {
 .settings-body {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px;
+  padding: 24px 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   min-height: 0;
   @include custom-scrollbar;
 }
 
-.setting-row {
+.setting-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: rgba($bg-secondary, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: $border-radius-md;
-  padding: 14px 16px;
+  width: 100%;
+  /* 扁平无边框，融入页面底色，避免卡片套卡片感 */
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .setting-label {
