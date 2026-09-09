@@ -54,12 +54,12 @@ onUnmounted(() => {
             </svg>
           </button>
 
-          <!-- 抽屉设置项列表主体 -->
+          <!-- 抽屉配置项列表主体 -->
           <div class="drawer-content">
-            <div class="setting-item">
+            <div class="config-item">
               <label
                 for="custom-model-input"
-                class="setting-label"
+                class="config-label"
                 title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
               >
                 自定义模型 (Model)
@@ -106,34 +106,33 @@ onUnmounted(() => {
 .drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  z-index: 1050;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 .drawer-panel {
   position: relative;
   width: 100%;
-  height: 80%; // 严格 80% 高度
-  background: $bg-tertiary;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-  box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.7);
+  height: 80%;
+  background: $bg-primary;
+  border-top-left-radius: $border-radius-lg;
+  border-top-right-radius: $border-radius-lg;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  padding: 20px 22px;
+  padding: 16px 20px;
   overflow: hidden;
-  will-change: transform;
 }
 
 .btn-drawer-close {
   position: absolute;
-  top: 16px;
-  right: 18px;
+  top: 12px;
+  right: 14px;
   background: transparent;
   border: none;
   color: $text-muted;
@@ -161,12 +160,12 @@ onUnmounted(() => {
   @include custom-scrollbar;
 }
 
-.setting-item {
+.config-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
 
-  .setting-label {
+  .config-label {
     font-size: 0.86rem;
     font-weight: 600;
     color: $text-main;

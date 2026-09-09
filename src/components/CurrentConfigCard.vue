@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import SettingsDrawer from './SettingsDrawer.vue';
+import ConfigDrawer from './ConfigDrawer.vue';
 import type { CodexConfig } from '../types/config';
 import {
   DEFAULT_STATION_NAME,
@@ -26,7 +26,15 @@ const apiKey = ref<string>('');
 const providerUrl = ref<string>('');
 const customModel = ref<string>('');
 const showKey = ref<boolean>(false);
-const isDrawerOpen = ref<boolean>(false);
+const isConfigDrawerOpen = ref<boolean>(false);
+
+const openConfigDrawer = () => {
+  isConfigDrawerOpen.value = true;
+};
+
+const closeConfigDrawer = () => {
+  isConfigDrawerOpen.value = false;
+};
 
 // 同步外部配置
 watch(
@@ -247,13 +255,13 @@ const handleSaveAsPreset = () => {
           恢复默认
         </button>
 
-        <!-- 3. 更多设置按钮 (放到 恢复默认 的边上) -->
+        <!-- 3. 更多配置按钮 (放到 恢复默认 的边上) -->
         <button
           type="button"
           class="btn btn-secondary btn-more"
-          title="更多设置（自定义模型等）"
+          title="更多配置（自定义模型等）"
           :disabled="isLoading"
-          @click="isDrawerOpen = true"
+          @click="openConfigDrawer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -274,18 +282,18 @@ const handleSaveAsPreset = () => {
             <circle cx="14" cy="3" r="2" />
             <circle cx="16" cy="21" r="2" />
           </svg>
-          <span>更多设置</span>
+          <span>更多配置</span>
         </button>
       </div>
 
 
     </form>
 
-    <!-- 底部向上弹出 80% 高度更多设置抽屉 -->
-    <SettingsDrawer
-      :visible="isDrawerOpen"
+    <!-- 底部向上弹出 80% 高度更多配置抽屉 -->
+    <ConfigDrawer
+      :visible="isConfigDrawerOpen"
       v-model="customModel"
-      @close="isDrawerOpen = false"
+      @close="closeConfigDrawer"
     />
   </section>
 </template>
@@ -523,11 +531,6 @@ const handleSaveAsPreset = () => {
 
   svg {
     color: $accent-blue;
-    transition: transform 0.25s ease;
-  }
-
-  &:hover svg {
-    transform: rotate(30deg);
   }
 }
 
