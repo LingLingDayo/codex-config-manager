@@ -24,6 +24,14 @@ pub fn presets_file_name() -> &'static str {
     }
 }
 
+pub fn settings_file_name() -> &'static str {
+    if cfg!(debug_assertions) {
+        "settings_dev.json"
+    } else {
+        "settings.json"
+    }
+}
+
 pub fn get_default_station_name() -> String {
     std::env::var("VITE_DEFAULT_STATION_NAME")
         .ok()
@@ -80,14 +88,17 @@ mod tests {
     fn test_file_names() {
         let (config, auth) = config_file_names();
         let preset = presets_file_name();
+        let setting = settings_file_name();
         if cfg!(debug_assertions) {
             assert_eq!(config, "config_dev.toml");
             assert_eq!(auth, "auth_dev.json");
             assert_eq!(preset, "presets_dev.json");
+            assert_eq!(setting, "settings_dev.json");
         } else {
             assert_eq!(config, "config.toml");
             assert_eq!(auth, "auth.json");
             assert_eq!(preset, "presets.json");
+            assert_eq!(setting, "settings.json");
         }
     }
 }

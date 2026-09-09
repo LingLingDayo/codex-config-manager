@@ -5,7 +5,8 @@ pub mod utils;
 pub use models::*;
 
 use commands::{
-    get_codex_config, get_presets, restore_codex_default, save_codex_config, save_codex_model,
+    detect_codex_path, get_app_settings, get_codex_config, get_presets, launch_codex_app,
+    pick_codex_path, restore_codex_default, save_app_settings, save_codex_config, save_codex_model,
     save_presets,
 };
 
@@ -19,7 +20,12 @@ pub fn run() {
             save_codex_model,
             restore_codex_default,
             get_presets,
-            save_presets
+            save_presets,
+            get_app_settings,
+            save_app_settings,
+            pick_codex_path,
+            detect_codex_path,
+            launch_codex_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
