@@ -40,34 +40,6 @@ describe('AppHeader.vue component', () => {
     expect(wrapper.find('.subtitle').text()).toContain('管理与快捷切换多中转站');
   });
 
-  it('点击启动按钮应触发 launch-app 事件', async () => {
-    const wrapper = mount(AppHeader, {
-      props: {
-        isEnabled: true,
-        isLaunching: false,
-      },
-    });
-
-    const launchBtn = wrapper.find('.btn-header-launch');
-    expect(launchBtn.exists()).toBe(true);
-    expect(launchBtn.text()).toContain('启动');
-
-    await launchBtn.trigger('click');
-    expect(wrapper.emitted('launch-app')).toBeTruthy();
-  });
-
-  it('isLaunching 为 true 时启动按钮应为禁用状态并显示重启中', () => {
-    const wrapper = mount(AppHeader, {
-      props: {
-        isEnabled: true,
-        isLaunching: true,
-      },
-    });
-
-    const launchBtn = wrapper.find('.btn-header-launch');
-    expect(launchBtn.attributes('disabled')).toBeDefined();
-    expect(launchBtn.text()).toContain('重启中...');
-  });
 
   it('点击设置按钮应触发 open-settings 事件', async () => {
     const wrapper = mount(AppHeader, {

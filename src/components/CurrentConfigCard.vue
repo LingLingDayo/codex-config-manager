@@ -8,18 +8,26 @@ import {
   isDefaultStation,
 } from '../utils/format';
 
-const props = defineProps<{
-  config: CodexConfig;
-  isLoading: boolean;
-  presetsCount?: number;
-  activePresetName?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    config: CodexConfig;
+    isLoading: boolean;
+    isLaunching?: boolean;
+    presetsCount?: number;
+    activePresetName?: string;
+  }>(),
+  {
+    isLaunching: false,
+    presetsCount: 0,
+  }
+);
 
 const emit = defineEmits<{
   (e: 'save-config', data: { key: string; providerUrl: string; model?: string }): void;
   (e: 'restore-default'): void;
   (e: 'save-as-preset', data: { key: string; providerUrl: string; model?: string }): void;
   (e: 'open-presets'): void;
+  (e: 'launch-app'): void;
 }>();
 
 const apiKey = ref<string>('');
@@ -225,7 +233,7 @@ const handleSaveAsPreset = () => {
 
       <!-- 操作按钮行 -->
       <div class="actions">
-        <!-- 1. 使用配置主按钮 -->
+        <!-- 1. 保存配置主按钮 -->
         <button type="submit" class="btn btn-primary" :disabled="isLoading">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -241,32 +249,44 @@ const handleSaveAsPreset = () => {
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
           </svg>
-          <span>{{ isLoading ? '保存中...' : '使用配置' }}</span>
+          <span>{{ isLoading ? '保存中...' : '保存配置' }}</span>
         </button>
 
-        <!-- 2. 恢复默认按钮 -->
+        <!-- 2. 启动 Codex (ChatGPT) 客户端按钮 -->
         <button
           type="button"
-          class="btn btn-secondary"
-          title="恢复 Codex 官方默认设置"
-          :disabled="isLoading"
-          @click="handleRestore"
+          class="btn btn-launch"
+          :class="{ launching: isLaunching }"
+          :disabled="isLoading || isLaunching"
+          title="以当前配置启动Codex/ChatGPT"
+          @click="emit('launch-app')"
         >
-          恢复默认
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            class="launch-icon"
+          >
+            <polygon points="6 3 20 12 6 21 6 3" />
+          </svg>
+          <span class="launch-text">{{ isLaunching ? '重启中...' : '启动' }}</span>
         </button>
 
-        <!-- 3. 更多配置按钮 (放到 恢复默认 的边上) -->
+        <!-- 3. 更多配置按钮 (纯图标) -->
         <button
           type="button"
-          class="btn btn-secondary btn-more"
-          title="更多配置（自定义模型等）"
+          class="btn btn-secondary btn-icon btn-more"
+          title="更多配置"
+          aria-label="更多配置"
           :disabled="isLoading"
           @click="openConfigDrawer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="13"
-            height="13"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -282,7 +302,31 @@ const handleSaveAsPreset = () => {
             <circle cx="14" cy="3" r="2" />
             <circle cx="16" cy="21" r="2" />
           </svg>
-          <span>更多配置</span>
+        </button>
+
+        <!-- 4. 恢复默认按钮 (纯图标) -->
+        <button
+          type="button"
+          class="btn btn-secondary btn-icon btn-restore"
+          title="回复默认配置"
+          aria-label="回复默认配置"
+          :disabled="isLoading"
+          @click="handleRestore"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+          </svg>
         </button>
       </div>
 
@@ -487,7 +531,7 @@ const handleSaveAsPreset = () => {
 .actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: 2px;
 }
 
@@ -502,10 +546,41 @@ const handleSaveAsPreset = () => {
   color: #fff;
   border: none;
   box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
-  flex: 2;
+  flex: 1.2;
 
-  &:hover {
+  &:hover:not(:disabled) {
     filter: brightness(1.08);
+  }
+}
+
+.btn-launch {
+  background: rgba($accent-blue, 0.12);
+  border: 1px solid rgba($accent-blue, 0.35);
+  color: $accent-blue;
+  flex: 1;
+
+  .launch-icon {
+    transition: transform 0.2s ease;
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba($accent-blue, 0.22);
+    border-color: $accent-blue;
+    color: #ffffff;
+    box-shadow: 0 2px 12px rgba($accent-blue, 0.25);
+
+    .launch-icon {
+      transform: scale(1.1);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  &.launching .launch-icon {
+    animation: pulse 1s infinite;
   }
 }
 
@@ -513,24 +588,37 @@ const handleSaveAsPreset = () => {
   background-color: rgba(255, 255, 255, 0.04);
   border-color: $border-color;
   color: $text-muted;
-  flex: 0.8;
 
-  &:hover {
+  &:hover:not(:disabled) {
     border-color: rgba(255, 255, 255, 0.2);
     color: $text-main;
     background-color: rgba(255, 255, 255, 0.08);
   }
 }
 
-.btn-more {
-  flex: 0.85;
+.btn-icon {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  border-radius: $border-radius-md;
 
   svg {
-    color: $accent-blue;
+    color: $text-muted;
+    transition: color 0.2s ease;
+  }
+
+  &:hover:not(:disabled) svg {
+    color: $text-main;
+  }
+}
+
+.btn-restore {
+  &:hover:not(:disabled) svg {
+    color: $warning;
   }
 }
 

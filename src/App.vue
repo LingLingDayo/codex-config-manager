@@ -133,8 +133,6 @@ onMounted(async () => {
     <!-- 头部区域 -->
     <AppHeader
       :is-enabled="currentConfig.is_enabled"
-      :is-launching="isLaunching"
-      @launch-app="launchApp"
       @open-settings="isSettingsModalVisible = true"
     />
 
@@ -144,12 +142,14 @@ onMounted(async () => {
       <CurrentConfigCard
         :config="currentConfig"
         :is-loading="isLoading"
+        :is-launching="isLaunching"
         :presets-count="presets.length"
         :active-preset-name="activePreset?.name"
         @save-config="(data) => saveConfig(data.key, data.providerUrl, data.model)"
         @restore-default="handleRestoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"
+        @launch-app="launchApp"
       />
     </main>
 

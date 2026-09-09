@@ -1,16 +1,9 @@
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    isEnabled: boolean;
-    isLaunching?: boolean;
-  }>(),
-  {
-    isLaunching: false,
-  }
-);
+defineProps<{
+  isEnabled: boolean;
+}>();
 
 const emit = defineEmits<{
-  (e: 'launch-app'): void;
   (e: 'open-settings'): void;
 }>();
 </script>
@@ -36,28 +29,6 @@ const emit = defineEmits<{
         <span class="status-dot"></span>
         <span class="status-text">{{ isEnabled ? 'API 已启用' : '未启用' }}</span>
       </div>
-
-      <!-- 启动 Codex (ChatGPT) 按钮 (三角形 Icon) -->
-      <button
-        type="button"
-        class="btn-header-launch"
-        :class="{ launching: isLaunching }"
-        :disabled="isLaunching"
-        title="启动或重启 Codex (ChatGPT) 客户端"
-        @click="emit('launch-app')"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          class="launch-icon"
-        >
-          <polygon points="6 3 20 12 6 21 6 3" />
-        </svg>
-        <span class="launch-text">{{ isLaunching ? '重启中...' : '启动' }}</span>
-      </button>
 
       <!-- 右上角纯 Icon 设置按钮 -->
       <button
@@ -183,42 +154,6 @@ const emit = defineEmits<{
       background-color: $text-dim;
       box-shadow: none;
     }
-  }
-}
-
-// 启动应用按钮
-.btn-header-launch {
-  @include button-base;
-  padding: 4px 9px;
-  font-size: 0.72rem;
-  background: rgba($accent-blue, 0.12);
-  border: 1px solid rgba($accent-blue, 0.32);
-  color: $accent-blue;
-  border-radius: $border-radius-sm;
-  gap: 4px;
-
-  .launch-icon {
-    transition: transform 0.2s ease;
-  }
-
-  &:hover:not(:disabled) {
-    background: rgba($accent-blue, 0.22);
-    border-color: $accent-blue;
-    color: #ffffff;
-    box-shadow: 0 0 10px rgba($accent-blue, 0.35);
-
-    .launch-icon {
-      transform: scale(1.12);
-    }
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: wait;
-  }
-
-  &.launching .launch-icon {
-    animation: pulse 1s infinite;
   }
 }
 
