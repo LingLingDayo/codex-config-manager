@@ -93,8 +93,8 @@ const emit = defineEmits<{
     <button
       type="button"
       class="btn btn-secondary btn-icon btn-restore"
-      title="恢复默认配置"
-      aria-label="恢复默认配置"
+      title="恢复默认配置（清除中转配置，恢复后将变成使用账号登录）"
+      aria-label="恢复默认配置（清除中转配置，恢复后将变成使用账号登录）"
       :disabled="isLoading"
       @click="emit('restore')"
     >

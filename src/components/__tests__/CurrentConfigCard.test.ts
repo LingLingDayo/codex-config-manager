@@ -96,7 +96,7 @@ describe('CurrentConfigCard.vue component', () => {
     const restoreBtn = wrapper.find('.btn-restore');
     expect(restoreBtn.exists()).toBe(true);
     expect(restoreBtn.text()).toBe(''); // 纯图标无文字
-    expect(restoreBtn.attributes('title')).toBe('恢复默认配置');
+    expect(restoreBtn.attributes('title')).toBe('恢复默认配置（清除中转配置，恢复后将变成使用账号登录）');
 
     await restoreBtn.trigger('click');
     expect(wrapper.emitted('restore-default')).toBeTruthy();

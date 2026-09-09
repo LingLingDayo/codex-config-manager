@@ -26,7 +26,7 @@ describe('ConfigCardActions.vue component', () => {
     expect(moreBtn.attributes('title')).toBe('更多配置');
 
     expect(restoreBtn.exists()).toBe(true);
-    expect(restoreBtn.attributes('title')).toBe('恢复默认配置');
+    expect(restoreBtn.attributes('title')).toBe('恢复默认配置（清除中转配置，恢复后将变成使用账号登录）');
   });
 
   it('isLoading 状态下保存配置按钮被禁用且文案变化', () => {

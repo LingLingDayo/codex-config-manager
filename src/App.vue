@@ -67,7 +67,7 @@ const handleRestoreDefault = async () => {
   const confirmed = await showConfirm({
     title: '恢复官方默认配置',
     message: '确定要恢复为 Codex 官方默认设置吗？',
-    detail: '当前的自定义中转站地址和 API Key 将被重置为官方默认设置。',
+    detail: '当前的自定义中转站地址和 API Key 将被清除，恢复后将变成使用账号登录。',
     type: 'warning',
     confirmText: '恢复默认',
     cancelText: '取消',
