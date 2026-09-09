@@ -147,9 +147,6 @@ onUnmounted(() => {
       @click.self="onCancel"
     >
       <div class="confirm-dialog" :class="[`type-${resolvedType}`]">
-        <!-- 弹窗顶部高光饰条 -->
-        <div class="glow-accent" :class="resolvedType"></div>
-
         <!-- 头部区域与关闭按钮 -->
         <div class="dialog-header">
           <div class="icon-and-title">
@@ -332,60 +329,14 @@ onUnmounted(() => {
   width: 100%;
   max-width: 380px;
   background: $bg-tertiary;
-  border: 1px solid $border-card;
-  border-radius: $border-radius-xl;
-  padding: 16px 18px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: $border-radius-lg;
+  padding: 18px 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65);
-  animation: scaleIn 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  overflow: hidden;
-
-  &.type-danger {
-    border-color: rgba($danger, 0.35);
-    box-shadow: 0 0 24px rgba($danger, 0.12), 0 20px 48px rgba(0, 0, 0, 0.65);
-  }
-
-  &.type-warning {
-    border-color: rgba($warning, 0.35);
-    box-shadow: 0 0 24px rgba($warning, 0.12), 0 20px 48px rgba(0, 0, 0, 0.65);
-  }
-
-  &.type-info {
-    border-color: rgba($accent-blue, 0.35);
-    box-shadow: 0 0 24px rgba($accent-blue, 0.12), 0 20px 48px rgba(0, 0, 0, 0.65);
-  }
-
-  &.type-success {
-    border-color: rgba($success, 0.35);
-    box-shadow: 0 0 24px rgba($success, 0.12), 0 20px 48px rgba(0, 0, 0, 0.65);
-  }
-}
-
-.glow-accent {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  opacity: 0.85;
-
-  &.danger {
-    background: linear-gradient(90deg, transparent, $danger, transparent);
-  }
-
-  &.warning {
-    background: linear-gradient(90deg, transparent, $warning, transparent);
-  }
-
-  &.info {
-    background: linear-gradient(90deg, transparent, $accent-blue, transparent);
-  }
-
-  &.success {
-    background: linear-gradient(90deg, transparent, $success, transparent);
-  }
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dialog-header {
@@ -403,41 +354,32 @@ onUnmounted(() => {
 }
 
 .icon-badge {
-  width: 34px;
-  height: 34px;
-  border-radius: $border-radius-md;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.2s ease;
 
   &.danger {
-    background: rgba($danger, 0.12);
-    border: 1px solid rgba($danger, 0.3);
+    background: rgba($danger, 0.15);
     color: $danger;
-    box-shadow: 0 0 12px rgba($danger, 0.2);
   }
 
   &.warning {
-    background: rgba($warning, 0.12);
-    border: 1px solid rgba($warning, 0.3);
+    background: rgba($warning, 0.15);
     color: $warning;
-    box-shadow: 0 0 12px rgba($warning, 0.2);
   }
 
   &.info {
-    background: rgba($accent-blue, 0.12);
-    border: 1px solid rgba($accent-blue, 0.3);
+    background: rgba($accent-blue, 0.15);
     color: $accent-blue;
-    box-shadow: 0 0 12px rgba($accent-blue, 0.2);
   }
 
   &.success {
-    background: rgba($success, 0.12);
-    border: 1px solid rgba($success, 0.3);
+    background: rgba($success, 0.15);
     color: $success;
-    box-shadow: 0 0 12px rgba($success, 0.2);
   }
 }
 
@@ -449,7 +391,7 @@ onUnmounted(() => {
 
 .confirm-title {
   font-size: 0.94rem;
-  font-weight: 700;
+  font-weight: 600;
   color: $text-main;
   letter-spacing: -0.2px;
   line-height: 1.3;
@@ -478,106 +420,100 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 2px 2px 4px;
+  padding: 2px 0 6px;
 }
 
 .confirm-message {
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   color: $text-main;
-  line-height: 1.45;
+  line-height: 1.5;
   margin: 0;
+  font-weight: 500;
   word-break: break-word;
 }
 
 .confirm-detail {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: $text-muted;
-  line-height: 1.4;
+  line-height: 1.5;
   margin: 0;
   word-break: break-word;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 6px 10px;
-  border-radius: $border-radius-sm;
-  border-left: 2px solid $border-card;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-top: 4px;
 }
 
 .btn {
   @include button-base;
-  padding: 7px 14px;
-  font-size: 0.8rem;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  font-size: 0.82rem;
+  font-weight: 500;
   border-radius: $border-radius-sm;
+  line-height: 1;
 }
 
 .btn-cancel {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid $border-color;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: $text-muted;
 
   &:hover:not(:disabled) {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.12);
     color: $text-main;
     border-color: rgba(255, 255, 255, 0.2);
   }
 }
 
 .btn-confirm {
-  color: #fff;
+  color: #ffffff;
   border: none;
+  font-weight: 600;
 
-  &.danger {
-    background: linear-gradient(135deg, $danger 0%, #d32f2f 100%);
-    box-shadow: 0 2px 10px rgba($danger, 0.35);
+  &.warning {
+    background: #f59e0b;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 
     &:hover:not(:disabled) {
-      filter: brightness(1.1);
-      box-shadow: 0 3px 14px rgba($danger, 0.5);
+      background: #d97706;
     }
   }
 
-  &.warning {
-    background: linear-gradient(135deg, $warning 0%, #f57c00 100%);
-    color: #11141d;
-    font-weight: 700;
-    box-shadow: 0 2px 10px rgba($warning, 0.35);
+  &.danger {
+    background: #ef4444;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 
     &:hover:not(:disabled) {
-      filter: brightness(1.08);
-      box-shadow: 0 3px 14px rgba($warning, 0.5);
+      background: #dc2626;
     }
   }
 
   &.info {
     background: $accent-gradient;
-    box-shadow: 0 2px 10px rgba($accent-blue, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 
     &:hover:not(:disabled) {
-      filter: brightness(1.1);
-      box-shadow: 0 3px 14px rgba($accent-blue, 0.45);
+      filter: brightness(1.08);
     }
   }
 
   &.success {
-    background: linear-gradient(135deg, $success 0%, #00b0ff 100%);
-    color: #0b0c10;
-    font-weight: 700;
-    box-shadow: 0 2px 10px rgba($success, 0.35);
+    background: #10b981;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 
     &:hover:not(:disabled) {
-      filter: brightness(1.08);
-      box-shadow: 0 3px 14px rgba($success, 0.5);
+      background: #059669;
     }
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: not-allowed;
   }
 }

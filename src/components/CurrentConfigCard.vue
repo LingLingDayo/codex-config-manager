@@ -270,7 +270,7 @@ const handleSaveAsPreset = () => {
           >
             <polygon points="5 3 19 12 5 21 5 3" />
           </svg>
-          <span class="launch-text">{{ isLaunching ? '重启中...' : '启动Codex' }}</span>
+          <span class="launch-text">{{ isLaunching ? '重启中...' : '启动 Codex' }}</span>
         </button>
 
         <!-- 3. 更多配置按钮 (纯图标) -->
