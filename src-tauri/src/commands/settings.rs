@@ -410,12 +410,14 @@ mod tests {
 
         let detected = detect_codex_path().expect("detect_codex_path 不应返回 Err");
         match &detected {
-            Some(path) => println!("2. 自动识别到的安装/启动目标: {}", path),
-            None => println!("2. 自动识别到的安装/启动目标: (未找到)"),
+            Some(path) => {
+                println!("2. 自动识别到的安装/启动目标: {}", path);
+                assert!(!path.is_empty(), "自动识别到的路径不应为空字符串");
+            }
+            None => {
+                println!("2. 自动识别到的安装/启动目标: (未找到 - CI 或干净环境正常预期)");
+            }
         }
         println!("===========================================================\n");
-
-        // 宿主机已安装 Codex，因此检测结果应为 Some(...)
-        assert!(detected.is_some(), "宿主机已安装 Codex，应能成功自动识别到路径");
     }
 }
