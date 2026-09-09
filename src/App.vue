@@ -217,8 +217,8 @@ onMounted(async () => {
 .app-version {
   position: fixed;
   right: 14px;
-  bottom: 3px;
-  font-size: 10px;
+  bottom: 2px;
+  font-size: 9px;
   line-height: 1;
   font-family: $font-family-mono;
   color: rgba(255, 255, 255, 0.22);
