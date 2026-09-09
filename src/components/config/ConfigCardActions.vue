@@ -177,6 +177,8 @@ const emit = defineEmits<{
 
   .launch-icon {
     fill: #ffffff;
+    display: block;
+    transform-origin: center center;
     transition: transform 0.2s ease;
   }
 
@@ -185,7 +187,7 @@ const emit = defineEmits<{
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35), 0 2px 6px rgba($accent-blue, 0.25);
 
     .launch-icon {
-      transform: scale(1.1);
+      transform: translateY(1px) scale(1.1);
     }
   }
 
