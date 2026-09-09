@@ -2,10 +2,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
+ * 转义正则表达式中的特殊字符
+ *
+ * @param {string} str
+ * @returns {string}
+ */
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * 从 CHANGELOG.md 中提取指定版本（或最新版本）的发布日志
  *
  * @param {string} changelogContent CHANGELOG.md 的完整文本
- * @param {string} [targetTag=''] 触发的 tag 名称，例如 "v1.0.0" 或 "1.0.0"
+ * @param {string} [targetTag=''] 触发的 tag 名称，例如 "v1.0.0"、"1.0.0" 或 "refs/tags/v1.0.0"
  * @returns {string} 提取出的 Release Notes Markdown 内容
  */
 export function extractChangelog(changelogContent, targetTag = '') {
@@ -36,13 +46,21 @@ export function extractChangelog(changelogContent, targetTag = '') {
     return content.trim();
   }
 
+  // 清洗目标 tag
+  const rawTag = (targetTag || '').trim();
+  const normalizedTag = rawTag.replace(/^refs\/tags\//i, '').trim();
+  const cleanTag = normalizedTag.replace(/^v/i, '').trim();
+
   let selectedIndex = -1;
 
-  // 如果指定了 tag，优先精确或模糊匹配该版本
-  if (targetTag) {
-    const cleanTag = targetTag.replace(/^v/i, '').trim();
-    // 匹配如 "## [1.0.0]", "## [v1.0.0]", "## 1.0.0 - 2026-08-20", "## [1.0.0] - 2026-08-20"
-    const versionRegex = new RegExp(`(^|\\[|v)${cleanTag.replace(/\./g, '\\.')}(\\]|\\s|$|-)`, 'i');
+  if (cleanTag) {
+    const escapedClean = escapeRegExp(cleanTag);
+    const escapedNorm = escapeRegExp(normalizedTag);
+    // 匹配如 "## [1.0.0]", "## [v1.0.0]", "## 1.0.0 - 2026-09-09", "## [1.0.0] - 2026-09-09"
+    const versionRegex = new RegExp(
+      `(^|[\\[\\s/v]|version\\s+|release\\s+)(${escapedClean}|${escapedNorm})(\\]|[\\s/-]|$)`,
+      'i'
+    );
 
     for (let i = 0; i < sections.length; i++) {
       if (versionRegex.test(sections[i].title)) {
@@ -50,12 +68,24 @@ export function extractChangelog(changelogContent, targetTag = '') {
         break;
       }
     }
-  }
 
-  // 如果没有找到匹配的 tag，提取第一个非空的有效版本块
-  if (selectedIndex === -1) {
-    // 默认选取第一个版本
-    selectedIndex = 0;
+    // 如果指定了具体 tag 但未在 CHANGELOG 中找到匹配项，给出安全友好的提示信息
+    if (selectedIndex === -1) {
+      console.warn(`[WARN] 未在 CHANGELOG.md 中找到版本 "${normalizedTag}" 的对应条目`);
+      return `### 版本 ${normalizedTag}\n\n*CHANGELOG.md 中暂未记录该版本的详细说明，请参阅 Git 提交历史。*`;
+    }
+  } else {
+    // 未指定 tag 时，跳过 Unreleased / 未发布等占位块，优先选取第一个正式发布的版本
+    for (let i = 0; i < sections.length; i++) {
+      if (!/unreleased|未发布/i.test(sections[i].title)) {
+        selectedIndex = i;
+        break;
+      }
+    }
+    // 若全是 Unreleased，则兜底选第一个
+    if (selectedIndex === -1) {
+      selectedIndex = 0;
+    }
   }
 
   const startLine = sections[selectedIndex].lineIndex;
@@ -63,11 +93,21 @@ export function extractChangelog(changelogContent, targetTag = '') {
     ? sections[selectedIndex + 1].lineIndex
     : lines.length;
 
-  // 提取对应区块内容（排除标题行）
+  // 提取对应区块内容（排除二级标题行）
   const sectionLines = lines.slice(startLine + 1, endLine);
 
   // 过滤末尾可能存在的 Markdown 链接引用定义，如 `[1.0.0]: https://...`
   let filteredLines = sectionLines.filter(line => !/^\[.*?\]:\s*https?:\/\//.test(line));
+
+  // 移除开头多余的空行和分隔线
+  while (filteredLines.length > 0) {
+    const first = filteredLines[0].trim();
+    if (first === '' || /^(-{3,}|\*{3,}|_{3,})$/.test(first)) {
+      filteredLines.shift();
+    } else {
+      break;
+    }
+  }
 
   // 移除尾部多余的分隔线（如 `---`, `***` 等）及空白行
   while (filteredLines.length > 0) {
@@ -80,7 +120,7 @@ export function extractChangelog(changelogContent, targetTag = '') {
   }
 
   const result = filteredLines.join('\n').trim();
-  return result || 'No release notes provided for this version.';
+  return result || `### 版本 ${normalizedTag || 'Release'}\n\n*暂无该版本的具体更新日志。*`;
 }
 
 // CLI 执行入口
@@ -92,7 +132,7 @@ const isDirectRun = process.argv[1] && (
 if (isDirectRun) {
   const changelogPath = process.argv[2] || 'CHANGELOG.md';
   const outputPath = process.argv[3] || 'RELEASE_NOTES.md';
-  const targetTag = process.argv[4] || process.env.GITHUB_REF_NAME || '';
+  const targetTag = process.argv[4] || process.env.GITHUB_REF_NAME || process.env.GITHUB_REF || '';
 
   const fullChangelogPath = path.resolve(process.cwd(), changelogPath);
   let notes = 'No changelog found.';
