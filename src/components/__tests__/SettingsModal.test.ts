@@ -21,25 +21,23 @@ describe('SettingsModal.vue component', () => {
     expect(wrapper.find('.settings-fullscreen-overlay').exists()).toBe(false);
   });
 
-  it('visible 为 true 时应正确渲染全屏弹窗、标题及控件', async () => {
+  it('visible 为 true 时应正确渲染全屏弹窗、标题及路径选择器', async () => {
     const wrapper = mount(SettingsModal, {
       props: {
         visible: true,
-        customModel: 'gpt-5-test',
       },
       attachTo: document.body,
     });
 
     const overlay = document.querySelector('.settings-fullscreen-overlay');
     expect(overlay).not.toBeNull();
-    expect(document.querySelector('.settings-header h2')?.textContent).toBe('系统设置');
-    expect(document.body.innerHTML).toContain('Codex (ChatGPT) 启动与路径');
-    expect(document.body.innerHTML).toContain('模型配置');
+    expect(document.querySelector('.settings-title')?.textContent).toBe('设置');
+    expect(document.body.innerHTML).toContain('Codex 安装路径');
 
     wrapper.unmount();
   });
 
-  it('点击关闭按钮或完成按钮时应触发 close 事件', async () => {
+  it('点击关闭按钮时应触发 close 事件', async () => {
     const wrapper = mount(SettingsModal, {
       props: {
         visible: true,
@@ -51,11 +49,6 @@ describe('SettingsModal.vue component', () => {
     expect(closeBtn).not.toBeNull();
     closeBtn.click();
     expect(wrapper.emitted('close')).toBeTruthy();
-
-    const doneBtn = document.querySelector('.btn-done') as HTMLButtonElement;
-    expect(doneBtn).not.toBeNull();
-    doneBtn.click();
-    expect(wrapper.emitted('close')?.length).toBe(2);
 
     wrapper.unmount();
   });

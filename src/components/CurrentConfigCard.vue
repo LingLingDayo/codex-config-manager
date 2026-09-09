@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import SettingsDrawer from './SettingsDrawer.vue';
 import type { CodexConfig } from '../types/config';
 import {
   DEFAULT_STATION_NAME,
@@ -19,13 +20,13 @@ const emit = defineEmits<{
   (e: 'restore-default'): void;
   (e: 'save-as-preset', data: { key: string; providerUrl: string; model?: string }): void;
   (e: 'open-presets'): void;
-  (e: 'open-settings'): void;
 }>();
 
 const apiKey = ref<string>('');
 const providerUrl = ref<string>('');
 const customModel = ref<string>('');
 const showKey = ref<boolean>(false);
+const isDrawerOpen = ref<boolean>(false);
 
 // 同步外部配置
 watch(
@@ -250,9 +251,9 @@ const handleSaveAsPreset = () => {
         <button
           type="button"
           class="btn btn-secondary btn-more"
-          title="系统设置（自定义模型、路径等）"
+          title="更多设置（自定义模型等）"
           :disabled="isLoading"
-          @click="emit('open-settings')"
+          @click="isDrawerOpen = true"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -265,13 +266,27 @@ const handleSaveAsPreset = () => {
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            <line x1="4" x2="20" y1="21" y2="21" />
+            <line x1="4" x2="20" y1="3" y2="3" />
+            <line x1="12" x2="20" y1="12" y2="12" />
+            <line x1="4" x2="8" y1="12" y2="12" />
+            <circle cx="8" cy="12" r="2" />
+            <circle cx="14" cy="3" r="2" />
+            <circle cx="16" cy="21" r="2" />
           </svg>
           <span>更多设置</span>
         </button>
       </div>
+
+
     </form>
+
+    <!-- 底部向上弹出 80% 高度更多设置抽屉 -->
+    <SettingsDrawer
+      :visible="isDrawerOpen"
+      v-model="customModel"
+      @close="isDrawerOpen = false"
+    />
   </section>
 </template>
 

@@ -150,7 +150,6 @@ onMounted(async () => {
         @restore-default="handleRestoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"
-        @open-settings="isSettingsModalVisible = true"
       />
     </main>
 
@@ -166,8 +165,6 @@ onMounted(async () => {
     <!-- 全屏系统设置弹窗 -->
     <SettingsModal
       :visible="isSettingsModalVisible"
-      :custom-model="currentConfig.model"
-      @update:custom-model="(m) => currentConfig.model = m"
       @close="isSettingsModalVisible = false"
     />
 
