@@ -6,9 +6,11 @@ import PresetListModal from './components/PresetListModal.vue';
 import PresetModal from './components/PresetModal.vue';
 import ToastMessage from './components/ToastMessage.vue';
 import ConfirmModal from './components/ConfirmModal.vue';
+import SettingsModal from './components/settings/SettingsModal.vue';
 
 import { useCodexConfig } from './composables/useCodexConfig';
 import { usePresets } from './composables/usePresets';
+import { useSettings } from './composables/useSettings';
 import { useToast } from './composables/useToast';
 import { useConfirm } from './composables/useConfirm';
 import {
@@ -27,8 +29,12 @@ const {
   restoreDefault,
 } = useCodexConfig();
 const { presets, loadPresets, saveOrUpdatePreset, deletePreset, isPresetActive } = usePresets();
+const { isLaunching, launchApp, loadSettings } = useSettings();
 const { showToast } = useToast();
 const { showConfirm } = useConfirm();
+
+// 全屏系统设置弹窗状态
+const isSettingsModalVisible = ref<boolean>(false);
 
 // 预设配置管理弹窗状态
 const isPresetListModalVisible = ref<boolean>(false);
@@ -118,14 +124,19 @@ const handleModalSave = async (formData: PresetFormData) => {
 };
 
 onMounted(async () => {
-  await Promise.all([loadConfig(), loadPresets()]);
+  await Promise.all([loadConfig(), loadPresets(), loadSettings()]);
 });
 </script>
 
 <template>
   <div class="app-container">
     <!-- 头部区域 -->
-    <AppHeader :is-enabled="currentConfig.is_enabled" />
+    <AppHeader
+      :is-enabled="currentConfig.is_enabled"
+      :is-launching="isLaunching"
+      @launch-app="launchApp"
+      @open-settings="isSettingsModalVisible = true"
+    />
 
     <!-- 主体区域 -->
     <main class="app-main">
@@ -139,6 +150,7 @@ onMounted(async () => {
         @restore-default="handleRestoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"
+        @open-settings="isSettingsModalVisible = true"
       />
     </main>
 
@@ -150,6 +162,14 @@ onMounted(async () => {
 
     <!-- 通用操作确认弹窗 -->
     <ConfirmModal />
+
+    <!-- 全屏系统设置弹窗 -->
+    <SettingsModal
+      :visible="isSettingsModalVisible"
+      :custom-model="currentConfig.model"
+      @update:custom-model="(m) => currentConfig.model = m"
+      @close="isSettingsModalVisible = false"
+    />
 
     <!-- 中转站预设配置列表轻量弹窗 -->
     <PresetListModal
