@@ -44,31 +44,6 @@ const emit = defineEmits<{
 
     <!-- 头部右侧操作组 -->
     <div class="header-actions">
-      <!-- 头部预设按钮 -->
-      <button
-        type="button"
-        class="btn-header-preset"
-        title="点击打开中转站配置列表"
-        @click="emit('open-presets')"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect width="18" height="18" x="3" y="3" rx="2" />
-          <path d="M9 3v18" />
-          <path d="m14 9 3 3-3 3" />
-        </svg>
-        <span>配置列表</span>
-      </button>
-
       <!-- 保存配置 -->
       <button
         type="button"
@@ -92,6 +67,31 @@ const emit = defineEmits<{
           />
         </svg>
         <span>保存配置</span>
+      </button>
+
+      <!-- 头部预设按钮 -->
+      <button
+        type="button"
+        class="btn-header-preset"
+        title="点击打开中转站配置列表"
+        @click="emit('open-presets')"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M9 3v18" />
+          <path d="m14 9 3 3-3 3" />
+        </svg>
+        <span>配置列表</span>
       </button>
     </div>
   </div>
