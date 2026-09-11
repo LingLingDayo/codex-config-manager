@@ -7,6 +7,8 @@ pub struct CodexConfig {
     pub is_enabled: bool,
     #[serde(default)]
     pub model: String,
+    #[serde(default)]
+    pub model_reasoning_effort: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -17,6 +19,8 @@ pub struct PresetConfig {
     pub provider_url: String,
     #[serde(default)]
     pub model: String,
+    #[serde(default)]
+    pub model_reasoning_effort: String,
     #[serde(default)]
     pub updated_at: Option<u64>,
 }

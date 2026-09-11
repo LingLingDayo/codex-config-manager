@@ -15,6 +15,7 @@ pub fn default_presets() -> Vec<PresetConfig> {
         key: "".to_string(),
         provider_url: url,
         model: "".to_string(),
+        model_reasoning_effort: "".to_string(),
         updated_at: None,
     }]
 }

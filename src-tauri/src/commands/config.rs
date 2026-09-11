@@ -14,6 +14,7 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
     let mut provider_url = String::new();
     let mut is_enabled = false;
     let mut model = String::new();
+    let mut model_reasoning_effort = String::new();
 
     // 1. 如果 config.toml 存在，解析 provider 与配置
     if config_path.exists() {
@@ -32,7 +33,7 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
             }
 
             if !in_section {
-                // 顶层 model 解析 (排除 model_provider)
+                // 顶层 model 与 model_reasoning_effort 解析 (排除 model_provider)
                 if !trimmed.starts_with('#') && trimmed.contains('=') {
                     if let Some((k, raw_val)) = trimmed.split_once('=') {
                         let k = k.trim();
@@ -53,6 +54,24 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
                             };
                             if !v.is_empty() {
                                 model = v;
+                            }
+                        } else if k == "model_reasoning_effort" {
+                            let raw_val = raw_val.trim();
+                            let v = if (raw_val.starts_with('"') && raw_val.contains('"'))
+                                || (raw_val.starts_with('\'') && raw_val.contains('\''))
+                            {
+                                let quote_char = raw_val.chars().next().unwrap();
+                                raw_val
+                                    .trim_start_matches(quote_char)
+                                    .split(quote_char)
+                                    .next()
+                                    .unwrap_or("")
+                                    .to_string()
+                            } else {
+                                raw_val.split('#').next().unwrap_or("").trim().to_string()
+                            };
+                            if !v.is_empty() {
+                                model_reasoning_effort = v;
                             }
                         }
                     }
@@ -159,6 +178,7 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
         provider_url,
         is_enabled,
         model,
+        model_reasoning_effort,
     })
 }
 
@@ -240,11 +260,104 @@ pub fn save_codex_model(model: String) -> Result<(), String> {
     Ok(())
 }
 
+pub fn apply_model_reasoning_effort_to_lines(lines: &mut Vec<String>, effort: &str) {
+    let trimmed_effort = effort.trim();
+
+    let mut effort_line_idx = None;
+    let mut extra_effort_indices = Vec::new();
+
+    for (i, line) in lines.iter().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') {
+            break;
+        }
+        let without_comment = trimmed.trim_start_matches('#').trim();
+        if let Some((k, _)) = without_comment.split_once('=') {
+            if k.trim() == "model_reasoning_effort" {
+                if effort_line_idx.is_none() {
+                    effort_line_idx = Some(i);
+                } else {
+                    extra_effort_indices.push(i);
+                }
+            }
+        }
+    }
+
+    for idx in extra_effort_indices.into_iter().rev() {
+        lines.remove(idx);
+    }
+
+    if trimmed_effort.is_empty() {
+        if let Some(idx) = effort_line_idx {
+            let trimmed = lines[idx].trim();
+            let without_comment = trimmed.trim_start_matches('#').trim();
+            lines[idx] = format!("# {}", without_comment);
+        }
+    } else {
+        let new_line = format!("model_reasoning_effort = \"{}\"", trimmed_effort);
+        if let Some(idx) = effort_line_idx {
+            lines[idx] = new_line;
+        } else {
+            let mut insert_pos = 0;
+            let mut found_model = false;
+            for (i, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
+                let without_comment = trimmed.trim_start_matches('#').trim();
+                if let Some((k, _)) = without_comment.split_once('=') {
+                    if k.trim() == "model" {
+                        insert_pos = i + 1;
+                        found_model = true;
+                        break;
+                    }
+                }
+            }
+            if !found_model {
+                for (i, line) in lines.iter().enumerate() {
+                    let trimmed = line.trim();
+                    let without_comment = trimmed.trim_start_matches('#').trim();
+                    if without_comment.starts_with("model_provider") && without_comment.contains('=') {
+                        insert_pos = i;
+                        break;
+                    }
+                }
+            }
+            lines.insert(insert_pos, new_line);
+        }
+    }
+}
+
+#[tauri::command]
+pub fn save_codex_reasoning_effort(reasoning_effort: String) -> Result<(), String> {
+    let codex_dir = get_codex_dir()?;
+    if !codex_dir.exists() {
+        fs::create_dir_all(&codex_dir).map_err(|e| format!("创建 .codex 目录失败: {}", e))?;
+    }
+    let (config_file, _) = config_file_names();
+    let config_path = codex_dir.join(config_file);
+
+    if !config_path.exists() {
+        fs::write(&config_path, "").map_err(|e| format!("创建 config.toml 失败: {}", e))?;
+    }
+
+    let config_content =
+        fs::read_to_string(&config_path).map_err(|e| format!("读取 config.toml 失败: {}", e))?;
+
+    let mut lines: Vec<String> = config_content.lines().map(|s| s.to_string()).collect();
+
+    apply_model_reasoning_effort_to_lines(&mut lines, &reasoning_effort);
+
+    let new_content = lines.join("\r\n");
+    fs::write(&config_path, new_content).map_err(|e| format!("写入 config.toml 失败: {}", e))?;
+
+    Ok(())
+}
+
 #[tauri::command]
 pub fn save_codex_config(
     key: String,
     provider_url: String,
     model: Option<String>,
+    model_reasoning_effort: Option<String>,
 ) -> Result<(), String> {
     let codex_dir = get_codex_dir()?;
     if !codex_dir.exists() {
@@ -273,6 +386,10 @@ pub fn save_codex_config(
 
     if let Some(ref m) = model {
         apply_model_to_lines(&mut lines, m);
+    }
+
+    if let Some(ref e) = model_reasoning_effort {
+        apply_model_reasoning_effort_to_lines(&mut lines, e);
     }
 
     // 规范化 model_provider 行：确保有且仅有一行未注释的 model_provider = "custom"，清理重复或多余的行
@@ -482,7 +599,7 @@ pub fn restore_codex_default() -> Result<(), String> {
         lines[idx] = format!("# {}", without_comment);
     }
 
-    // 2. 注释掉所有未注释的顶层 model 行
+    // 2. 注释掉所有未注释的顶层 model 与 model_reasoning_effort 行
     for line in &mut lines {
         let trimmed = line.trim();
         if trimmed.starts_with('[') {
@@ -490,7 +607,7 @@ pub fn restore_codex_default() -> Result<(), String> {
         }
         let without_comment = trimmed.trim_start_matches('#').trim();
         if let Some((k, _)) = without_comment.split_once('=') {
-            if k.trim() == "model" {
+            if k.trim() == "model" || k.trim() == "model_reasoning_effort" {
                 *line = format!("# {}", without_comment);
             }
         }
@@ -564,5 +681,30 @@ mod tests {
         ];
         apply_model_to_lines(&mut lines, "gpt-5.6-sol");
         assert_eq!(lines[0], "model = \"gpt-5.6-sol\"");
+    }
+
+    #[test]
+    fn test_apply_model_reasoning_effort_after_model() {
+        let mut lines = vec![
+            "model = \"gpt-5.6-sol\"".to_string(),
+            "model_provider = \"custom\"".to_string(),
+        ];
+        apply_model_reasoning_effort_to_lines(&mut lines, "high");
+        assert_eq!(lines[0], "model = \"gpt-5.6-sol\"");
+        assert_eq!(lines[1], "model_reasoning_effort = \"high\"");
+        assert_eq!(lines[2], "model_provider = \"custom\"");
+    }
+
+    #[test]
+    fn test_apply_model_reasoning_effort_update_and_clear() {
+        let mut lines = vec![
+            "model_reasoning_effort = \"low\"".to_string(),
+            "model_provider = \"custom\"".to_string(),
+        ];
+        apply_model_reasoning_effort_to_lines(&mut lines, "medium");
+        assert_eq!(lines[0], "model_reasoning_effort = \"medium\"");
+
+        apply_model_reasoning_effort_to_lines(&mut lines, "");
+        assert_eq!(lines[0], "# model_reasoning_effort = \"medium\"");
     }
 }
