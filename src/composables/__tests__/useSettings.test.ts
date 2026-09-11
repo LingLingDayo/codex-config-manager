@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
-import { useSettings } from '../useSettings';
+import { useSettings, resetSettingsState } from '../useSettings';
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -12,6 +12,7 @@ describe('useSettings composable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    resetSettingsState();
   });
 
   describe('loadSettings', () => {

@@ -301,31 +301,7 @@ fn spawn_target(target: &str) -> Result<(), String> {
 pub fn launch_codex_app() -> Result<LaunchResult, String> {
     let settings = get_app_settings().unwrap_or_default();
 
-    // 提取自定义可执行文件名（若有配置且指向具体程序）
-    let custom_exe_name = if !settings.codex_path.trim().is_empty() {
-        let p = Path::new(settings.codex_path.trim());
-        p.file_name().map(|n| n.to_string_lossy().to_string())
-    } else {
-        None
-    };
-
-    // 1. 检查是否存在运行中的实例
-    let was_running = is_codex_running(custom_exe_name.as_deref());
-    let mut killed_previous = false;
-
-    if was_running && settings.launch_kill_previous {
-        kill_codex_processes(custom_exe_name.as_deref());
-        // 轮询等待进程完全退出（最长等待 1.5 秒，每 100ms 检查一次）
-        for _ in 0..15 {
-            std::thread::sleep(std::time::Duration::from_millis(100));
-            if !is_codex_running(custom_exe_name.as_deref()) {
-                break;
-            }
-        }
-        killed_previous = true;
-    }
-
-    // 2. 解析启动目标
+    // 1. 优先解析启动目标（若路径不存在或未检测到则直接报错，避免误杀现有进程）
     let target = if !settings.codex_path.trim().is_empty() {
         let configured = settings.codex_path.trim();
         if !configured.starts_with("shell:AppsFolder\\") && !Path::new(configured).exists() {
@@ -340,6 +316,28 @@ pub fn launch_codex_app() -> Result<LaunchResult, String> {
             }
         }
     };
+
+    // 提取自定义可执行文件名（若有配置且指向具体程序）
+    let custom_exe_name = {
+        let p = Path::new(&target);
+        p.file_name().map(|n| n.to_string_lossy().to_string())
+    };
+
+    // 2. 检查是否存在运行中的实例并处理查杀
+    let was_running = is_codex_running(custom_exe_name.as_deref());
+    let mut killed_previous = false;
+
+    if was_running && settings.launch_kill_previous {
+        kill_codex_processes(custom_exe_name.as_deref());
+        // 轮询等待进程完全退出（最长等待 1.5 秒，每 100ms 检查一次）
+        for _ in 0..15 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            if !is_codex_running(custom_exe_name.as_deref()) {
+                break;
+            }
+        }
+        killed_previous = true;
+    }
 
     // 3. 执行拉起
     spawn_target(&target)?;

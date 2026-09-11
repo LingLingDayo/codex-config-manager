@@ -11,14 +11,26 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   launch_kill_previous: true,
 };
 
+// 模块级单例状态，确保全局设置在不同组件间保持一致与响应式同步
+const settings = ref<AppSettings>({ ...DEFAULT_APP_SETTINGS });
+const isLoading = ref<boolean>(false);
+const isSaving = ref<boolean>(false);
+const isLaunching = ref<boolean>(false);
+const detectedPath = ref<string | null>(null);
+
+/**
+ * 重置设置状态（供单元测试使用）
+ */
+export const resetSettingsState = () => {
+  settings.value = { ...DEFAULT_APP_SETTINGS };
+  isLoading.value = false;
+  isSaving.value = false;
+  isLaunching.value = false;
+  detectedPath.value = null;
+};
+
 export function useSettings() {
   const { showToast } = useToast();
-
-  const settings = ref<AppSettings>({ ...DEFAULT_APP_SETTINGS });
-  const isLoading = ref<boolean>(false);
-  const isSaving = ref<boolean>(false);
-  const isLaunching = ref<boolean>(false);
-  const detectedPath = ref<string | null>(null);
 
   /**
    * 加载设置与默认路径检测

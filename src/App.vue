@@ -29,7 +29,14 @@ const {
   restoreDefault,
 } = useCodexConfig();
 const { presets, loadPresets, saveOrUpdatePreset, deletePreset, isPresetActive } = usePresets();
-const { isLaunching, launchApp, loadSettings } = useSettings();
+const {
+  settings,
+  detectedPath,
+  detectPath,
+  isLaunching,
+  launchApp,
+  loadSettings,
+} = useSettings();
 const { showToast } = useToast();
 const { showConfirm } = useConfirm();
 
@@ -90,6 +97,29 @@ const handleLaunchApp = async (data?: {
   modelReasoningEffort?: string;
 }) => {
   if (isLaunching.value) return;
+
+  // 1. 检查是否存在或已检测到 Codex 安装路径
+  const configuredPath = settings.value.codex_path?.trim();
+  let targetPath = configuredPath;
+  if (!targetPath) {
+    targetPath = detectedPath.value || (await detectPath()) || undefined;
+  }
+
+  if (!targetPath) {
+    showToast('未检测到 Codex 安装路径，请前往设置中进行配置', 'warning');
+    const confirmed = await showConfirm({
+      title: '未检测到应用路径',
+      message: '未检测到 Codex 安装路径，请前往设置中进行配置',
+      detail: '未能自动检测到 ChatGPT / Codex 安装位置。是否前往系统设置配置应用路径？',
+      type: 'warning',
+      confirmText: '前往设置',
+      cancelText: '取消',
+    });
+    if (confirmed) {
+      isSettingsModalVisible.value = true;
+    }
+    return;
+  }
 
   if (data) {
     const trimmedKey = data.key.trim();
