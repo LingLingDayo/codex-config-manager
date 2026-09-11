@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import ConfigDrawer from '../ConfigDrawer.vue';
-import SettingItem from '../settings/SettingItem.vue';
 
 describe('ConfigDrawer.vue component', () => {
   it('visible 为 false 时不显示抽屉', () => {
