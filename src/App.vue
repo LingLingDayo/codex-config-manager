@@ -99,11 +99,10 @@ const handleLaunchApp = async (data?: {
   if (isLaunching.value) return;
 
   // 1. 检查是否存在或已检测到 Codex 安装路径
-  const configuredPath = settings.value.codex_path?.trim();
-  let targetPath = configuredPath;
-  if (!targetPath) {
-    targetPath = detectedPath.value || (await detectPath()) || undefined;
-  }
+  const targetPath =
+    settings.value.codex_path?.trim() ||
+    detectedPath.value ||
+    (await detectPath());
 
   if (!targetPath) {
     showToast('未检测到 Codex 安装路径，请前往设置中进行配置', 'warning');

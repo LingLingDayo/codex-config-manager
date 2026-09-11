@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { invoke } from '@tauri-apps/api/core';
 import App from '../App.vue';
-import { resetSettingsState, useSettings } from '../composables/useSettings';
+import { resetSettingsState } from '../composables/useSettings';
 import { useConfirm } from '../composables/useConfirm';
 import { useToast } from '../composables/useToast';
 
