@@ -6,6 +6,7 @@ const props = withDefaults(
     type?: string;
     disabled?: boolean;
     clearable?: boolean;
+    id?: string;
   }>(),
   {
     placeholder: '',
@@ -37,6 +38,7 @@ const handleClear = () => {
 <template>
   <div class="setting-input-wrapper" :class="{ disabled }">
     <input
+      :id="id"
       :type="type"
       :value="modelValue"
       :placeholder="placeholder"

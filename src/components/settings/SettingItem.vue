@@ -5,18 +5,21 @@ withDefaults(
     description?: string;
     direction?: 'horizontal' | 'vertical';
     required?: boolean;
+    span?: 1 | 2 | '1' | '2';
+    title?: string;
   }>(),
   {
     direction: 'horizontal',
     required: false,
+    span: 2,
   }
 );
 </script>
 
 <template>
-  <div class="setting-item" :class="[direction]">
+  <div class="setting-item" :class="[direction, `col-span-${span}`]">
     <div class="item-info">
-      <div class="item-label-wrap">
+      <div class="item-label-wrap" :title="title">
         <span class="item-label">{{ label }}</span>
         <span v-if="required" class="required-mark">*</span>
       </div>
@@ -35,6 +38,17 @@ withDefaults(
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  box-sizing: border-box;
+
+  &.col-span-1 {
+    grid-column: span 1;
+    min-width: 0;
+  }
+
+  &.col-span-2 {
+    grid-column: span 2;
+    min-width: 0;
+  }
 
   &.horizontal {
     align-items: center;
