@@ -8,11 +8,15 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "typecheck": "vue-tsc --noEmit",
+    "lint:unused": "node scripts/verify-unused.js",
+    "verify:commit": "node scripts/verify-commit.js",
     "changelog:extract": "node scripts/extract-changelog.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
-    "test:all": "npm run test && npm run test:rust"
+    "test:all": "npm run test && npm run test:rust",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",
