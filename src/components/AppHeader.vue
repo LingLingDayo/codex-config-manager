@@ -14,7 +14,7 @@ const emit = defineEmits<{
       <img src="../assets/logo_minimal.png" alt="Codex Logo" class="app-logo" />
       <div class="title-group">
         <h1>Codex 配置助手</h1>
-        <p class="subtitle">轻松管理与快捷切换多中转站 API 配置</p>
+        <p class="subtitle">一键切换不同的接口与模型</p>
       </div>
     </div>
 
@@ -98,6 +98,7 @@ const emit = defineEmits<{
     font-weight: 700;
     letter-spacing: -0.4px;
     background: $accent-gradient;
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 1px;

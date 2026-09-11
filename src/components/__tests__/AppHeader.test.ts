@@ -37,7 +37,7 @@ describe('AppHeader.vue component', () => {
     });
 
     expect(wrapper.find('h1').text()).toBe('Codex 配置助手');
-    expect(wrapper.find('.subtitle').text()).toContain('管理与快捷切换多中转站');
+    expect(wrapper.find('.subtitle').text()).toContain('一键切换不同的接口与模型');
   });
 
 
