@@ -15,6 +15,7 @@ const props = withDefaults(
     disabled?: boolean;
     clearable?: boolean;
     allowCustom?: boolean;
+    title?: string;
   }>(),
   {
     placeholder: '请选择或输入',
@@ -117,7 +118,7 @@ onUnmounted(() => {
     @keydown="handleKeyDown"
   >
     <!-- 输入/触发框 -->
-    <div class="select-trigger" @click="toggleDropdown">
+    <div class="select-trigger" :title="title" @click="toggleDropdown">
       <input
         ref="inputRef"
         :value="modelValue"
@@ -125,6 +126,7 @@ onUnmounted(() => {
         :placeholder="placeholder"
         :disabled="disabled"
         :readonly="!allowCustom"
+        :title="title"
         class="select-input"
         autocomplete="off"
         @input="handleInput"

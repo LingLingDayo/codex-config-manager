@@ -22,12 +22,18 @@ const emit = defineEmits<{
 }>();
 
 const reasoningEffortOptions = [
+  { label: 'none', value: 'none', description: '不思考' },
+  { label: 'minimal', value: 'minimal', description: '极低思考强度' },
   { label: 'low', value: 'low', description: '低思考强度 (快速响应)' },
   { label: 'medium', value: 'medium', description: '中等思考强度 (推荐平衡)' },
   { label: 'high', value: 'high', description: '高思考强度 (深入推理)' },
-  { label: 'minimal', value: 'minimal', description: '极低思考强度' },
   { label: 'xhigh', value: 'xhigh', description: '极高思考强度 (超长推理)' },
+  { label: 'max', value: 'max', description: '最大思考强度 (极限推理)' },
+  { label: 'ultra', value: 'ultra', description: '极致思考强度 (自动委派)' },
 ];
+
+const reasoningEffortTooltip =
+  '对应 config.toml 中的 model_reasoning_effort 字段。用于配置模型的深度思考与推理强度，请务必选择所选模型实际支持的思考强度档位（若模型不支持思考请设为 none 或留空）。';
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.visible) {
@@ -95,7 +101,7 @@ onUnmounted(() => {
               label="思考强度 (Reasoning Effort)"
               direction="vertical"
               :span="1"
-              title="对应 config.toml 中的 model_reasoning_effort 字段。用于指定推理模型的思考强度。"
+              :title="reasoningEffortTooltip"
             >
               <SettingSelect
                 id="reasoning-effort-select"
@@ -103,6 +109,7 @@ onUnmounted(() => {
                 :options="reasoningEffortOptions"
                 placeholder="例如: low / medium / high"
                 :allow-custom="true"
+                :title="reasoningEffortTooltip"
                 @update:model-value="emit('update:reasoningEffort', $event)"
                 @keydown.enter="emit('close')"
               />
