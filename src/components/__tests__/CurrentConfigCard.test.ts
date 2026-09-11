@@ -7,6 +7,7 @@ const mockConfig: CodexConfig = {
   key: 'sk-test-key-123456',
   provider_url: 'https://api.openai.com/v1',
   model: 'gpt-4o',
+  model_reasoning_effort: 'high',
   is_enabled: true,
 };
 
@@ -59,6 +60,7 @@ describe('CurrentConfigCard.vue component', () => {
       key: mockConfig.key,
       providerUrl: mockConfig.provider_url,
       model: mockConfig.model,
+      modelReasoningEffort: mockConfig.model_reasoning_effort,
     });
   });
 

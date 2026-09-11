@@ -139,6 +139,7 @@ describe('useCodexConfig composable', () => {
       const { currentConfig, restoreDefault } = useCodexConfig();
       currentConfig.key = 'existing-key';
       currentConfig.is_enabled = true;
+      currentConfig.model_reasoning_effort = 'high';
       localStorage.setItem('codex_current_config', 'something');
 
       const success = await restoreDefault();
@@ -147,7 +148,24 @@ describe('useCodexConfig composable', () => {
       expect(mockedInvoke).toHaveBeenCalledWith('restore_codex_default');
       expect(currentConfig.key).toBe('');
       expect(currentConfig.is_enabled).toBe(false);
+      expect(currentConfig.model_reasoning_effort).toBe('');
       expect(localStorage.getItem('codex_current_config')).toBeNull();
+    });
+  });
+
+  describe('saveReasoningEffort', () => {
+    it('应能正确保存思考强度', async () => {
+      (window as any).__TAURI_INTERNALS__ = {};
+      mockedInvoke.mockResolvedValueOnce(undefined);
+
+      const { currentConfig, saveReasoningEffort } = useCodexConfig();
+      const success = await saveReasoningEffort('high');
+
+      expect(success).toBe(true);
+      expect(mockedInvoke).toHaveBeenCalledWith('save_codex_reasoning_effort', {
+        reasoningEffort: 'high',
+      });
+      expect(currentConfig.model_reasoning_effort).toBe('high');
     });
   });
 });

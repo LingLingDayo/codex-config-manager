@@ -1,15 +1,33 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
+import SettingItem from './settings/SettingItem.vue';
+import SettingInput from './settings/SettingInput.vue';
+import SettingSelect from './settings/SettingSelect.vue';
 
-const props = defineProps<{
-  visible: boolean;
-  modelValue: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    visible: boolean;
+    modelValue: string;
+    reasoningEffort?: string;
+  }>(),
+  {
+    reasoningEffort: '',
+  }
+);
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
+  (e: 'update:reasoningEffort', value: string): void;
   (e: 'close'): void;
 }>();
+
+const reasoningEffortOptions = [
+  { label: 'low', value: 'low', description: '低思考强度 (快速响应)' },
+  { label: 'medium', value: 'medium', description: '中等思考强度 (推荐平衡)' },
+  { label: 'high', value: 'high', description: '高思考强度 (深入推理)' },
+  { label: 'minimal', value: 'minimal', description: '极低思考强度' },
+  { label: 'xhigh', value: 'xhigh', description: '极高思考强度 (超长推理)' },
+];
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.visible) {
@@ -31,49 +49,67 @@ onUnmounted(() => {
     <Transition name="drawer">
       <div v-if="visible" class="drawer-backdrop" @click.self="emit('close')">
         <div class="drawer-panel">
-          <!-- 右上角定位关闭按钮 -->
-          <button
-            type="button"
-            class="btn-drawer-close"
-            title="关闭 (Esc)"
-            @click="emit('close')"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+          <!-- 抽屉头部与右上角关闭按钮 -->
+          <div class="drawer-header">
+            <span class="drawer-title">更多配置</span>
+            <button
+              type="button"
+              class="btn-drawer-close"
+              title="关闭 (Esc)"
+              @click="emit('close')"
             >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-
-          <!-- 抽屉配置项列表主体 -->
-          <div class="drawer-content">
-            <div class="config-item">
-              <label
-                for="custom-model-input"
-                class="config-label"
-                title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
               >
-                自定义模型 (Model)
-              </label>
-              <input
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- 抽屉配置项列表主体：默认两列网格布局 -->
+          <div class="drawer-content">
+            <!-- 自定义模型：占据 1 列 -->
+            <SettingItem
+              label="自定义模型 (Model)"
+              direction="vertical"
+              :span="1"
+              title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
+            >
+              <SettingInput
                 id="custom-model-input"
-                :value="modelValue"
-                type="text"
+                :model-value="modelValue"
                 placeholder="例如: gpt-5.6-sol"
-                autocomplete="off"
-                @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+                @update:model-value="emit('update:modelValue', $event)"
                 @keydown.enter="emit('close')"
               />
-            </div>
+            </SettingItem>
+
+            <!-- 思考强度：占据 1 列，位于自定义模型右侧 -->
+            <SettingItem
+              label="思考强度 (Reasoning Effort)"
+              direction="vertical"
+              :span="1"
+              title="对应 config.toml 中的 model_reasoning_effort 字段。用于指定推理模型的思考强度。"
+            >
+              <SettingSelect
+                id="reasoning-effort-select"
+                :model-value="reasoningEffort"
+                :options="reasoningEffortOptions"
+                placeholder="例如: low / medium / high"
+                :allow-custom="true"
+                @update:model-value="emit('update:reasoningEffort', $event)"
+                @keydown.enter="emit('close')"
+              />
+            </SettingItem>
           </div>
         </div>
       </div>
@@ -125,14 +161,26 @@ onUnmounted(() => {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  padding: 16px 20px;
+  padding: 14px 18px 16px;
   overflow: hidden;
 }
 
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  margin-bottom: 14px;
+}
+
+.drawer-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: $text-main;
+}
+
 .btn-drawer-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
   background: transparent;
   border: none;
   color: $text-muted;
@@ -140,10 +188,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
+  padding: 4px;
   border-radius: $border-radius-sm;
   transition: all 0.2s ease;
-  z-index: 10;
 
   &:hover {
     background: rgba(255, 255, 255, 0.08);
@@ -154,37 +201,10 @@ onUnmounted(() => {
 .drawer-content {
   flex: 1;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 12px;
+  align-content: start;
   @include custom-scrollbar;
-}
-
-.config-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  .config-label {
-    font-size: 0.86rem;
-    font-weight: 600;
-    color: $text-main;
-    letter-spacing: -0.1px;
-    cursor: help;
-    width: fit-content;
-  }
-
-  input {
-    @include input-base;
-    padding: 9px 12px;
-    font-size: 0.84rem;
-    font-family: $font-family-mono;
-
-    &::placeholder {
-      font-family: $font-family-base;
-      font-size: 0.78rem;
-      color: $text-dim;
-    }
-  }
 }
 </style>

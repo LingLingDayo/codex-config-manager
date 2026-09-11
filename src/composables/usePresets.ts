@@ -114,6 +114,11 @@ export function usePresets() {
           name,
           provider_url: providerUrl,
           key,
+          model: data.model !== undefined ? data.model : currentList[index].model,
+          model_reasoning_effort:
+            data.model_reasoning_effort !== undefined
+              ? data.model_reasoning_effort
+              : currentList[index].model_reasoning_effort,
           updated_at: Date.now(),
         };
         showToast(`配置「${name}」已更新！`);
@@ -125,6 +130,8 @@ export function usePresets() {
         name,
         provider_url: providerUrl,
         key,
+        model: data.model || '',
+        model_reasoning_effort: data.model_reasoning_effort || '',
         updated_at: Date.now(),
       };
       currentList.unshift(newPreset);

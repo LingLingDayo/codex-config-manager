@@ -25,16 +25,41 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'save-config', data: { key: string; providerUrl: string; model?: string }): void;
+  (
+    e: 'save-config',
+    data: {
+      key: string;
+      providerUrl: string;
+      model?: string;
+      modelReasoningEffort?: string;
+    }
+  ): void;
   (e: 'restore-default'): void;
-  (e: 'save-as-preset', data: { key: string; providerUrl: string; model?: string }): void;
+  (
+    e: 'save-as-preset',
+    data: {
+      key: string;
+      providerUrl: string;
+      model?: string;
+      modelReasoningEffort?: string;
+    }
+  ): void;
   (e: 'open-presets'): void;
-  (e: 'launch-app', data?: { key: string; providerUrl: string; model?: string }): void;
+  (
+    e: 'launch-app',
+    data?: {
+      key: string;
+      providerUrl: string;
+      model?: string;
+      modelReasoningEffort?: string;
+    }
+  ): void;
 }>();
 
 const apiKey = ref<string>('');
 const providerUrl = ref<string>('');
 const customModel = ref<string>('');
+const reasoningEffort = ref<string>('');
 const showKey = ref<boolean>(false);
 const isConfigDrawerOpen = ref<boolean>(false);
 
@@ -55,6 +80,7 @@ watch(
       ? DEFAULT_STATION_URL
       : newVal.provider_url;
     customModel.value = newVal.model || '';
+    reasoningEffort.value = newVal.model_reasoning_effort || '';
   },
   { immediate: true, deep: true }
 );
@@ -75,6 +101,7 @@ const handleSave = () => {
     key: apiKey.value,
     providerUrl: providerUrl.value,
     model: customModel.value,
+    modelReasoningEffort: reasoningEffort.value,
   });
 };
 
@@ -87,6 +114,7 @@ const handleLaunch = () => {
     key: apiKey.value,
     providerUrl: providerUrl.value,
     model: customModel.value,
+    modelReasoningEffort: reasoningEffort.value,
   });
 };
 
@@ -95,6 +123,7 @@ const handleSaveAsPreset = () => {
     key: apiKey.value,
     providerUrl: providerUrl.value,
     model: customModel.value,
+    modelReasoningEffort: reasoningEffort.value,
   });
 };
 </script>
@@ -175,6 +204,7 @@ const handleSaveAsPreset = () => {
     <ConfigDrawer
       :visible="isConfigDrawerOpen"
       v-model="customModel"
+      v-model:reasoning-effort="reasoningEffort"
       @close="closeConfigDrawer"
     />
   </section>

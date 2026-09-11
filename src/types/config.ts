@@ -3,6 +3,7 @@ export interface CodexConfig {
   provider_url: string;
   is_enabled: boolean;
   model?: string;
+  model_reasoning_effort?: string;
 }
 
 export interface PresetConfig {
@@ -11,6 +12,7 @@ export interface PresetConfig {
   key: string;
   provider_url: string;
   model?: string;
+  model_reasoning_effort?: string;
   updated_at?: number;
 }
 
@@ -28,6 +30,7 @@ export interface PresetFormData {
   provider_url: string;
   key: string;
   model?: string;
+  model_reasoning_effort?: string;
 }
 
 export type ConfirmType = 'danger' | 'warning' | 'info' | 'success';

@@ -12,6 +12,7 @@ export function useCodexConfig() {
     provider_url: '',
     is_enabled: false,
     model: '',
+    model_reasoning_effort: '',
   });
 
   const isLoading = ref<boolean>(false);
@@ -31,6 +32,7 @@ export function useCodexConfig() {
         currentConfig.provider_url = normalizeUrl(config.provider_url) || '';
         currentConfig.is_enabled = config.is_enabled;
         currentConfig.model = config.model || '';
+        currentConfig.model_reasoning_effort = config.model_reasoning_effort || '';
       } else {
         // 纯浏览器预览模式
         const local = localStorage.getItem(CODEX_CONFIG_STORAGE_KEY);
@@ -40,6 +42,7 @@ export function useCodexConfig() {
           currentConfig.provider_url = normalizeUrl(parsed.provider_url) || '';
           currentConfig.is_enabled = parsed.is_enabled ?? false;
           currentConfig.model = parsed.model || '';
+          currentConfig.model_reasoning_effort = parsed.model_reasoning_effort || '';
         }
       }
     } catch (err) {
@@ -52,6 +55,7 @@ export function useCodexConfig() {
           currentConfig.provider_url = normalizeUrl(parsed.provider_url) || '';
           currentConfig.is_enabled = parsed.is_enabled ?? false;
           currentConfig.model = parsed.model || '';
+          currentConfig.model_reasoning_effort = parsed.model_reasoning_effort || '';
         } catch {
           currentConfig.is_enabled = false;
         }
@@ -70,10 +74,20 @@ export function useCodexConfig() {
     key: string,
     providerUrl: string,
     model?: string,
+    modelReasoningEffortOrOptions?: string | { silent?: boolean },
     options?: { silent?: boolean }
   ): Promise<boolean> => {
     const trimmedKey = key.trim();
     const trimmedUrl = providerUrl.trim();
+
+    let modelReasoningEffort: string | undefined = undefined;
+    let actualOptions = options;
+
+    if (typeof modelReasoningEffortOrOptions === 'object' && modelReasoningEffortOrOptions !== null) {
+      actualOptions = modelReasoningEffortOrOptions;
+    } else {
+      modelReasoningEffort = modelReasoningEffortOrOptions;
+    }
 
     if (!trimmedKey || !trimmedUrl) {
       showToast('Key 和模型提供商不能为空', 'error');
@@ -86,6 +100,8 @@ export function useCodexConfig() {
           key: trimmedKey,
           providerUrl: trimmedUrl,
           model: model !== undefined ? model.trim() : undefined,
+          modelReasoningEffort:
+            modelReasoningEffort !== undefined ? modelReasoningEffort.trim() : undefined,
         });
       }
 
@@ -95,9 +111,12 @@ export function useCodexConfig() {
       if (model !== undefined) {
         currentConfig.model = model.trim();
       }
+      if (modelReasoningEffort !== undefined) {
+        currentConfig.model_reasoning_effort = modelReasoningEffort.trim();
+      }
 
       localStorage.setItem(CODEX_CONFIG_STORAGE_KEY, JSON.stringify(currentConfig));
-      if (!options?.silent) {
+      if (!actualOptions?.silent) {
         showToast('配置保存成功，请重启 Codex 以使用新配置');
       }
       return true;
@@ -133,6 +152,31 @@ export function useCodexConfig() {
   };
 
   /**
+   * 保存指定思考强度配置
+   */
+  const saveReasoningEffort = async (effort: string): Promise<boolean> => {
+    try {
+      const trimmedEffort = effort.trim();
+      if (isTauriEnv()) {
+        await invoke('save_codex_reasoning_effort', { reasoningEffort: trimmedEffort });
+      }
+
+      currentConfig.model_reasoning_effort = trimmedEffort;
+      localStorage.setItem(CODEX_CONFIG_STORAGE_KEY, JSON.stringify(currentConfig));
+
+      if (trimmedEffort) {
+        showToast(`已成功指定思考强度「${trimmedEffort}」`);
+      } else {
+        showToast('已清空思考强度，将使用模型默认强度');
+      }
+      return true;
+    } catch (err) {
+      showToast(`保存思考强度失败: ${err}`, 'error');
+      return false;
+    }
+  };
+
+  /**
    * 恢复 Codex 官方默认配置
    */
   const restoreDefault = async (): Promise<boolean> => {
@@ -144,6 +188,7 @@ export function useCodexConfig() {
       currentConfig.provider_url = '';
       currentConfig.is_enabled = false;
       currentConfig.model = '';
+      currentConfig.model_reasoning_effort = '';
       localStorage.removeItem(CODEX_CONFIG_STORAGE_KEY);
       showToast('已成功恢复默认（已移除 API 登录与自定义模型）');
       return true;
@@ -159,6 +204,7 @@ export function useCodexConfig() {
     loadConfig,
     saveConfig,
     saveModel,
+    saveReasoningEffort,
     restoreDefault,
   };
 }

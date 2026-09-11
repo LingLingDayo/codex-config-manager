@@ -56,7 +56,12 @@ const handleApplyPreset = async (preset: PresetConfig) => {
     handleEditPreset(preset);
     return;
   }
-  const success = await saveConfig(preset.key, preset.provider_url, preset.model);
+  const success = await saveConfig(
+    preset.key,
+    preset.provider_url,
+    preset.model,
+    preset.model_reasoning_effort
+  );
   if (success) {
     showToast(`已快捷切换至「${preset.name}」并生效，请重新打开 Codex`);
   }
@@ -78,7 +83,12 @@ const handleRestoreDefault = async () => {
 };
 
 // 保存当前配置并启动应用
-const handleLaunchApp = async (data?: { key: string; providerUrl: string; model?: string }) => {
+const handleLaunchApp = async (data?: {
+  key: string;
+  providerUrl: string;
+  model?: string;
+  modelReasoningEffort?: string;
+}) => {
   if (isLaunching.value) return;
 
   if (data) {
@@ -92,7 +102,13 @@ const handleLaunchApp = async (data?: { key: string; providerUrl: string; model?
     }
 
     // 先保存当前填写的配置（静默成功 Toast，避免与启动 Toast 冲突）
-    const saveSuccess = await saveConfig(data.key, data.providerUrl, data.model, { silent: true });
+    const saveSuccess = await saveConfig(
+      data.key,
+      data.providerUrl,
+      data.model,
+      data.modelReasoningEffort,
+      { silent: true }
+    );
     if (!saveSuccess) {
       return;
     }
@@ -102,7 +118,12 @@ const handleLaunchApp = async (data?: { key: string; providerUrl: string; model?
 };
 
 // 当前配置卡片点击“保存配置”
-const handleSaveAsPreset = (data: { key: string; providerUrl: string; model?: string }) => {
+const handleSaveAsPreset = (data: {
+  key: string;
+  providerUrl: string;
+  model?: string;
+  modelReasoningEffort?: string;
+}) => {
   if (!data.key.trim()) {
     showToast('请先在上方输入 API Key', 'error');
     return;
@@ -115,6 +136,7 @@ const handleSaveAsPreset = (data: { key: string; providerUrl: string; model?: st
     provider_url: isDefault ? DEFAULT_STATION_URL : (data.providerUrl || ''),
     key: data.key,
     model: data.model || '',
+    model_reasoning_effort: data.modelReasoningEffort || '',
   };
   isModalVisible.value = true;
 };
@@ -135,6 +157,7 @@ const handleEditPreset = (preset: PresetConfig) => {
     provider_url: isDefaultStation(preset.provider_url) ? DEFAULT_STATION_URL : preset.provider_url,
     key: preset.key,
     model: preset.model || '',
+    model_reasoning_effort: preset.model_reasoning_effort || '',
   };
   isModalVisible.value = true;
 };
@@ -169,7 +192,7 @@ onMounted(async () => {
         :is-launching="isLaunching"
         :presets-count="presets.length"
         :active-preset-name="activePreset?.name"
-        @save-config="(data) => saveConfig(data.key, data.providerUrl, data.model)"
+        @save-config="(data) => saveConfig(data.key, data.providerUrl, data.model, data.modelReasoningEffort)"
         @restore-default="handleRestoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"
