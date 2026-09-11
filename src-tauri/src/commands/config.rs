@@ -32,24 +32,18 @@ fn is_line_exact_key(line: &str, target_key: &str) -> bool {
     }
 }
 
-#[tauri::command]
-pub fn get_codex_config() -> Result<CodexConfig, String> {
-    let codex_dir = get_codex_dir()?;
-    let (config_file, auth_file) = config_file_names();
-    let config_path = codex_dir.join(config_file);
-    let auth_path = codex_dir.join(auth_file);
-
+pub fn parse_codex_config_from_content(
+    config_content: Option<&str>,
+    auth_content: Option<&str>,
+) -> CodexConfig {
     let mut key = String::new();
     let mut provider_url = String::new();
     let mut is_enabled = false;
     let mut model = String::new();
     let mut model_reasoning_effort = String::new();
 
-    // 1. 如果 config.toml 存在，解析 provider 与配置
-    if config_path.exists() {
-        let config_content =
-            fs::read_to_string(&config_path).map_err(|e| format!("读取 config.toml 失败: {}", e))?;
-        let lines: Vec<&str> = config_content.lines().collect();
+    if let Some(content) = config_content {
+        let lines: Vec<&str> = content.lines().collect();
 
         let mut active_provider = None;
         let mut last_commented_provider = None;
@@ -130,19 +124,7 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
                     if parts.len() == 2 {
                         let k = parts[0].trim();
                         let raw_val = parts[1].trim();
-                        let v = if (raw_val.starts_with('"') && raw_val.contains('"'))
-                            || (raw_val.starts_with('\'') && raw_val.contains('\''))
-                        {
-                            let quote_char = raw_val.chars().next().unwrap();
-                            raw_val
-                                .trim_start_matches(quote_char)
-                                .split(quote_char)
-                                .next()
-                                .unwrap_or("")
-                                .to_string()
-                        } else {
-                            raw_val.split('#').next().unwrap_or("").trim().to_string()
-                        };
+                        let v = parse_toml_string_value(raw_val);
 
                         if k == "experimental_bearer_token" {
                             key = v;
@@ -155,28 +137,51 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
         }
     }
 
-    // 2. 读取 auth.json 中的 key，如果 auth.json 存在且有效的话，其 OPENAI_API_KEY 应该与 key 一致或以它为准
-    if auth_path.exists() {
-        if let Ok(auth_content) = fs::read_to_string(&auth_path) {
-            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&auth_content) {
-                if let Some(k) = v.get("OPENAI_API_KEY") {
-                    if let Some(k_str) = k.as_str() {
-                        if !k_str.is_empty() {
-                            key = k_str.to_string();
-                        }
+    // 读取 auth 中的 key，如果存在且有效的话，其 OPENAI_API_KEY 应该以它为准
+    if let Some(auth) = auth_content {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(auth) {
+            if let Some(k) = v.get("OPENAI_API_KEY") {
+                if let Some(k_str) = k.as_str() {
+                    if !k_str.is_empty() {
+                        key = k_str.to_string();
                     }
                 }
             }
         }
     }
 
-    Ok(CodexConfig {
+    CodexConfig {
         key,
         provider_url,
         is_enabled,
         model,
         model_reasoning_effort,
-    })
+    }
+}
+
+#[tauri::command]
+pub fn get_codex_config() -> Result<CodexConfig, String> {
+    let codex_dir = get_codex_dir()?;
+    let (config_file, auth_file) = config_file_names();
+    let config_path = codex_dir.join(config_file);
+    let auth_path = codex_dir.join(auth_file);
+
+    let config_content = if config_path.exists() {
+        Some(fs::read_to_string(&config_path).map_err(|e| format!("读取 config.toml 失败: {}", e))?)
+    } else {
+        None
+    };
+
+    let auth_content = if auth_path.exists() {
+        fs::read_to_string(&auth_path).ok()
+    } else {
+        None
+    };
+
+    Ok(parse_codex_config_from_content(
+        config_content.as_deref(),
+        auth_content.as_deref(),
+    ))
 }
 
 pub fn apply_model_to_lines(lines: &mut Vec<String>, model: &str) {
@@ -823,5 +828,61 @@ mod tests {
         assert!(!is_line_exact_key("review_model = \"deepseek\"", "model"));
         assert!(!is_line_exact_key("model_provider = \"custom\"", "model"));
         assert!(!is_line_exact_key("model_catalog_json = \"x.json\"", "model"));
+    }
+
+    #[test]
+    fn test_parse_codex_config_when_model_after_sections() {
+        let toml_content = r#"
+model_provider = "custom"
+
+[notice]
+hide_gpt5_1_migration_prompt = true
+
+[model_providers.custom]
+name = "custom"
+base_url = "https://api.example.com/v1"
+experimental_bearer_token = "sk-test-token"
+
+# 用户把 model 与 model_reasoning_effort 放在了 section 后面或末尾
+model = "gpt-5.6-sol"
+model_reasoning_effort = "xhigh"
+"#;
+        let config = parse_codex_config_from_content(Some(toml_content), None);
+        assert_eq!(config.model, "gpt-5.6-sol");
+        assert_eq!(config.model_reasoning_effort, "xhigh");
+        assert_eq!(config.provider_url, "https://api.example.com/v1");
+        assert_eq!(config.key, "sk-test-token");
+        assert!(config.is_enabled);
+    }
+
+    #[test]
+    fn test_parse_codex_config_when_model_commented_after_sections() {
+        let toml_content = r#"
+model_provider = "custom"
+
+[model_providers.custom]
+base_url = "https://api.example.com/v1"
+
+# model = "gpt-5.6-sol"
+# model_reasoning_effort = "high"
+"#;
+        let config = parse_codex_config_from_content(Some(toml_content), None);
+        assert_eq!(config.model, "");
+        assert_eq!(config.model_reasoning_effort, "");
+    }
+
+    #[test]
+    fn test_parse_codex_config_ignores_similar_keys() {
+        let toml_content = r#"
+model_provider = "custom"
+review_model = "deepseek-v4-flash"
+model_catalog_json = "cockpit.json"
+
+[model_providers.custom]
+base_url = "https://api.example.com/v1"
+"#;
+        let config = parse_codex_config_from_content(Some(toml_content), None);
+        assert_eq!(config.model, "");
+        assert_eq!(config.model_reasoning_effort, "");
     }
 }
