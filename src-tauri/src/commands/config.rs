@@ -1,7 +1,10 @@
 use std::fs;
 
 use crate::models::CodexConfig;
-use crate::utils::{config_file_names, get_codex_dir, get_default_station_url, is_default_station};
+use crate::utils::{
+    config_file_names, default_catalog_file_name, get_codex_dir, get_default_station_url,
+    is_default_station,
+};
 
 /// 解析单行 TOML 字符串或标量值，去除外层引号或尾随注释
 fn parse_toml_string_value(raw_val: &str) -> String {
@@ -35,6 +38,7 @@ fn is_line_exact_key(line: &str, target_key: &str) -> bool {
 pub fn parse_codex_config_from_content(
     config_content: Option<&str>,
     auth_content: Option<&str>,
+    catalog_content: Option<&str>,
 ) -> CodexConfig {
     let mut key = String::new();
     let mut provider_url = String::new();
@@ -150,13 +154,85 @@ pub fn parse_codex_config_from_content(
         }
     }
 
+    // 别名依附于当前生效的模型 slug：从模型目录中查询其 display_name
+    let model_display_name = if !model.is_empty() {
+        catalog_content
+            .map(|c| parse_display_name_from_catalog(c, &model))
+            .unwrap_or_default()
+    } else {
+        String::new()
+    };
+
     CodexConfig {
         key,
         provider_url,
         is_enabled,
         model,
         model_reasoning_effort,
+        model_display_name,
     }
+}
+
+/// 从模型目录 JSON 中查询指定 slug 的显示别名（display_name）
+pub fn parse_display_name_from_catalog(catalog_content: &str, slug: &str) -> String {
+    let slug = slug.trim();
+    if slug.is_empty() {
+        return String::new();
+    }
+    if let Ok(v) = serde_json::from_str::<serde_json::Value>(catalog_content) {
+        if let Some(models) = v.get("models").and_then(|m| m.as_array()) {
+            for entry in models {
+                if entry.get("slug").and_then(|s| s.as_str()) == Some(slug) {
+                    if let Some(dn) = entry.get("display_name").and_then(|s| s.as_str()) {
+                        return dn.to_string();
+                    }
+                }
+            }
+        }
+    }
+    String::new()
+}
+
+/// 解析 lines 中当前生效（未注释）的 model_catalog_json 指向的目录文件名
+/// 顶层字段仅存在于首个 section 之前，section 内的同名行属于该 section 而不生效
+pub fn parse_active_catalog_file_from_lines(lines: &[String]) -> Option<String> {
+    for line in lines {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') {
+            break;
+        }
+        if trimmed.starts_with('#') {
+            continue;
+        }
+        if is_line_exact_key(line, "model_catalog_json") {
+            if let Some((_, raw_val)) = trimmed.split_once('=') {
+                let v = parse_toml_string_value(raw_val);
+                if !v.is_empty() {
+                    return Some(v);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// 解析 lines 中当前生效（未注释）的 model 值，作为别名依附的 slug 兜底
+fn parse_active_model_from_lines(lines: &[String]) -> String {
+    for line in lines {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') {
+            continue;
+        }
+        if is_line_exact_key(line, "model") {
+            if let Some((_, raw_val)) = trimmed.split_once('=') {
+                let v = parse_toml_string_value(raw_val);
+                if !v.is_empty() {
+                    return v;
+                }
+            }
+        }
+    }
+    String::new()
 }
 
 #[tauri::command]
@@ -178,10 +254,33 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
         None
     };
 
+    // 依据 config.toml 中生效的 model_catalog_json 定位并读取模型目录文件
+    let catalog_content = config_content.as_deref().and_then(|content| {
+        let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
+        let catalog_file = parse_active_catalog_file_from_lines(&lines)?;
+        let catalog_path = resolve_catalog_path(&codex_dir, &catalog_file);
+        if catalog_path.exists() {
+            fs::read_to_string(&catalog_path).ok()
+        } else {
+            None
+        }
+    });
+
     Ok(parse_codex_config_from_content(
         config_content.as_deref(),
         auth_content.as_deref(),
+        catalog_content.as_deref(),
     ))
+}
+
+/// 将 config.toml 中的 model_catalog_json 值解析为绝对路径（相对路径基于 .codex 目录）
+pub fn resolve_catalog_path(codex_dir: &std::path::Path, catalog_file: &str) -> std::path::PathBuf {
+    let p = std::path::Path::new(catalog_file);
+    if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        codex_dir.join(p)
+    }
 }
 
 pub fn apply_model_to_lines(lines: &mut Vec<String>, model: &str) {
@@ -421,12 +520,175 @@ pub fn save_codex_reasoning_effort(reasoning_effort: String) -> Result<(), Strin
     Ok(())
 }
 
+/// 确保 lines 顶层存在生效的 model_catalog_json 行：
+/// 已有未注释行则沿用不动；仅有注释行则恢复启用；完全缺失则在顶层规范位置插入默认文件名
+pub fn apply_model_catalog_json_to_lines(lines: &mut Vec<String>, file_name: &str) {
+    // 已存在生效的 model_catalog_json 行：沿用其指向的目录文件，不做任何改动
+    if parse_active_catalog_file_from_lines(lines).is_some() {
+        return;
+    }
+
+    let first_section_idx = lines.iter().position(|l| l.trim().starts_with('['));
+    let mut root_commented_indices = Vec::new();
+    let mut section_indices = Vec::new();
+
+    for (i, line) in lines.iter().enumerate() {
+        if is_line_exact_key(line, "model_catalog_json") {
+            if let Some(sec_idx) = first_section_idx {
+                if i < sec_idx {
+                    root_commented_indices.push(i);
+                } else {
+                    section_indices.push(i);
+                }
+            } else {
+                root_commented_indices.push(i);
+            }
+        }
+    }
+
+    // 清理 section 内部错位的行，防止歧义
+    section_indices.sort_unstable();
+    for idx in section_indices.into_iter().rev() {
+        lines.remove(idx);
+    }
+
+    if let Some(&first_idx) = root_commented_indices.first() {
+        // 恢复首个注释行并保留其原指向的文件，删除其余重复注释行
+        let without_comment = lines[first_idx].trim().trim_start_matches('#').trim();
+        lines[first_idx] = without_comment.to_string();
+        let mut dup_indices: Vec<usize> = root_commented_indices.iter().skip(1).copied().collect();
+        dup_indices.sort_unstable();
+        for idx in dup_indices.into_iter().rev() {
+            lines.remove(idx);
+        }
+        return;
+    }
+
+    // 完全缺失：归位插入到顶层，优先在 model_reasoning_effort / model 之后，其次 model_provider 之前
+    let new_line = format!("model_catalog_json = \"{}\"", file_name);
+    let current_first_sec = lines.iter().position(|l| l.trim().starts_with('['));
+    let limit = current_first_sec.unwrap_or(lines.len());
+
+    let mut insert_pos = limit;
+    let mut found_anchor = false;
+    for anchor_key in ["model_reasoning_effort", "model"] {
+        for (i, line) in lines[..limit].iter().enumerate() {
+            if is_line_exact_key(line, anchor_key) {
+                insert_pos = i + 1;
+                found_anchor = true;
+                break;
+            }
+        }
+        if found_anchor {
+            break;
+        }
+    }
+    if !found_anchor {
+        for (i, line) in lines[..limit].iter().enumerate() {
+            let trimmed = line.trim();
+            let without_comment = trimmed.trim_start_matches('#').trim();
+            if without_comment.starts_with("model_provider") && without_comment.contains('=') {
+                insert_pos = i;
+                break;
+            }
+        }
+    }
+
+    lines.insert(insert_pos, new_line);
+}
+
+/// 在模型目录 JSON 中为指定 slug 写入/更新/清除显示别名（display_name）
+/// 返回 Ok(Some(新内容)) 表示需要写回；Ok(None) 表示无需变更；Err 表示目录文件结构异常，已拒绝覆盖
+pub fn apply_display_name_to_catalog(
+    catalog_content: Option<&str>,
+    slug: &str,
+    display_name: &str,
+) -> Result<Option<String>, String> {
+    let slug = slug.trim();
+    if slug.is_empty() {
+        return Ok(None);
+    }
+    let trimmed_dn = display_name.trim();
+
+    if trimmed_dn.is_empty() {
+        // 清除别名：仅处理已存在且结构合法的目录文件
+        let content = match catalog_content {
+            Some(c) if !c.trim().is_empty() => c,
+            _ => return Ok(None),
+        };
+        let mut v: serde_json::Value = serde_json::from_str(content)
+            .map_err(|e| format!("模型目录文件解析失败，已跳过别名清理: {}", e))?;
+        let models = match v.get_mut("models").and_then(|m| m.as_array_mut()) {
+            Some(m) => m,
+            None => return Ok(None),
+        };
+        let idx = match models
+            .iter()
+            .position(|e| e.get("slug").and_then(|s| s.as_str()) == Some(slug))
+        {
+            Some(i) => i,
+            None => return Ok(None),
+        };
+        let removed = match models[idx].as_object_mut() {
+            Some(entry) => entry.remove("display_name").is_some(),
+            None => false,
+        };
+        if !removed {
+            return Ok(None);
+        }
+        // 条目仅剩 slug 字段时（本工具创建的最小条目）整体移除，避免残留空壳
+        if models[idx].as_object().map(|e| e.len() == 1).unwrap_or(false) {
+            models.remove(idx);
+        }
+        return serde_json::to_string_pretty(&v)
+            .map(Some)
+            .map_err(|e| format!("序列化模型目录失败: {}", e));
+    }
+
+    // 写入/更新别名
+    let mut v: serde_json::Value = match catalog_content {
+        Some(c) if !c.trim().is_empty() => serde_json::from_str(c)
+            .map_err(|e| format!("模型目录文件解析失败，已拒绝覆盖: {}", e))?,
+        _ => serde_json::json!({ "models": [] }),
+    };
+    if !v.is_object() {
+        return Err("模型目录文件结构异常（顶层非对象），已拒绝覆盖".to_string());
+    }
+    if v.get("models").is_some() && !v["models"].is_array() {
+        return Err("模型目录文件结构异常（models 非数组），已拒绝覆盖".to_string());
+    }
+    if v.get("models").is_none() {
+        v["models"] = serde_json::json!([]);
+    }
+    let models = v["models"].as_array_mut().unwrap();
+
+    if let Some(entry) = models
+        .iter_mut()
+        .find(|e| e.get("slug").and_then(|s| s.as_str()) == Some(slug))
+    {
+        if !entry.is_object() {
+            return Err("模型目录条目结构异常，已拒绝覆盖".to_string());
+        }
+        if entry.get("display_name").and_then(|s| s.as_str()) == Some(trimmed_dn) {
+            return Ok(None);
+        }
+        entry["display_name"] = serde_json::Value::String(trimmed_dn.to_string());
+    } else {
+        models.push(serde_json::json!({ "slug": slug, "display_name": trimmed_dn }));
+    }
+
+    serde_json::to_string_pretty(&v)
+        .map(Some)
+        .map_err(|e| format!("序列化模型目录失败: {}", e))
+}
+
 #[tauri::command]
 pub fn save_codex_config(
     key: String,
     provider_url: String,
     model: Option<String>,
     model_reasoning_effort: Option<String>,
+    model_display_name: Option<String>,
 ) -> Result<(), String> {
     let codex_dir = get_codex_dir()?;
     if !codex_dir.exists() {
@@ -459,6 +721,44 @@ pub fn save_codex_config(
 
     if let Some(ref e) = model_reasoning_effort {
         apply_model_reasoning_effort_to_lines(&mut lines, e);
+    }
+
+    // 处理模型别名：依附于当前生效的模型 slug，写入 model_catalog_json 指向的目录文件
+    if let Some(ref dn) = model_display_name {
+        let slug = match &model {
+            Some(m) if !m.trim().is_empty() => m.trim().to_string(),
+            _ => parse_active_model_from_lines(&lines),
+        };
+        if !slug.is_empty() {
+            let trimmed_dn = dn.trim();
+            // 确定目录文件：优先沿用 config.toml 中已生效的 model_catalog_json；
+            // 写入别名且无生效配置时，恢复注释行或插入本工具自管的默认目录文件名
+            let catalog_file = parse_active_catalog_file_from_lines(&lines).or_else(|| {
+                if trimmed_dn.is_empty() {
+                    None
+                } else {
+                    apply_model_catalog_json_to_lines(&mut lines, default_catalog_file_name());
+                    parse_active_catalog_file_from_lines(&lines)
+                }
+            });
+            if let Some(file) = catalog_file {
+                let catalog_path = resolve_catalog_path(&codex_dir, &file);
+                let existing = if catalog_path.exists() {
+                    Some(
+                        fs::read_to_string(&catalog_path)
+                            .map_err(|e| format!("读取模型目录文件失败: {}", e))?,
+                    )
+                } else {
+                    None
+                };
+                if let Some(new_content) =
+                    apply_display_name_to_catalog(existing.as_deref(), &slug, trimmed_dn)?
+                {
+                    fs::write(&catalog_path, new_content)
+                        .map_err(|e| format!("写入模型目录文件失败: {}", e))?;
+                }
+            }
+        }
     }
 
     // 规范化 model_provider 行：确保有且仅有一行未注释的 model_provider = "custom"，清理重复或多余的行
@@ -847,7 +1147,7 @@ experimental_bearer_token = "sk-test-token"
 model = "gpt-5.6-sol"
 model_reasoning_effort = "xhigh"
 "#;
-        let config = parse_codex_config_from_content(Some(toml_content), None);
+        let config = parse_codex_config_from_content(Some(toml_content), None, None);
         assert_eq!(config.model, "gpt-5.6-sol");
         assert_eq!(config.model_reasoning_effort, "xhigh");
         assert_eq!(config.provider_url, "https://api.example.com/v1");
@@ -866,7 +1166,7 @@ base_url = "https://api.example.com/v1"
 # model = "gpt-5.6-sol"
 # model_reasoning_effort = "high"
 "#;
-        let config = parse_codex_config_from_content(Some(toml_content), None);
+        let config = parse_codex_config_from_content(Some(toml_content), None, None);
         assert_eq!(config.model, "");
         assert_eq!(config.model_reasoning_effort, "");
     }
@@ -881,8 +1181,193 @@ model_catalog_json = "cockpit.json"
 [model_providers.custom]
 base_url = "https://api.example.com/v1"
 "#;
-        let config = parse_codex_config_from_content(Some(toml_content), None);
+        let config = parse_codex_config_from_content(Some(toml_content), None, None);
         assert_eq!(config.model, "");
         assert_eq!(config.model_reasoning_effort, "");
+    }
+
+    #[test]
+    fn test_parse_codex_config_reads_display_name_from_catalog() {
+        let toml_content = r#"
+model = "gpt-5.6-sol"
+model_catalog_json = "ccm-model-catalog.json"
+"#;
+        let catalog_content = r#"{
+  "models": [
+    { "slug": "gpt-5.6-sol", "display_name": "5.6 Sol", "context_window": 272000 },
+    { "slug": "gpt-5.6-terra", "display_name": "5.6 Terra" }
+  ]
+}"#;
+        let config =
+            parse_codex_config_from_content(Some(toml_content), None, Some(catalog_content));
+        assert_eq!(config.model, "gpt-5.6-sol");
+        assert_eq!(config.model_display_name, "5.6 Sol");
+    }
+
+    #[test]
+    fn test_parse_codex_config_display_name_empty_without_match_or_model() {
+        let toml_content = "model = \"gpt-5.6-sol\"";
+        let catalog_content = r#"{ "models": [ { "slug": "other-model", "display_name": "Other" } ] }"#;
+        let config =
+            parse_codex_config_from_content(Some(toml_content), None, Some(catalog_content));
+        assert_eq!(config.model_display_name, "");
+
+        // 未指定模型时即使有目录也不产生别名
+        let config = parse_codex_config_from_content(Some("model_provider = \"custom\""), None, Some(catalog_content));
+        assert_eq!(config.model_display_name, "");
+    }
+
+    #[test]
+    fn test_parse_display_name_from_catalog_edge_cases() {
+        let catalog = r#"{ "models": [ { "slug": "a" }, { "slug": "b", "display_name": "B 别名" } ] }"#;
+        assert_eq!(parse_display_name_from_catalog(catalog, "b"), "B 别名");
+        // 条目存在但无 display_name
+        assert_eq!(parse_display_name_from_catalog(catalog, "a"), "");
+        // slug 不存在 / 空 slug / 非法 JSON
+        assert_eq!(parse_display_name_from_catalog(catalog, "c"), "");
+        assert_eq!(parse_display_name_from_catalog(catalog, ""), "");
+        assert_eq!(parse_display_name_from_catalog("not json", "b"), "");
+    }
+
+    #[test]
+    fn test_parse_active_catalog_file_from_lines() {
+        let lines = vec![
+            "model = \"gpt-5.6-sol\"".to_string(),
+            "model_catalog_json = \"cockpit-model-catalog.json\"".to_string(),
+        ];
+        assert_eq!(
+            parse_active_catalog_file_from_lines(&lines),
+            Some("cockpit-model-catalog.json".to_string())
+        );
+
+        // 注释行不生效
+        let lines = vec!["# model_catalog_json = \"old.json\"".to_string()];
+        assert_eq!(parse_active_catalog_file_from_lines(&lines), None);
+
+        // 排除相似键
+        let lines = vec!["model_catalog_json_backup = \"x.json\"".to_string()];
+        assert_eq!(parse_active_catalog_file_from_lines(&lines), None);
+    }
+
+    #[test]
+    fn test_apply_model_catalog_json_keeps_existing_active_line() {
+        let mut lines = vec![
+            "model = \"gpt-5.6-sol\"".to_string(),
+            "model_catalog_json = \"cockpit-model-catalog.json\"".to_string(),
+        ];
+        apply_model_catalog_json_to_lines(&mut lines, "ccm-model-catalog.json");
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[1], "model_catalog_json = \"cockpit-model-catalog.json\"");
+    }
+
+    #[test]
+    fn test_apply_model_catalog_json_restores_commented_line() {
+        let mut lines = vec![
+            "model = \"gpt-5.6-sol\"".to_string(),
+            "# model_catalog_json = \"cockpit-model-catalog.json\"".to_string(),
+            "# model_catalog_json = \"dup.json\"".to_string(),
+        ];
+        apply_model_catalog_json_to_lines(&mut lines, "ccm-model-catalog.json");
+        // 恢复首个注释行并保留原文件指向，重复行被清理
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[1], "model_catalog_json = \"cockpit-model-catalog.json\"");
+    }
+
+    #[test]
+    fn test_apply_model_catalog_json_inserts_after_model() {
+        let mut lines = vec![
+            "model = \"gpt-5.6-sol\"".to_string(),
+            "model_reasoning_effort = \"high\"".to_string(),
+            "model_provider = \"custom\"".to_string(),
+            "[model_providers.custom]".to_string(),
+            "model_catalog_json = \"misplaced.json\"".to_string(),
+        ];
+        apply_model_catalog_json_to_lines(&mut lines, "ccm-model-catalog.json");
+        // section 内错位行被移除，新行插入到 model_reasoning_effort 之后
+        assert_eq!(lines.len(), 5);
+        assert_eq!(lines[2], "model_catalog_json = \"ccm-model-catalog.json\"");
+        assert_eq!(lines[3], "model_provider = \"custom\"");
+    }
+
+    #[test]
+    fn test_apply_display_name_to_catalog_creates_minimal_entry() {
+        let result = apply_display_name_to_catalog(None, "gpt-5.6-sol", "5.6 Sol").unwrap();
+        let content = result.expect("应生成新目录内容");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let models = v["models"].as_array().unwrap();
+        assert_eq!(models.len(), 1);
+        assert_eq!(models[0]["slug"], "gpt-5.6-sol");
+        assert_eq!(models[0]["display_name"], "5.6 Sol");
+    }
+
+    #[test]
+    fn test_apply_display_name_to_catalog_updates_existing_and_preserves_others() {
+        let catalog = r#"{
+  "models": [
+    { "slug": "gpt-5.6-sol", "display_name": "Old Name", "context_window": 272000 },
+    { "slug": "gpt-5.6-terra", "display_name": "5.6 Terra" }
+  ]
+}"#;
+        let result = apply_display_name_to_catalog(Some(catalog), "gpt-5.6-sol", "5.6 Sol").unwrap();
+        let content = result.expect("应产生更新");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let models = v["models"].as_array().unwrap();
+        assert_eq!(models.len(), 2);
+        assert_eq!(models[0]["display_name"], "5.6 Sol");
+        // 其他元数据字段原样保留
+        assert_eq!(models[0]["context_window"], 272000);
+        assert_eq!(models[1]["display_name"], "5.6 Terra");
+
+        // 相同别名重复写入无需变更
+        let no_change = apply_display_name_to_catalog(Some(&content), "gpt-5.6-sol", "5.6 Sol").unwrap();
+        assert!(no_change.is_none());
+    }
+
+    #[test]
+    fn test_apply_display_name_to_catalog_appends_entry() {
+        let catalog = r#"{ "models": [ { "slug": "gpt-5.6-terra", "display_name": "5.6 Terra" } ] }"#;
+        let result = apply_display_name_to_catalog(Some(catalog), "gpt-5.6-sol", "5.6 Sol").unwrap();
+        let content = result.expect("应追加条目");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let models = v["models"].as_array().unwrap();
+        assert_eq!(models.len(), 2);
+        assert_eq!(models[1]["slug"], "gpt-5.6-sol");
+        assert_eq!(models[1]["display_name"], "5.6 Sol");
+    }
+
+    #[test]
+    fn test_apply_display_name_to_catalog_clear_alias() {
+        // 清除别名：移除 display_name，保留条目其余元数据
+        let catalog = r#"{ "models": [ { "slug": "a", "display_name": "A", "context_window": 100 } ] }"#;
+        let result = apply_display_name_to_catalog(Some(catalog), "a", "").unwrap();
+        let content = result.expect("应产生清除变更");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let models = v["models"].as_array().unwrap();
+        assert_eq!(models.len(), 1);
+        assert!(models[0].get("display_name").is_none());
+        assert_eq!(models[0]["context_window"], 100);
+
+        // 最小条目清除后整体移除
+        let minimal = r#"{ "models": [ { "slug": "b", "display_name": "B" } ] }"#;
+        let result = apply_display_name_to_catalog(Some(minimal), "b", "  ").unwrap();
+        let content = result.expect("应移除最小条目");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        assert_eq!(v["models"].as_array().unwrap().len(), 0);
+
+        // 无别名可清 / 无目录文件 / slug 为空：均无需变更
+        let no_alias = r#"{ "models": [ { "slug": "a" } ] }"#;
+        assert!(apply_display_name_to_catalog(Some(no_alias), "a", "").unwrap().is_none());
+        assert!(apply_display_name_to_catalog(None, "a", "").unwrap().is_none());
+        assert!(apply_display_name_to_catalog(Some(catalog), "", "X").unwrap().is_none());
+    }
+
+    #[test]
+    fn test_apply_display_name_to_catalog_rejects_invalid_structure() {
+        // 非法 JSON 拒绝覆盖，防止破坏既有目录文件
+        assert!(apply_display_name_to_catalog(Some("not json"), "a", "A").is_err());
+        // models 非数组拒绝覆盖
+        assert!(apply_display_name_to_catalog(Some(r#"{ "models": {} }"#), "a", "A").is_err());
+        // 顶层非对象拒绝覆盖
+        assert!(apply_display_name_to_catalog(Some(r#"["a"]"#), "a", "A").is_err());
     }
 }

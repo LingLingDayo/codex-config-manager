@@ -9,6 +9,8 @@ pub struct CodexConfig {
     pub model: String,
     #[serde(default)]
     pub model_reasoning_effort: String,
+    #[serde(default)]
+    pub model_display_name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

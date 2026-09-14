@@ -24,6 +24,15 @@ pub fn presets_file_name() -> &'static str {
     }
 }
 
+/// 本工具自管的模型目录文件名：仅在 config.toml 未配置 model_catalog_json 时创建使用
+pub fn default_catalog_file_name() -> &'static str {
+    if cfg!(debug_assertions) {
+        "ccm-model-catalog_dev.json"
+    } else {
+        "ccm-model-catalog.json"
+    }
+}
+
 pub fn settings_file_name() -> &'static str {
     if cfg!(debug_assertions) {
         "settings_dev.json"
