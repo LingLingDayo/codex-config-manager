@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
+    "build:app": "node scripts/tauri-runner.js build",
     "preview": "vite preview",
-    "tauri": "tauri",
+    "tauri": "node scripts/tauri-runner.js",
+    "release:copy": "node scripts/copy-release.js",
     "typecheck": "vue-tsc --noEmit",
     "lint:unused": "node scripts/verify-unused.js",
     "verify:commit": "node scripts/verify-commit.js",

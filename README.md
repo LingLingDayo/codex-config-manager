@@ -75,6 +75,7 @@ codex-config-manager/
 ├── src-tauri/                    # 桌面端后端 (Tauri 2 + Rust)
 │   ├── src/                      # 系统进程探测、TOML 安全修补与 IPC 指令
 │   └── tauri.conf.json           # 桌面端窗口与权限配置
+├── release/                      # 构建产物发布目录 (安装包与可执行程序)
 ├── scripts/                      # 发布自动化与日志解析脚本
 └── assets/                       # 项目预览与展示资源
 ```
@@ -131,10 +132,18 @@ npm run test:rust
 生成生产环境安装包或绿色可执行程序：
 
 ```bash
+# 完整构建并自动归档到 release 目录
 npm run tauri build
+# 或使用快捷别名
+npm run build:app
 ```
 
-打包产物位于 `src-tauri/target/release/bundle/` 目录下。
+构建完成后，自动化脚本会自动将对应版本的安装包（NSIS `.exe`、MSI `.msi` 等）及可执行程序复制至根目录的 `release/` 目录中（若已存在同名文件将自动覆盖）。
+
+如需单独手动执行归档复制：
+```bash
+npm run release:copy
+```
 
 ---
 
