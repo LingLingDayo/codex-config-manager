@@ -32,6 +32,7 @@ const emit = defineEmits<{
       providerUrl: string;
       model?: string;
       modelReasoningEffort?: string;
+      modelDisplayName?: string;
     }
   ): void;
   (e: 'restore-default'): void;
@@ -42,6 +43,7 @@ const emit = defineEmits<{
       providerUrl: string;
       model?: string;
       modelReasoningEffort?: string;
+      modelDisplayName?: string;
     }
   ): void;
   (e: 'open-presets'): void;
@@ -52,6 +54,7 @@ const emit = defineEmits<{
       providerUrl: string;
       model?: string;
       modelReasoningEffort?: string;
+      modelDisplayName?: string;
     }
   ): void;
 }>();
@@ -60,6 +63,7 @@ const apiKey = ref<string>('');
 const providerUrl = ref<string>('');
 const customModel = ref<string>('');
 const reasoningEffort = ref<string>('');
+const modelDisplayName = ref<string>('');
 const showKey = ref<boolean>(false);
 const isConfigDrawerOpen = ref<boolean>(false);
 
@@ -81,6 +85,7 @@ watch(
       : newVal.provider_url;
     customModel.value = newVal.model || '';
     reasoningEffort.value = newVal.model_reasoning_effort || '';
+    modelDisplayName.value = newVal.model_display_name || '';
   },
   { immediate: true, deep: true }
 );
@@ -102,6 +107,7 @@ const handleSave = () => {
     providerUrl: providerUrl.value,
     model: customModel.value,
     modelReasoningEffort: reasoningEffort.value,
+    modelDisplayName: modelDisplayName.value,
   });
 };
 
@@ -115,6 +121,7 @@ const handleLaunch = () => {
     providerUrl: providerUrl.value,
     model: customModel.value,
     modelReasoningEffort: reasoningEffort.value,
+    modelDisplayName: modelDisplayName.value,
   });
 };
 
@@ -124,6 +131,7 @@ const handleSaveAsPreset = () => {
     providerUrl: providerUrl.value,
     model: customModel.value,
     modelReasoningEffort: reasoningEffort.value,
+    modelDisplayName: modelDisplayName.value,
   });
 };
 </script>
@@ -205,6 +213,7 @@ const handleSaveAsPreset = () => {
       :visible="isConfigDrawerOpen"
       v-model="customModel"
       v-model:reasoning-effort="reasoningEffort"
+      v-model:display-name="modelDisplayName"
       @close="closeConfigDrawer"
     />
   </section>

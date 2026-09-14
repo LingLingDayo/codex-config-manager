@@ -21,6 +21,7 @@ describe('ConfigDrawer.vue component', () => {
         visible: true,
         modelValue: 'gpt-5.6-sol',
         reasoningEffort: 'medium',
+        displayName: '5.6 Sol',
       },
       attachTo: document.body,
     });
@@ -31,11 +32,19 @@ describe('ConfigDrawer.vue component', () => {
     const drawerContent = document.body.querySelector('.drawer-content');
     expect(drawerContent).not.toBeNull();
 
-    // 检查是否有两个并排的 span-1 控件
+    // 检查是否有三个 span-1 控件（自定义模型 / 思考强度 / 模型别名）
     const items = document.body.querySelectorAll('.setting-item');
-    expect(items.length).toBe(2);
+    expect(items.length).toBe(3);
     expect(items[0].classList.contains('col-span-1')).toBe(true);
     expect(items[1].classList.contains('col-span-1')).toBe(true);
+    expect(items[2].classList.contains('col-span-1')).toBe(true);
+
+    // 模型别名输入框应展示当前别名
+    const displayNameInput = document.body.querySelector(
+      '#model-display-name-input'
+    ) as HTMLInputElement;
+    expect(displayNameInput).not.toBeNull();
+    expect(displayNameInput.value).toBe('5.6 Sol');
 
     wrapper.unmount();
   });
@@ -83,6 +92,29 @@ describe('ConfigDrawer.vue component', () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.emitted('update:reasoningEffort')?.[0]).toEqual(['high']);
+
+    wrapper.unmount();
+  });
+
+  it('输入模型别名时触发 update:displayName 事件', async () => {
+    const wrapper = mount(ConfigDrawer, {
+      props: {
+        visible: true,
+        modelValue: 'gpt-5.6-sol',
+        displayName: '',
+      },
+      attachTo: document.body,
+    });
+
+    const displayNameInput = document.body.querySelector(
+      '#model-display-name-input'
+    ) as HTMLInputElement;
+    expect(displayNameInput).not.toBeNull();
+    displayNameInput.value = '5.6 Sol';
+    displayNameInput.dispatchEvent(new Event('input'));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('update:displayName')?.[0]).toEqual(['5.6 Sol']);
 
     wrapper.unmount();
   });

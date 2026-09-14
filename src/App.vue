@@ -63,12 +63,10 @@ const handleApplyPreset = async (preset: PresetConfig) => {
     handleEditPreset(preset);
     return;
   }
-  const success = await saveConfig(
-    preset.key,
-    preset.provider_url,
-    preset.model,
-    preset.model_reasoning_effort
-  );
+  const success = await saveConfig(preset.key, preset.provider_url, {
+    model: preset.model,
+    modelReasoningEffort: preset.model_reasoning_effort,
+  });
   if (success) {
     showToast(`已快捷切换至「${preset.name}」并生效，请重新打开 Codex`);
   }
@@ -95,6 +93,7 @@ const handleLaunchApp = async (data?: {
   providerUrl: string;
   model?: string;
   modelReasoningEffort?: string;
+  modelDisplayName?: string;
 }) => {
   if (isLaunching.value) return;
 
@@ -134,8 +133,11 @@ const handleLaunchApp = async (data?: {
     const saveSuccess = await saveConfig(
       data.key,
       data.providerUrl,
-      data.model,
-      data.modelReasoningEffort,
+      {
+        model: data.model,
+        modelReasoningEffort: data.modelReasoningEffort,
+        modelDisplayName: data.modelDisplayName,
+      },
       { silent: true }
     );
     if (!saveSuccess) {
@@ -152,6 +154,7 @@ const handleSaveAsPreset = (data: {
   providerUrl: string;
   model?: string;
   modelReasoningEffort?: string;
+  modelDisplayName?: string;
 }) => {
   if (!data.key.trim()) {
     showToast('请先在上方输入 API Key', 'error');
@@ -221,7 +224,7 @@ onMounted(async () => {
         :is-launching="isLaunching"
         :presets-count="presets.length"
         :active-preset-name="activePreset?.name"
-        @save-config="(data) => saveConfig(data.key, data.providerUrl, data.model, data.modelReasoningEffort)"
+        @save-config="(data) => saveConfig(data.key, data.providerUrl, { model: data.model, modelReasoningEffort: data.modelReasoningEffort, modelDisplayName: data.modelDisplayName })"
         @restore-default="handleRestoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"

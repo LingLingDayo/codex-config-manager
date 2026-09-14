@@ -8,6 +8,7 @@ const mockConfig: CodexConfig = {
   provider_url: 'https://api.openai.com/v1',
   model: 'gpt-4o',
   model_reasoning_effort: 'high',
+  model_display_name: '4o 别名',
   is_enabled: true,
 };
 
@@ -61,6 +62,7 @@ describe('CurrentConfigCard.vue component', () => {
       providerUrl: mockConfig.provider_url,
       model: mockConfig.model,
       modelReasoningEffort: mockConfig.model_reasoning_effort,
+      modelDisplayName: mockConfig.model_display_name,
     });
   });
 

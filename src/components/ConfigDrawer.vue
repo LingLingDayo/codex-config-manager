@@ -9,15 +9,18 @@ const props = withDefaults(
     visible: boolean;
     modelValue: string;
     reasoningEffort?: string;
+    displayName?: string;
   }>(),
   {
     reasoningEffort: '',
+    displayName: '',
   }
 );
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
   (e: 'update:reasoningEffort', value: string): void;
+  (e: 'update:displayName', value: string): void;
   (e: 'close'): void;
 }>();
 
@@ -34,6 +37,9 @@ const reasoningEffortOptions = [
 
 const reasoningEffortTooltip =
   '对应 config.toml 中的 model_reasoning_effort 字段。用于配置模型的深度思考与推理强度，请务必选择所选模型实际支持的思考强度档位（若模型不支持思考请设为 none 或留空）。';
+
+const displayNameTooltip =
+  '为当前自定义模型设置显示别名，Codex 的模型选择器中将直接展示该名称。别名通过 config.toml 的 model_catalog_json 模型目录机制生效（写入该模型的 display_name），依附于上方填写的自定义模型，留空则恢复显示原始模型名。';
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.visible) {
@@ -111,6 +117,23 @@ onUnmounted(() => {
                 :allow-custom="true"
                 :title="reasoningEffortTooltip"
                 @update:model-value="emit('update:reasoningEffort', $event)"
+                @keydown.enter="emit('close')"
+              />
+            </SettingItem>
+
+            <!-- 模型别名：占据 1 列，依附于自定义模型 -->
+            <SettingItem
+              label="模型别名 (Display Name)"
+              direction="vertical"
+              :span="1"
+              :title="displayNameTooltip"
+            >
+              <SettingInput
+                id="model-display-name-input"
+                :model-value="displayName"
+                placeholder="例如: 5.6 Sol"
+                :title="displayNameTooltip"
+                @update:model-value="emit('update:displayName', $event)"
                 @keydown.enter="emit('close')"
               />
             </SettingItem>

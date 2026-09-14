@@ -58,6 +58,24 @@ describe('useCodexConfig composable', () => {
       expect(currentConfig.provider_url).toBe('https://api.deepseek.com');
       expect(currentConfig.model).toBe('deepseek-chat');
     });
+
+    it('应从后端配置中读取模型别名', async () => {
+      (window as any).__TAURI_INTERNALS__ = {};
+      const backendConfig: CodexConfig = {
+        key: 'sk-tauri-key',
+        provider_url: 'https://api.example.com/v1',
+        is_enabled: true,
+        model: 'gpt-5.6-sol',
+        model_display_name: '5.6 Sol',
+      };
+      mockedInvoke.mockResolvedValueOnce(backendConfig);
+
+      const { currentConfig, loadConfig } = useCodexConfig();
+      await loadConfig();
+
+      expect(currentConfig.model).toBe('gpt-5.6-sol');
+      expect(currentConfig.model_display_name).toBe('5.6 Sol');
+    });
   });
 
   describe('saveConfig', () => {
@@ -75,7 +93,9 @@ describe('useCodexConfig composable', () => {
       mockedInvoke.mockResolvedValueOnce(undefined);
 
       const { currentConfig, saveConfig } = useCodexConfig();
-      const success = await saveConfig('sk-valid-key', 'https://api.openai.com/v1', 'gpt-4o');
+      const success = await saveConfig('sk-valid-key', 'https://api.openai.com/v1', {
+        model: 'gpt-4o',
+      });
 
       expect(success).toBe(true);
       expect(mockedInvoke).toHaveBeenCalledWith('save_codex_config', {
@@ -89,14 +109,54 @@ describe('useCodexConfig composable', () => {
       expect(localStorage.getItem('codex_current_config')).toBeTruthy();
     });
 
+    it('payload 携带模型别名时应透传至后端并同步本地状态', async () => {
+      (window as any).__TAURI_INTERNALS__ = {};
+      mockedInvoke.mockResolvedValueOnce(undefined);
+
+      const { currentConfig, saveConfig } = useCodexConfig();
+      const success = await saveConfig('sk-alias-key', 'https://api.openai.com/v1', {
+        model: 'gpt-5.6-sol',
+        modelReasoningEffort: 'high',
+        modelDisplayName: '5.6 Sol',
+      });
+
+      expect(success).toBe(true);
+      expect(mockedInvoke).toHaveBeenCalledWith('save_codex_config', {
+        key: 'sk-alias-key',
+        providerUrl: 'https://api.openai.com/v1',
+        model: 'gpt-5.6-sol',
+        modelReasoningEffort: 'high',
+        modelDisplayName: '5.6 Sol',
+      });
+      expect(currentConfig.model_display_name).toBe('5.6 Sol');
+    });
+
+    it('payload 未提供的字段不应改动既有本地状态', async () => {
+      (window as any).__TAURI_INTERNALS__ = {};
+      mockedInvoke.mockResolvedValue(undefined);
+
+      const { currentConfig, saveConfig } = useCodexConfig();
+      currentConfig.model = 'gpt-5.6-sol';
+      currentConfig.model_display_name = '5.6 Sol';
+
+      const success = await saveConfig('sk-partial-key', 'https://api.openai.com/v1');
+
+      expect(success).toBe(true);
+      expect(currentConfig.model).toBe('gpt-5.6-sol');
+      expect(currentConfig.model_display_name).toBe('5.6 Sol');
+    });
+
     it('当传入 options.silent 为 true 时应成功保存且静默', async () => {
       (window as any).__TAURI_INTERNALS__ = {};
       mockedInvoke.mockResolvedValueOnce(undefined);
 
       const { currentConfig, saveConfig } = useCodexConfig();
-      const success = await saveConfig('sk-silent-key', 'https://api.openai.com/v1', 'gpt-4o', {
-        silent: true,
-      });
+      const success = await saveConfig(
+        'sk-silent-key',
+        'https://api.openai.com/v1',
+        { model: 'gpt-4o' },
+        { silent: true }
+      );
 
       expect(success).toBe(true);
       expect(currentConfig.key).toBe('sk-silent-key');
@@ -140,6 +200,7 @@ describe('useCodexConfig composable', () => {
       currentConfig.key = 'existing-key';
       currentConfig.is_enabled = true;
       currentConfig.model_reasoning_effort = 'high';
+      currentConfig.model_display_name = 'Some Alias';
       localStorage.setItem('codex_current_config', 'something');
 
       const success = await restoreDefault();
@@ -149,6 +210,7 @@ describe('useCodexConfig composable', () => {
       expect(currentConfig.key).toBe('');
       expect(currentConfig.is_enabled).toBe(false);
       expect(currentConfig.model_reasoning_effort).toBe('');
+      expect(currentConfig.model_display_name).toBe('');
       expect(localStorage.getItem('codex_current_config')).toBeNull();
     });
   });

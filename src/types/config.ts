@@ -4,6 +4,14 @@ export interface CodexConfig {
   is_enabled: boolean;
   model?: string;
   model_reasoning_effort?: string;
+  model_display_name?: string;
+}
+
+/** saveConfig 的可选模型配置载荷，未提供的字段不会写入 config.toml */
+export interface SaveConfigPayload {
+  model?: string;
+  modelReasoningEffort?: string;
+  modelDisplayName?: string;
 }
 
 export interface PresetConfig {

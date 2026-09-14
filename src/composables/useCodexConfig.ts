@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
-import type { CodexConfig } from '../types/config';
+import type { CodexConfig, SaveConfigPayload } from '../types/config';
 import { normalizeUrl } from '../utils/format';
 import { useToast } from './useToast';
 
@@ -13,6 +13,7 @@ export function useCodexConfig() {
     is_enabled: false,
     model: '',
     model_reasoning_effort: '',
+    model_display_name: '',
   });
 
   const isLoading = ref<boolean>(false);
@@ -33,6 +34,7 @@ export function useCodexConfig() {
         currentConfig.is_enabled = config.is_enabled;
         currentConfig.model = config.model || '';
         currentConfig.model_reasoning_effort = config.model_reasoning_effort || '';
+        currentConfig.model_display_name = config.model_display_name || '';
       } else {
         // 纯浏览器预览模式
         const local = localStorage.getItem(CODEX_CONFIG_STORAGE_KEY);
@@ -43,6 +45,7 @@ export function useCodexConfig() {
           currentConfig.is_enabled = parsed.is_enabled ?? false;
           currentConfig.model = parsed.model || '';
           currentConfig.model_reasoning_effort = parsed.model_reasoning_effort || '';
+          currentConfig.model_display_name = parsed.model_display_name || '';
         }
       }
     } catch (err) {
@@ -56,6 +59,7 @@ export function useCodexConfig() {
           currentConfig.is_enabled = parsed.is_enabled ?? false;
           currentConfig.model = parsed.model || '';
           currentConfig.model_reasoning_effort = parsed.model_reasoning_effort || '';
+          currentConfig.model_display_name = parsed.model_display_name || '';
         } catch {
           currentConfig.is_enabled = false;
         }
@@ -69,30 +73,25 @@ export function useCodexConfig() {
 
   /**
    * 保存当前配置并生效
+   * payload 中未提供的字段不会写入 config.toml，保持原值不变
    */
   const saveConfig = async (
     key: string,
     providerUrl: string,
-    model?: string,
-    modelReasoningEffortOrOptions?: string | { silent?: boolean },
+    payload?: SaveConfigPayload,
     options?: { silent?: boolean }
   ): Promise<boolean> => {
     const trimmedKey = key.trim();
     const trimmedUrl = providerUrl.trim();
 
-    let modelReasoningEffort: string | undefined = undefined;
-    let actualOptions = options;
-
-    if (typeof modelReasoningEffortOrOptions === 'object' && modelReasoningEffortOrOptions !== null) {
-      actualOptions = modelReasoningEffortOrOptions;
-    } else {
-      modelReasoningEffort = modelReasoningEffortOrOptions;
-    }
-
     if (!trimmedKey || !trimmedUrl) {
       showToast('Key 和模型提供商不能为空', 'error');
       return false;
     }
+
+    const model = payload?.model;
+    const modelReasoningEffort = payload?.modelReasoningEffort;
+    const modelDisplayName = payload?.modelDisplayName;
 
     try {
       if (isTauriEnv()) {
@@ -102,6 +101,7 @@ export function useCodexConfig() {
           model: model !== undefined ? model.trim() : undefined,
           modelReasoningEffort:
             modelReasoningEffort !== undefined ? modelReasoningEffort.trim() : undefined,
+          modelDisplayName: modelDisplayName !== undefined ? modelDisplayName.trim() : undefined,
         });
       }
 
@@ -114,9 +114,12 @@ export function useCodexConfig() {
       if (modelReasoningEffort !== undefined) {
         currentConfig.model_reasoning_effort = modelReasoningEffort.trim();
       }
+      if (modelDisplayName !== undefined) {
+        currentConfig.model_display_name = modelDisplayName.trim();
+      }
 
       localStorage.setItem(CODEX_CONFIG_STORAGE_KEY, JSON.stringify(currentConfig));
-      if (!actualOptions?.silent) {
+      if (!options?.silent) {
         showToast('配置保存成功，请重启 Codex 以使用新配置');
       }
       return true;
@@ -189,6 +192,7 @@ export function useCodexConfig() {
       currentConfig.is_enabled = false;
       currentConfig.model = '';
       currentConfig.model_reasoning_effort = '';
+      currentConfig.model_display_name = '';
       localStorage.removeItem(CODEX_CONFIG_STORAGE_KEY);
       showToast('已成功恢复默认（已移除 API 登录与自定义模型）');
       return true;
