@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
+import { Lightbulb } from '@lucide/vue';
 import type { CodexConfig, PresetConfig } from '../types/config';
 import { normalizeUrl } from '../utils/format';
 
@@ -234,7 +235,10 @@ onUnmounted(() => {
 
       <!-- 底部操作与提示 -->
       <div class="modal-footer">
-        <span class="footer-tip">💡 点击任意配置项即可立即切换并生效</span>
+        <span class="footer-tip">
+          <Lightbulb :size="13" class="tip-icon" />
+          <span>点击任意配置项即可立即切换并生效</span>
+        </span>
         <button type="button" class="btn-close" @click="emit('close')">
           完成
         </button>
@@ -607,8 +611,17 @@ onUnmounted(() => {
 }
 
 .footer-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 0.7rem;
   color: $text-dim;
+
+  .tip-icon {
+    flex-shrink: 0;
+    color: $warning;
+    opacity: 0.85;
+  }
 }
 
 .btn-close {
