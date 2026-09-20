@@ -366,20 +366,23 @@ mod tests {
         assert_eq!(settings.codex_path, "");
         assert_eq!(settings.custom_model, "");
         assert!(settings.launch_kill_previous);
+        assert!(settings.show_provider_presets);
     }
 
     #[test]
     fn test_app_settings_serialization() {
-        let json = r#"{"codex_path":"C:\\test.exe","custom_model":"gpt-4o","launch_kill_previous":false}"#;
+        let json = r#"{"codex_path":"C:\\test.exe","custom_model":"gpt-4o","launch_kill_previous":false,"show_provider_presets":false}"#;
         let parsed: AppSettings = serde_json::from_str(json).unwrap();
         assert_eq!(parsed.codex_path, "C:\\test.exe");
         assert_eq!(parsed.custom_model, "gpt-4o");
         assert!(!parsed.launch_kill_previous);
+        assert!(!parsed.show_provider_presets);
 
         let default_json = r#"{}"#;
         let parsed_default: AppSettings = serde_json::from_str(default_json).unwrap();
         assert_eq!(parsed_default.codex_path, "");
         assert!(parsed_default.launch_kill_previous);
+        assert!(parsed_default.show_provider_presets);
     }
 
     #[test]

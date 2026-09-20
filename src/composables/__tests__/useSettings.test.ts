@@ -23,6 +23,7 @@ describe('useSettings composable', () => {
             codex_path: 'C:\\Program Files\\ChatGPT\\ChatGPT.exe',
             custom_model: 'gpt-4o',
             launch_kill_previous: true,
+            show_provider_presets: true,
           };
         }
         if (cmd === 'detect_codex_path') {
@@ -37,6 +38,7 @@ describe('useSettings composable', () => {
       expect(settings.value.codex_path).toBe('C:\\Program Files\\ChatGPT\\ChatGPT.exe');
       expect(settings.value.custom_model).toBe('gpt-4o');
       expect(settings.value.launch_kill_previous).toBe(true);
+      expect(settings.value.show_provider_presets).toBe(true);
       expect(detectedPath.value).toBe('C:\\Program Files\\ChatGPT\\ChatGPT.exe');
     });
 
@@ -47,6 +49,7 @@ describe('useSettings composable', () => {
           codex_path: 'D:\\Codex\\ChatGPT.exe',
           custom_model: 'o1',
           launch_kill_previous: false,
+          show_provider_presets: false,
         })
       );
       mockedInvoke.mockRejectedValueOnce(new Error('Backend error'));
@@ -57,6 +60,7 @@ describe('useSettings composable', () => {
       expect(settings.value.codex_path).toBe('D:\\Codex\\ChatGPT.exe');
       expect(settings.value.custom_model).toBe('o1');
       expect(settings.value.launch_kill_previous).toBe(false);
+      expect(settings.value.show_provider_presets).toBe(false);
     });
   });
 

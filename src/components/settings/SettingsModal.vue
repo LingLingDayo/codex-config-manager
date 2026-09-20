@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
+import SettingItem from './SettingItem.vue';
+import SettingSwitch from './SettingSwitch.vue';
 import SettingPathPicker from './SettingPathPicker.vue';
 import { useSettings } from '../../composables/useSettings';
 
@@ -53,6 +55,10 @@ const handlePickPath = async () => {
   }
 };
 
+const handleToggleProviderPresets = async (val: boolean) => {
+  await saveSettings({ show_provider_presets: val });
+};
+
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.visible) {
     emit('close');
@@ -102,21 +108,31 @@ onUnmounted(() => {
 
           <!-- 主体：简洁无框平铺的设置项 -->
           <main class="settings-body">
-            <div class="setting-item">
-              <label
-                class="setting-label"
-                title="选择 ChatGPT / Codex 的安装路径，留空则自动识别系统默认安装路径"
-              >
-                Codex 安装路径
-              </label>
-
+            <SettingItem
+              label="Codex 安装路径"
+              direction="vertical"
+              title="选择 ChatGPT / Codex 的安装路径，留空则自动识别系统默认安装路径"
+            >
               <SettingPathPicker
                 v-model="localPath"
                 :detected-path="detectedPath"
                 :is-picking="isPicking"
                 @pick="handlePickPath"
               />
-            </div>
+            </SettingItem>
+
+            <SettingItem
+              label="显示模型提供商预设"
+              description="在新增或编辑中转站时，显示常用模型提供商快捷芯片"
+              direction="horizontal"
+              title="在中转站配置弹窗中是否显示常用模型服务商快捷选项"
+            >
+              <SettingSwitch
+                :model-value="settings.show_provider_presets"
+                aria-label="切换显示模型提供商预设"
+                @change="handleToggleProviderPresets"
+              />
+            </SettingItem>
           </main>
         </div>
       </div>
@@ -214,24 +230,5 @@ onUnmounted(() => {
   gap: 20px;
   min-height: 0;
   @include custom-scrollbar;
-}
-
-.setting-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  /* 扁平无边框，融入页面底色，避免卡片套卡片感 */
-  background: transparent;
-  border: none;
-  padding: 0;
-}
-
-.setting-label {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: $text-main;
-  cursor: help;
-  width: fit-content;
 }
 </style>

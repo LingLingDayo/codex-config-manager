@@ -9,6 +9,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   codex_path: '',
   custom_model: '',
   launch_kill_previous: true,
+  show_provider_presets: true,
 };
 
 // 模块级单例状态，确保全局设置在不同组件间保持一致与响应式同步

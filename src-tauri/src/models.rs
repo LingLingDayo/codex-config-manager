@@ -39,6 +39,8 @@ pub struct AppSettings {
     pub custom_model: String,
     #[serde(default = "default_true")]
     pub launch_kill_previous: bool,
+    #[serde(default = "default_true")]
+    pub show_provider_presets: bool,
 }
 
 impl Default for AppSettings {
@@ -47,6 +49,7 @@ impl Default for AppSettings {
             codex_path: String::new(),
             custom_model: String::new(),
             launch_kill_previous: true,
+            show_provider_presets: true,
         }
     }
 }

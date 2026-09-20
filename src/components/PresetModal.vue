@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import type { PresetFormData } from '../types/config';
+import { useSettings } from '../composables/useSettings';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
@@ -17,6 +18,8 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'save', data: PresetFormData): void;
 }>();
+
+const { settings } = useSettings();
 
 const formName = ref<string>('');
 const formUrl = ref<string>('');
@@ -150,7 +153,7 @@ onUnmounted(() => {
             </label>
           </div>
           <!-- 快捷芯片 -->
-          <div class="preset-chips">
+          <div v-if="settings.show_provider_presets !== false" class="preset-chips">
             <span
               v-for="chip in presetChips"
               :key="chip.label"

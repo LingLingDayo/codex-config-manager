@@ -14,6 +14,11 @@ export interface AppSettings {
    * 启动应用前是否先检测并终止已运行的实例，默认为 true。
    */
   launch_kill_previous: boolean;
+
+  /**
+   * 在中转站配置弹窗中是否显示模型提供商快捷预设芯片，默认为 true。
+   */
+  show_provider_presets: boolean;
 }
 
 export interface LaunchResult {
