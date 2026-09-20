@@ -122,12 +122,20 @@ pub fn parse_codex_config_from_content(
     }
 
     // 别名依附于当前生效的模型 slug：从模型目录中查询其 display_name
+    // 若未显式配置自定义 model，则尝试查询官方默认模型 gpt-5.6-sol 的定制别名
     let model_display_name = if !model.is_empty() {
         catalog_content
             .map(|c| parse_display_name_from_catalog(c, &model))
             .unwrap_or_default()
     } else {
-        String::new()
+        let raw = catalog_content
+            .map(|c| parse_display_name_from_catalog(c, "gpt-5.6-sol"))
+            .unwrap_or_default();
+        if raw == "gpt-5.6-sol" {
+            String::new()
+        } else {
+            raw
+        }
     };
 
     CodexConfig {

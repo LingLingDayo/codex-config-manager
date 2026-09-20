@@ -155,7 +155,14 @@ pub fn save_codex_config(
     if let Some(ref dn) = model_display_name {
         let slug = match &model {
             Some(m) if !m.trim().is_empty() => m.trim().to_string(),
-            _ => parser::parse_active_model_from_lines(&lines),
+            _ => {
+                let active = parser::parse_active_model_from_lines(&lines);
+                if active.is_empty() && !dn.trim().is_empty() {
+                    "gpt-5.6-sol".to_string()
+                } else {
+                    active
+                }
+            }
         };
         if !slug.is_empty() {
             let trimmed_dn = dn.trim();
