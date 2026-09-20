@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SlidersHorizontal, RotateCcw } from '@lucide/vue';
+
 withDefaults(
   defineProps<{
     isLoading?: boolean;
@@ -68,25 +70,7 @@ const emit = defineEmits<{
       :disabled="isLoading"
       @click="emit('open-drawer')"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <line x1="4" x2="20" y1="21" y2="21" />
-        <line x1="4" x2="20" y1="3" y2="3" />
-        <line x1="12" x2="20" y1="12" y2="12" />
-        <line x1="4" x2="8" y1="12" y2="12" />
-        <circle cx="8" cy="12" r="2" />
-        <circle cx="14" cy="3" r="2" />
-        <circle cx="16" cy="21" r="2" />
-      </svg>
+      <SlidersHorizontal :size="14" :stroke-width="2" />
     </button>
 
     <!-- 4. 恢复默认按钮 (纯图标) -->
@@ -98,20 +82,7 @@ const emit = defineEmits<{
       :disabled="isLoading"
       @click="emit('restore')"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <polyline points="1 4 1 10 7 10" />
-        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-      </svg>
+      <RotateCcw :size="14" :stroke-width="2" />
     </button>
   </div>
 </template>
