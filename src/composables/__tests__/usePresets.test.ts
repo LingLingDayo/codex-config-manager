@@ -127,6 +127,9 @@ describe('usePresets composable', () => {
           name: '旧名称',
           provider_url: 'https://old.example.com',
           key: 'sk-old',
+          model: 'old-model',
+          model_reasoning_effort: 'low',
+          model_display_name: 'Old Display',
         },
       ];
 
@@ -135,12 +138,38 @@ describe('usePresets composable', () => {
         name: '新名称',
         provider_url: 'https://new.example.com',
         key: 'sk-new',
+        model: 'new-model',
+        model_reasoning_effort: 'high',
+        model_display_name: 'New Display',
       });
 
       expect(success).toBe(true);
       expect(presets.value[0].name).toBe('新名称');
       expect(presets.value[0].provider_url).toBe('https://new.example.com');
       expect(presets.value[0].key).toBe('sk-new');
+      expect(presets.value[0].model).toBe('new-model');
+      expect(presets.value[0].model_reasoning_effort).toBe('high');
+      expect(presets.value[0].model_display_name).toBe('New Display');
+    });
+
+    it('新增预设时应正确持久化更多配置参数（model, reasoning_effort, display_name）', async () => {
+      mockedInvoke.mockResolvedValue(undefined);
+      const { presets, saveOrUpdatePreset } = usePresets();
+      presets.value = [];
+
+      const success = await saveOrUpdatePreset({
+        name: '高级推理预设',
+        provider_url: 'https://api.deepseek.com/v1',
+        key: 'sk-deepseek-123',
+        model: 'deepseek-reasoner',
+        model_reasoning_effort: 'max',
+        model_display_name: 'DS-Reasoner',
+      });
+
+      expect(success).toBe(true);
+      expect(presets.value[0].model).toBe('deepseek-reasoner');
+      expect(presets.value[0].model_reasoning_effort).toBe('max');
+      expect(presets.value[0].model_display_name).toBe('DS-Reasoner');
     });
   });
 

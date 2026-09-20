@@ -18,6 +18,9 @@ export const DEFAULT_PRESETS: PresetConfig[] = [
     name: `${DEFAULT_STATION_NAME} (推荐)`,
     provider_url: DEFAULT_STATION_URL,
     key: '',
+    model: '',
+    model_reasoning_effort: '',
+    model_display_name: '',
     updated_at: Date.now(),
   },
 ];
@@ -114,11 +117,15 @@ export function usePresets() {
           name,
           provider_url: providerUrl,
           key,
-          model: data.model !== undefined ? data.model : currentList[index].model,
+          model: data.model !== undefined ? data.model.trim() : currentList[index].model,
           model_reasoning_effort:
             data.model_reasoning_effort !== undefined
-              ? data.model_reasoning_effort
+              ? data.model_reasoning_effort.trim()
               : currentList[index].model_reasoning_effort,
+          model_display_name:
+            data.model_display_name !== undefined
+              ? data.model_display_name.trim()
+              : currentList[index].model_display_name,
           updated_at: Date.now(),
         };
         showToast(`配置「${name}」已更新！`);
@@ -130,8 +137,9 @@ export function usePresets() {
         name,
         provider_url: providerUrl,
         key,
-        model: data.model || '',
-        model_reasoning_effort: data.model_reasoning_effort || '',
+        model: data.model ? data.model.trim() : '',
+        model_reasoning_effort: data.model_reasoning_effort ? data.model_reasoning_effort.trim() : '',
+        model_display_name: data.model_display_name ? data.model_display_name.trim() : '',
         updated_at: Date.now(),
       };
       currentList.unshift(newPreset);

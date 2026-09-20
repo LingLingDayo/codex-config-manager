@@ -3,6 +3,7 @@ import { onMounted, onUnmounted } from 'vue';
 import SettingItem from './settings/SettingItem.vue';
 import SettingInput from './settings/SettingInput.vue';
 import SettingSelect from './settings/SettingSelect.vue';
+import { REASONING_EFFORT_OPTIONS } from '../types/config';
 
 const props = withDefaults(
   defineProps<{
@@ -24,16 +25,7 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const reasoningEffortOptions = [
-  { label: 'none', value: 'none', description: '不思考' },
-  { label: 'minimal', value: 'minimal', description: '极低思考强度' },
-  { label: 'low', value: 'low', description: '低思考强度 (快速响应)' },
-  { label: 'medium', value: 'medium', description: '中等思考强度 (推荐平衡)' },
-  { label: 'high', value: 'high', description: '高思考强度 (深入推理)' },
-  { label: 'xhigh', value: 'xhigh', description: '极高思考强度 (超长推理)' },
-  { label: 'max', value: 'max', description: '最大思考强度 (极限推理)' },
-  { label: 'ultra', value: 'ultra', description: '极致思考强度 (自动委派)' },
-];
+const reasoningEffortOptions = REASONING_EFFORT_OPTIONS;
 
 const reasoningEffortTooltip =
   '对应 config.toml 中的 model_reasoning_effort 字段。用于配置模型的深度思考与推理强度，请务必选择所选模型实际支持的思考强度档位（若模型不支持思考请设为 none 或留空）。';

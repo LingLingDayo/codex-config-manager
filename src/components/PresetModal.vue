@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import type { PresetFormData } from '../types/config';
+import { REASONING_EFFORT_OPTIONS } from '../types/config';
 import { useSettings } from '../composables/useSettings';
+import SettingSelect from './settings/SettingSelect.vue';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
@@ -24,6 +26,10 @@ const { settings } = useSettings();
 const formName = ref<string>('');
 const formUrl = ref<string>('');
 const formKey = ref<string>('');
+const formModel = ref<string>('');
+const formReasoningEffort = ref<string>('');
+const formDisplayName = ref<string>('');
+const isMoreExpanded = ref<boolean>(false);
 const showKey = ref<boolean>(false);
 const nameInputRef = ref<HTMLInputElement | null>(null);
 
@@ -42,6 +48,14 @@ const isChipActive = (chipUrl: string) => {
   return formUrl.value === chipUrl;
 };
 
+const hasConfiguredMore = computed(() => {
+  return Boolean(
+    formModel.value.trim() ||
+      formReasoningEffort.value.trim() ||
+      formDisplayName.value.trim()
+  );
+});
+
 watch(
   () => props.visible,
   (newVal) => {
@@ -52,17 +66,25 @@ watch(
           ? DEFAULT_STATION_URL
           : props.initialData.provider_url;
         formKey.value = props.initialData.key;
+        formModel.value = props.initialData.model || '';
+        formReasoningEffort.value = props.initialData.model_reasoning_effort || '';
+        formDisplayName.value = props.initialData.model_display_name || '';
       } else {
         formName.value = '';
         formUrl.value = '';
         formKey.value = '';
+        formModel.value = '';
+        formReasoningEffort.value = '';
+        formDisplayName.value = '';
       }
       showKey.value = false;
+      isMoreExpanded.value = false;
       setTimeout(() => {
         nameInputRef.value?.focus();
       }, 100);
     }
-  }
+  },
+  { immediate: true }
 );
 
 const handleChipClick = (url: string) => {
@@ -89,6 +111,9 @@ const handleSubmit = () => {
     name: formName.value,
     provider_url: formUrl.value,
     key: formKey.value,
+    model: formModel.value.trim(),
+    model_reasoning_effort: formReasoningEffort.value.trim(),
+    model_display_name: formDisplayName.value.trim(),
   });
 };
 
@@ -215,6 +240,96 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <!-- 更多配置折叠触发条 -->
+        <div class="more-config-divider">
+          <button
+            type="button"
+            class="more-config-toggle"
+            :class="{ active: isMoreExpanded }"
+            @click="isMoreExpanded = !isMoreExpanded"
+          >
+            <div class="toggle-content">
+              <svg
+                class="chevron-icon"
+                :class="{ rotated: isMoreExpanded }"
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              <span class="toggle-label">更多配置</span>
+              <span class="toggle-hint">(可选)</span>
+            </div>
+            <span v-if="hasConfiguredMore" class="configured-badge">已配置</span>
+          </button>
+        </div>
+
+        <!-- 更多配置展开内容 -->
+        <Transition name="expand">
+          <div v-if="isMoreExpanded" class="more-config-fields">
+            <div class="fields-row">
+              <!-- 自定义模型 -->
+              <div class="input-group flex-1">
+                <label
+                  for="modal-preset-model"
+                  title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
+                >
+                  自定义模型 (Model)
+                </label>
+                <input
+                  id="modal-preset-model"
+                  v-model="formModel"
+                  type="text"
+                  placeholder="例如: gpt-5.6-sol"
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- 思考强度 -->
+              <div class="input-group flex-1">
+                <label
+                  for="modal-preset-reasoning"
+                  title="对应 config.toml 中的 model_reasoning_effort 字段。用于配置深度思考推理强度。"
+                >
+                  思考强度 (Reasoning Effort)
+                </label>
+                <SettingSelect
+                  id="modal-preset-reasoning"
+                  :model-value="formReasoningEffort"
+                  :options="REASONING_EFFORT_OPTIONS"
+                  placeholder="例如: low / medium"
+                  :allow-custom="true"
+                  @update:model-value="formReasoningEffort = $event"
+                />
+              </div>
+            </div>
+
+            <!-- 模型别名 -->
+            <div class="input-group">
+              <label
+                for="modal-preset-display-name"
+                title="为当前自定义模型设置显示别名，Codex 的模型选择器中将直接展示该名称。留空恢复默认。"
+              >
+                模型别名 (Display Name)
+              </label>
+              <input
+                id="modal-preset-display-name"
+                v-model="formDisplayName"
+                type="text"
+                placeholder="例如: 5.6 Sol (在 Codex 界面中显示的别名)"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+        </Transition>
+
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" @click="handleClose">取消</button>
           <button type="submit" class="btn btn-primary">
@@ -243,22 +358,25 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   z-index: 1100;
-  padding: 16px;
+  padding: 12px;
   animation: fadeIn 0.2s ease forwards;
 }
 
 .modal-dialog {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
+  max-height: calc(100vh - 20px);
   background: $bg-tertiary;
   border: 1px solid $border-card;
   border-radius: $border-radius-xl;
-  padding: 20px;
+  padding: 14px 18px 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
   animation: scaleIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  overflow-y: auto;
+  @include custom-scrollbar;
 }
 
 .modal-header {
@@ -266,10 +384,10 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid $border-color;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
 
   h3 {
-    font-size: 0.98rem;
+    font-size: 0.94rem;
     font-weight: 700;
     color: $text-main;
     background: $accent-gradient;
@@ -300,7 +418,7 @@ onUnmounted(() => {
 .modal-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 9px;
 }
 
 .input-group {
@@ -309,7 +427,7 @@ onUnmounted(() => {
   gap: 4px;
 
   label {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 600;
     color: $text-muted;
   }
@@ -321,6 +439,7 @@ onUnmounted(() => {
 
   input[type='text'] {
     @include input-base;
+    font-size: 0.82rem;
   }
 }
 
@@ -356,6 +475,7 @@ onUnmounted(() => {
 
   input {
     @include input-base;
+    font-size: 0.82rem;
     padding-right: 36px;
   }
 }
@@ -386,16 +506,111 @@ onUnmounted(() => {
   }
 }
 
+.more-config-divider {
+  display: flex;
+  align-items: center;
+  margin: 1px 0;
+}
+
+.more-config-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: $border-radius-sm;
+  padding: 5px 8px;
+  color: $text-muted;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba($accent-blue, 0.4);
+    color: $text-main;
+  }
+
+  &.active {
+    background: rgba($accent-blue, 0.05);
+    border-color: rgba($accent-blue, 0.35);
+    color: $text-main;
+  }
+}
+
+.toggle-content {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.chevron-icon {
+  color: $text-muted;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+
+  &.rotated {
+    transform: rotate(90deg);
+    color: $accent-blue;
+  }
+}
+
+.toggle-hint {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: $text-dim;
+}
+
+.configured-badge {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: $border-radius-sm;
+  background: rgba($accent-blue, 0.12);
+  color: $accent-blue;
+  border: 1px solid rgba($accent-blue, 0.25);
+  font-weight: 500;
+}
+
+.more-config-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.flex-1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .btn {
   @include button-base;
-  padding: 8px 16px;
+  padding: 7px 15px;
 }
 
 .btn-primary {

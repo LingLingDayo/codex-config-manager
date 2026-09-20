@@ -24,6 +24,8 @@ pub struct PresetConfig {
     #[serde(default)]
     pub model_reasoning_effort: String,
     #[serde(default)]
+    pub model_display_name: String,
+    #[serde(default)]
     pub updated_at: Option<u64>,
 }
 

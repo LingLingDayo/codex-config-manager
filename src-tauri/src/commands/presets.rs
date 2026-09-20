@@ -16,6 +16,7 @@ pub fn default_presets() -> Vec<PresetConfig> {
         provider_url: url,
         model: "".to_string(),
         model_reasoning_effort: "".to_string(),
+        model_display_name: "".to_string(),
         updated_at: None,
     }]
 }
@@ -82,6 +83,34 @@ mod tests {
         assert!(presets[0].name.contains("(推荐)"));
         assert_eq!(presets[0].provider_url, get_default_station_url());
         assert_eq!(presets[0].key, "");
+        assert_eq!(presets[0].model, "");
+        assert_eq!(presets[0].model_reasoning_effort, "");
+        assert_eq!(presets[0].model_display_name, "");
+    }
+
+    #[test]
+    fn test_preset_config_serialization() {
+        let preset = PresetConfig {
+            id: "preset_custom".to_string(),
+            name: "自定义中转站".to_string(),
+            key: "sk-test123".to_string(),
+            provider_url: "https://api.example.com".to_string(),
+            model: "gpt-5.6-sol".to_string(),
+            model_reasoning_effort: "high".to_string(),
+            model_display_name: "5.6 Sol".to_string(),
+            updated_at: Some(123456789),
+        };
+
+        let json = serde_json::to_string(&preset).unwrap();
+        let deserialized: PresetConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized, preset);
+
+        // 兼容缺少扩展字段的旧版 JSON 格式
+        let legacy_json = r#"{"id":"p1","name":"旧配置","key":"sk-xxx","provider_url":"https://api.legacy.com"}"#;
+        let legacy_parsed: PresetConfig = serde_json::from_str(legacy_json).unwrap();
+        assert_eq!(legacy_parsed.model, "");
+        assert_eq!(legacy_parsed.model_reasoning_effort, "");
+        assert_eq!(legacy_parsed.model_display_name, "");
     }
 }
 
