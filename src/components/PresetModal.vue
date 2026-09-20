@@ -402,6 +402,7 @@ onUnmounted(() => {
   background: $accent-gradient;
   color: #fff;
   border: none;
+  outline: none;
   box-shadow: 0 2px 10px rgba($accent-blue, 0.25);
 
   &:hover {
@@ -411,7 +412,7 @@ onUnmounted(() => {
 
 .btn-secondary {
   background-color: rgba(255, 255, 255, 0.04);
-  border-color: $border-color;
+  border: 1px solid $border-color;
   color: $text-muted;
 
   &:hover {

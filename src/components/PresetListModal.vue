@@ -323,11 +323,13 @@ onUnmounted(() => {
 
 .btn-add-preset {
   background: rgba($accent-blue, 0.12);
-  border: 1px solid rgba($accent-blue, 0.3);
+  border: none;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba($accent-blue, 0.3);
   color: $accent-blue;
   font-size: 0.74rem;
   font-weight: 600;
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: $border-radius-sm;
   cursor: pointer;
   display: inline-flex;
@@ -338,7 +340,7 @@ onUnmounted(() => {
   &:hover {
     background: $accent-gradient;
     color: #fff;
-    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 4px rgba($accent-blue, 0.2);
     filter: brightness(1.08);
   }
 }
@@ -491,11 +493,13 @@ onUnmounted(() => {
 
 .btn-use {
   background: rgba($accent-blue, 0.1);
-  border: 1px solid rgba($accent-blue, 0.25);
+  border: none;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba($accent-blue, 0.25);
   color: $accent-blue;
   font-size: 0.72rem;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 4px 11px;
   border-radius: $border-radius-sm;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -503,7 +507,7 @@ onUnmounted(() => {
   &:hover {
     background: $accent-gradient;
     color: #fff;
-    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 4px rgba($accent-blue, 0.2);
     filter: brightness(1.08);
   }
 }
@@ -573,9 +577,11 @@ onUnmounted(() => {
 
   .btn-add-empty {
     background: rgba($accent-blue, 0.12);
-    border: 1px solid rgba($accent-blue, 0.3);
+    border: none;
+    outline: none;
+    box-shadow: inset 0 0 0 1px rgba($accent-blue, 0.3);
     color: $accent-blue;
-    padding: 6px 14px;
+    padding: 7px 15px;
     font-size: 0.76rem;
     font-weight: 600;
     border-radius: $border-radius-sm;
@@ -585,7 +591,7 @@ onUnmounted(() => {
     &:hover {
       background: $accent-gradient;
       color: #fff;
-      border-color: transparent;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 4px rgba($accent-blue, 0.2);
       filter: brightness(1.08);
     }
   }

@@ -474,6 +474,7 @@ onUnmounted(() => {
 .btn-confirm {
   color: #ffffff;
   border: none;
+  outline: none;
   font-weight: 600;
 
   &.warning {
