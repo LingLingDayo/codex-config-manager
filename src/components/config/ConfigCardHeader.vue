@@ -1,7 +1,15 @@
 <script setup lang="ts">
-defineProps<{
-  activePresetName?: string;
-}>();
+import { Star } from '@lucide/vue';
+
+withDefaults(
+  defineProps<{
+    activePresetName?: string;
+    isSaved?: boolean;
+  }>(),
+  {
+    isSaved: false,
+  }
+);
 
 const emit = defineEmits<{
   (e: 'open-presets'): void;
@@ -48,24 +56,17 @@ const emit = defineEmits<{
       <button
         type="button"
         class="btn-text-action"
-        title="将当前填写的配置保存到配置列表"
+        :class="{ 'is-saved': isSaved }"
+        :title="isSaved ? '当前配置已在配置列表中，点击可编辑' : '将当前填写的配置保存到配置列表'"
         @click="emit('save-as-preset')"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <polygon
-            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-          />
-        </svg>
+        <Star
+          :size="13"
+          :stroke-width="2"
+          :fill="isSaved ? 'currentColor' : 'none'"
+          class="action-icon"
+          :class="{ 'star-saved': isSaved }"
+        />
         <span>保存配置</span>
       </button>
 
@@ -73,7 +74,7 @@ const emit = defineEmits<{
       <button
         type="button"
         class="btn-header-preset"
-        title="点击打开中转站配置列表"
+        title="点击打开配置列表"
         @click="emit('open-presets')"
       >
         <svg
@@ -204,10 +205,30 @@ const emit = defineEmits<{
   border-radius: $border-radius-sm;
   transition: all 0.2s ease;
 
+  .action-icon {
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
   &:hover {
     background: rgba(255, 255, 255, 0.08);
     color: $text-main;
     border-color: $border-color;
+  }
+
+  &.is-saved {
+    color: $text-main;
+
+    .star-saved {
+      color: $warning;
+      fill: $warning;
+    }
+
+    &:hover {
+      background: rgba($warning, 0.12);
+      border-color: rgba($warning, 0.28);
+      color: #fff;
+    }
   }
 }
 </style>

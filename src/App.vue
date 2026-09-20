@@ -17,6 +17,7 @@ import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
   isDefaultStation,
+  normalizeUrl,
 } from './utils/format';
 import { APP_VERSION } from './constants/version';
 import type { PresetConfig, PresetFormData } from './types/config';
@@ -161,15 +162,41 @@ const handleSaveAsPreset = (data: {
     return;
   }
 
-  const isDefault = isDefaultStation(data.providerUrl);
-  modalTitle.value = '新增中转站配置';
-  modalInitialData.value = {
-    name: isDefault ? `${DEFAULT_STATION_NAME} 常用配置` : (data.providerUrl ? '中转站配置' : ''),
-    provider_url: isDefault ? DEFAULT_STATION_URL : (data.providerUrl || ''),
-    key: data.key,
-    model: data.model || '',
-    model_reasoning_effort: data.modelReasoningEffort || '',
-  };
+  const trimmedKey = data.key.trim();
+  const normalizedInputUrl = normalizeUrl(data.providerUrl);
+
+  const matched = presets.value.find(
+    (p) =>
+      p.key.trim() === trimmedKey &&
+      normalizeUrl(p.provider_url) === normalizedInputUrl
+  );
+
+  if (matched) {
+    modalTitle.value = '编辑配置';
+    modalInitialData.value = {
+      id: matched.id,
+      name: matched.name,
+      provider_url: isDefaultStation(matched.provider_url)
+        ? DEFAULT_STATION_URL
+        : matched.provider_url,
+      key: matched.key,
+      model: data.model !== undefined ? data.model : matched.model,
+      model_reasoning_effort:
+        data.modelReasoningEffort !== undefined
+          ? data.modelReasoningEffort
+          : matched.model_reasoning_effort,
+    };
+  } else {
+    const isDefault = isDefaultStation(data.providerUrl);
+    modalTitle.value = '新增中转站配置';
+    modalInitialData.value = {
+      name: isDefault ? `${DEFAULT_STATION_NAME} 常用配置` : (data.providerUrl ? '中转站配置' : ''),
+      provider_url: isDefault ? DEFAULT_STATION_URL : (data.providerUrl || ''),
+      key: data.key,
+      model: data.model || '',
+      model_reasoning_effort: data.modelReasoningEffort || '',
+    };
+  }
   isModalVisible.value = true;
 };
 
@@ -220,6 +247,7 @@ onMounted(async () => {
       <!-- 当前生效配置卡片 -->
       <CurrentConfigCard
         :config="currentConfig"
+        :presets="presets"
         :is-loading="isLoading"
         :is-launching="isLaunching"
         :presets-count="presets.length"

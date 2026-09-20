@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import ConfigCardHeader from './config/ConfigCardHeader.vue';
 import ConfigCardActions from './config/ConfigCardActions.vue';
 import ConfigDrawer from './ConfigDrawer.vue';
-import type { CodexConfig } from '../types/config';
+import type { CodexConfig, PresetConfig } from '../types/config';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
   isDefaultStation,
+  normalizeUrl,
 } from '../utils/format';
 
 const props = withDefaults(
@@ -17,10 +18,12 @@ const props = withDefaults(
     isLaunching?: boolean;
     presetsCount?: number;
     activePresetName?: string;
+    presets?: PresetConfig[];
   }>(),
   {
     isLaunching: false,
     presetsCount: 0,
+    presets: () => [],
   }
 );
 
@@ -134,6 +137,27 @@ const handleSaveAsPreset = () => {
     modelDisplayName: modelDisplayName.value,
   });
 };
+
+const matchingPreset = computed(() => {
+  const currentKey = apiKey.value.trim();
+  const currentUrl = normalizeUrl(providerUrl.value);
+  if (!currentKey || !currentUrl) return null;
+
+  return (
+    props.presets?.find(
+      (p) =>
+        p.key.trim() === currentKey &&
+        normalizeUrl(p.provider_url) === currentUrl
+    ) || null
+  );
+});
+
+const isSaved = computed(() => {
+  if (props.presets && props.presets.length > 0) {
+    return Boolean(matchingPreset.value);
+  }
+  return Boolean(props.activePresetName);
+});
 </script>
 
 <template>
@@ -141,6 +165,7 @@ const handleSaveAsPreset = () => {
     <!-- 卡片头部：标题、预设徽章、列表入口与保存预设入口 -->
     <ConfigCardHeader
       :active-preset-name="activePresetName"
+      :is-saved="isSaved"
       @open-presets="emit('open-presets')"
       @save-as-preset="handleSaveAsPreset"
     />

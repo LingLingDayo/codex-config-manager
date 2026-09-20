@@ -110,4 +110,32 @@ describe('CurrentConfigCard.vue component', () => {
     await restoreBtn.trigger('click');
     expect(wrapper.emitted('restore-default')).toBeTruthy();
   });
+
+  it('当输入配置匹配已保存的预设时，卡片头部的保存按钮呈现已保存高亮与填充状态', async () => {
+    const wrapper = mount(CurrentConfigCard, {
+      props: {
+        config: mockConfig,
+        isLoading: false,
+        presets: [
+          {
+            id: 'preset_1',
+            name: '现有预设',
+            provider_url: mockConfig.provider_url,
+            key: mockConfig.key,
+            updated_at: Date.now(),
+          },
+        ],
+      },
+    });
+
+    const headerSaveBtn = wrapper.find('.card-header .btn-text-action');
+    expect(headerSaveBtn.exists()).toBe(true);
+    expect(headerSaveBtn.classes()).toContain('is-saved');
+
+    // 修改 key 使其不匹配任何预设
+    const keyInput = wrapper.find('#api-key');
+    await keyInput.setValue('sk-different-key');
+
+    expect(headerSaveBtn.classes()).not.toContain('is-saved');
+  });
 });

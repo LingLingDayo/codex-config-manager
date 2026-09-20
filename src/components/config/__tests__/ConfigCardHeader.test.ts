@@ -42,4 +42,31 @@ describe('ConfigCardHeader.vue component', () => {
 
     expect(wrapper.emitted('save-as-preset')).toBeTruthy();
   });
+
+  it('默认状态未保存时，星标图标为无填充且按钮无 is-saved 类', () => {
+    const wrapper = mount(ConfigCardHeader, {
+      props: {
+        isSaved: false,
+      },
+    });
+
+    const btn = wrapper.find('.btn-text-action');
+    expect(btn.classes()).not.toContain('is-saved');
+    const starSvg = btn.find('svg');
+    expect(starSvg.attributes('fill')).toBe('none');
+  });
+
+  it('配置已保存 (isSaved 为 true) 时，星标图标填充 currentColor 且应用 is-saved 样式', () => {
+    const wrapper = mount(ConfigCardHeader, {
+      props: {
+        isSaved: true,
+      },
+    });
+
+    const btn = wrapper.find('.btn-text-action');
+    expect(btn.classes()).toContain('is-saved');
+    const starSvg = btn.find('svg');
+    expect(starSvg.attributes('fill')).toBe('currentColor');
+    expect(starSvg.classes()).toContain('star-saved');
+  });
 });
