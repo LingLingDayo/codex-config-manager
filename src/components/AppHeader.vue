@@ -14,7 +14,7 @@ const emit = defineEmits<{
       <img src="../assets/logo_minimal.png" alt="Codex Logo" class="app-logo" />
       <div class="title-group">
         <h1>Codex 配置助手</h1>
-        <p class="subtitle">一键切换不同的接口与模型</p>
+        <p class="subtitle">一键切换不同提供商的接口与模型</p>
       </div>
     </div>
 
