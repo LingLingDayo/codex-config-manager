@@ -152,7 +152,7 @@ onUnmounted(() => {
               模型提供商 (Base URL) <span class="required">*</span>
             </label>
           </div>
-          <!-- 快捷芯片 -->
+          <!-- 快捷标签 -->
           <div v-if="settings.show_provider_presets !== false" class="preset-chips">
             <span
               v-for="chip in presetChips"

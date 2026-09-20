@@ -123,7 +123,7 @@ onUnmounted(() => {
 
             <SettingItem
               label="显示模型提供商预设"
-              description="在新增或编辑中转站时，显示常用模型提供商快捷芯片"
+              description="在新增或编辑中转站时，显示常用模型提供商快捷标签"
               direction="horizontal"
               title="在中转站配置弹窗中是否显示常用模型服务商快捷选项"
             >

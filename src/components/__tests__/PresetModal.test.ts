@@ -26,7 +26,7 @@ describe('PresetModal.vue component', () => {
     expect(wrapper.find('.modal-backdrop').exists()).toBe(false);
   });
 
-  it('show_provider_presets 为 true 时应渲染快捷芯片', () => {
+  it('show_provider_presets 为 true 时应渲染快捷标签', () => {
     const { settings } = useSettings();
     settings.value.show_provider_presets = true;
 
@@ -42,7 +42,7 @@ describe('PresetModal.vue component', () => {
     expect(wrapper.findAll('.chip').length).toBeGreaterThan(0);
   });
 
-  it('show_provider_presets 为 false 时不应渲染快捷芯片', () => {
+  it('show_provider_presets 为 false 时不应渲染快捷标签', () => {
     const { settings } = useSettings();
     settings.value.show_provider_presets = false;
 
@@ -70,7 +70,7 @@ describe('PresetModal.vue component', () => {
     expect(wrapper.emitted('close')).toBeTruthy();
   });
 
-  it('点击预设芯片时应填充 URL', async () => {
+  it('点击预设标签时应填充 URL', async () => {
     const { settings } = useSettings();
     settings.value.show_provider_presets = true;
 
@@ -83,7 +83,7 @@ describe('PresetModal.vue component', () => {
     });
 
     const chips = wrapper.findAll('.chip');
-    // 点击 OpenAI 芯片
+    // 点击 OpenAI 标签
     const openaiChip = chips.find((c) => c.text().includes('OpenAI'));
     expect(openaiChip).toBeDefined();
     await openaiChip!.trigger('click');

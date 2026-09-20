@@ -16,7 +16,7 @@ export interface AppSettings {
   launch_kill_previous: boolean;
 
   /**
-   * 在中转站配置弹窗中是否显示模型提供商快捷预设芯片，默认为 true。
+   * 在中转站配置弹窗中是否显示模型提供商快捷预设标签，默认为 true。
    */
   show_provider_presets: boolean;
 }
