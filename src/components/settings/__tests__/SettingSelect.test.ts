@@ -62,7 +62,23 @@ describe('SettingSelect.vue component', () => {
     expect(wrapper.find('.select-dropdown-menu').exists()).toBe(false);
   });
 
-  it('输入框支持直接键入自定义值', async () => {
+  it('点击输入框直接处于输入状态且不展开下拉菜单', async () => {
+    const wrapper = mount(SettingSelect, {
+      props: {
+        modelValue: 'low',
+        options: sampleOptions,
+        allowCustom: true,
+      },
+    });
+
+    const input = wrapper.find('input.select-input');
+    await input.trigger('click');
+
+    // 依然不展示下拉列表
+    expect(wrapper.find('.select-dropdown-menu').exists()).toBe(false);
+  });
+
+  it('输入框支持直接键入自定义值且键入时不自动弹出下拉菜单', async () => {
     const wrapper = mount(SettingSelect, {
       props: {
         modelValue: '',
@@ -76,6 +92,22 @@ describe('SettingSelect.vue component', () => {
 
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['custom-effort-123']);
     expect(wrapper.emitted('change')?.[0]).toEqual(['custom-effort-123']);
+    // 键入时不应该自动弹出下拉菜单
+    expect(wrapper.find('.select-dropdown-menu').exists()).toBe(false);
+  });
+
+  it('只读模式 (allowCustom: false) 下点击触发区域可展开下拉菜单', async () => {
+    const wrapper = mount(SettingSelect, {
+      props: {
+        modelValue: 'low',
+        options: sampleOptions,
+        allowCustom: false,
+      },
+    });
+
+    expect(wrapper.find('.select-dropdown-menu').exists()).toBe(false);
+    await wrapper.find('.select-trigger').trigger('click');
+    expect(wrapper.find('.select-dropdown-menu').exists()).toBe(true);
   });
 
   it('点击清空按钮应清空当前值', async () => {

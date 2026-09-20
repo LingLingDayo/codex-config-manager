@@ -54,6 +54,14 @@ const toggleDropdown = () => {
   }
 };
 
+// 触发区域点击（只读模式下允许点击展开，可输入模式下点击不展开以便直接输入）
+const handleTriggerClick = () => {
+  if (props.disabled) return;
+  if (!props.allowCustom) {
+    toggleDropdown();
+  }
+};
+
 // 选中某个选项
 const selectOption = (item: SelectOptionItem) => {
   emit('update:modelValue', item.value);
@@ -66,9 +74,6 @@ const handleInput = (event: Event) => {
   const val = (event.target as HTMLInputElement).value;
   emit('update:modelValue', val);
   emit('change', val);
-  if (!isOpen.value) {
-    isOpen.value = true;
-  }
 };
 
 // 清空当前内容
@@ -118,7 +123,7 @@ onUnmounted(() => {
     @keydown="handleKeyDown"
   >
     <!-- 输入/触发框 -->
-    <div class="select-trigger" :title="title" @click="toggleDropdown">
+    <div class="select-trigger" :title="title" @click="handleTriggerClick">
       <input
         ref="inputRef"
         :value="modelValue"
@@ -162,7 +167,7 @@ onUnmounted(() => {
           type="button"
           class="btn-icon btn-arrow"
           :class="{ rotated: isOpen }"
-          title="展开选项"
+          :title="isOpen ? '收起选项' : '展开选项'"
           tabindex="-1"
           @click.stop="toggleDropdown"
         >
@@ -242,7 +247,6 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   width: 100%;
-  cursor: pointer;
 }
 
 .select-input {
