@@ -33,11 +33,12 @@ describe('ConfigCardHeader.vue component', () => {
     expect(wrapper.emitted('open-presets')).toBeTruthy();
   });
 
-  it('点击保存配置按钮触发 save-as-preset 事件', async () => {
+  it('点击收藏配置按钮触发 save-as-preset 事件并展示正确文案', async () => {
     const wrapper = mount(ConfigCardHeader);
 
     const savePresetBtn = wrapper.find('.btn-text-action');
     expect(savePresetBtn.exists()).toBe(true);
+    expect(savePresetBtn.text()).toContain('收藏配置');
     await savePresetBtn.trigger('click');
 
     expect(wrapper.emitted('save-as-preset')).toBeTruthy();

@@ -52,12 +52,12 @@ const emit = defineEmits<{
 
     <!-- 头部右侧操作组 -->
     <div class="header-actions">
-      <!-- 保存配置 -->
+      <!-- 收藏配置 -->
       <button
         type="button"
         class="btn-text-action"
         :class="{ 'is-saved': isSaved }"
-        :title="isSaved ? '当前配置已在配置列表中，点击可编辑' : '将当前填写的配置保存到配置列表'"
+        :title="isSaved ? '当前配置已在配置列表中，点击可编辑' : '将当前填写的配置收藏到配置列表'"
         @click="emit('save-as-preset')"
       >
         <Star
@@ -67,7 +67,7 @@ const emit = defineEmits<{
           class="action-icon"
           :class="{ 'star-saved': isSaved }"
         />
-        <span>保存配置</span>
+        <span>收藏配置</span>
       </button>
 
       <!-- 头部预设按钮 -->
