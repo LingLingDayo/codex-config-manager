@@ -68,6 +68,23 @@ export function copyReleaseArtifacts(options = {}) {
     }
   }
 
+  // 读取产品中文名称（用于生成中文命名的便携版可执行文件，保持与 GitHub Release 一致）
+  let productName = options.productName;
+  if (!productName) {
+    try {
+      const tauriConfPath = path.resolve(rootDir, 'src-tauri/tauri.conf.json');
+      if (fs.existsSync(tauriConfPath)) {
+        const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, 'utf-8'));
+        productName = tauriConf.productName;
+      }
+    } catch {
+      productName = 'Codex配置助手';
+    }
+  }
+  if (!productName) {
+    productName = 'Codex配置助手';
+  }
+
   const bundleDir = options.bundleDir || path.resolve(rootDir, 'src-tauri/target/release/bundle');
   const releaseBinDir = options.releaseBinDir || path.resolve(rootDir, 'src-tauri/target/release');
 
@@ -104,14 +121,29 @@ export function copyReleaseArtifacts(options = {}) {
   const possibleBinaries = [
     'codex-config-manager.exe',
     'codex-config-manager',
-    'Codex配置助手.exe',
+    `${productName}.exe`,
+    productName,
   ];
+
+  let foundBinName = null;
+  let foundBinPath = null;
 
   for (const binName of possibleBinaries) {
     const binPath = path.join(releaseBinDir, binName);
     if (fs.existsSync(binPath) && fs.statSync(binPath).isFile()) {
+      foundBinName = binName;
+      foundBinPath = binPath;
       candidateFileMap.set(binName, binPath);
       break;
+    }
+  }
+
+  // 3. 和 GitHub Actions release 流程保持一致：同时归档中文命名的独立可执行文件
+  if (foundBinPath && productName) {
+    const ext = path.extname(foundBinName) || (process.platform === 'win32' ? '.exe' : '');
+    const chineseBinName = `${productName}${ext}`;
+    if (chineseBinName !== foundBinName) {
+      candidateFileMap.set(chineseBinName, foundBinPath);
     }
   }
 
@@ -127,18 +159,26 @@ export function copyReleaseArtifacts(options = {}) {
   for (const [filename, srcPath] of candidateFileMap.entries()) {
     const destPath = path.join(targetDir, filename);
 
-    // 复制文件（已有同名文件时直接覆盖）
-    fs.copyFileSync(srcPath, destPath);
+    try {
+      // 复制文件（已有同名文件时直接覆盖）
+      fs.copyFileSync(srcPath, destPath);
 
-    const stats = fs.statSync(destPath);
-    copiedFiles.push({
-      name: filename,
-      src: srcPath,
-      dest: destPath,
-      size: stats.size,
-    });
+      const stats = fs.statSync(destPath);
+      copiedFiles.push({
+        name: filename,
+        src: srcPath,
+        dest: destPath,
+        size: stats.size,
+      });
 
-    console.log(`  \x1b[32m✔ 已覆盖/复制: ${filename} (${formatFileSize(stats.size)})\x1b[0m`);
+      console.log(`  \x1b[32m✔ 已覆盖/复制: ${filename} (${formatFileSize(stats.size)})\x1b[0m`);
+    } catch (err) {
+      if (err.code === 'EBUSY' || err.code === 'EPERM') {
+        console.warn(`  \x1b[33m⚠ 文件被占用（可能正在运行），跳过覆盖: ${filename}\x1b[0m`);
+      } else {
+        throw err;
+      }
+    }
   }
 
   console.log(`\x1b[32m✨ [发布归档完成] 成功归档 ${copiedFiles.length} 个构建产物至 release 目录！\x1b[0m\n`);

@@ -65,17 +65,90 @@ describe('copy-release script', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.copiedFiles.length).toBe(3);
+      expect(result.copiedFiles.length).toBe(4);
 
       const copiedNames = result.copiedFiles.map((f) => f.name);
       expect(copiedNames).toContain('Codex配置助手_1.1.0_x64-setup.exe');
       expect(copiedNames).toContain('Codex配置助手_1.1.0_x64_zh-CN.msi');
       expect(copiedNames).toContain('codex-config-manager.exe');
+      expect(copiedNames).toContain('Codex配置助手.exe');
       expect(copiedNames).not.toContain('Codex配置助手_1.0.0_x64-setup.exe');
 
       // 验证是否已执行覆盖
       const overwrittenContent = fs.readFileSync(preExistingDest, 'utf-8');
       expect(overwrittenContent).toBe('NEW_SETUP_CONTENT');
+
+      // 验证中文命名便携版内容是否与原始二进制一致
+      const chineseBinDest = path.join(mockTargetDir, 'Codex配置助手.exe');
+      expect(fs.existsSync(chineseBinDest)).toBe(true);
+      expect(fs.readFileSync(chineseBinDest, 'utf-8')).toBe('BINARY_CONTENT');
+    });
+
+    it('应支持自定义 productName 并生成对应命名的独立可执行文件', () => {
+      const testBaseDir = path.resolve(process.cwd(), `.temp/test-custom-product-${Date.now()}`);
+      const mockBinDir = path.join(testBaseDir, 'src-tauri/target/release');
+      const mockTargetDir = path.join(testBaseDir, 'release');
+
+      fs.mkdirSync(mockBinDir, { recursive: true });
+      fs.mkdirSync(mockTargetDir, { recursive: true });
+
+      const binPath = path.join(mockBinDir, 'codex-config-manager.exe');
+      fs.writeFileSync(binPath, 'CUSTOM_BINARY_CONTENT');
+
+      const result = copyReleaseArtifacts({
+        rootDir: testBaseDir,
+        targetDir: mockTargetDir,
+        bundleDir: path.join(testBaseDir, 'empty-bundle'),
+        releaseBinDir: mockBinDir,
+        productName: '我的测试配置助手',
+      });
+
+      expect(result.success).toBe(true);
+      const copiedNames = result.copiedFiles.map((f) => f.name);
+      expect(copiedNames).toContain('codex-config-manager.exe');
+      expect(copiedNames).toContain('我的测试配置助手.exe');
+
+      const customBinDest = path.join(mockTargetDir, '我的测试配置助手.exe');
+      expect(fs.existsSync(customBinDest)).toBe(true);
+      expect(fs.readFileSync(customBinDest, 'utf-8')).toBe('CUSTOM_BINARY_CONTENT');
+    });
+
+    it('当某个目标文件被占用 (EBUSY) 时应捕获警告并继续复制其余产物', () => {
+      const testBaseDir = path.resolve(process.cwd(), `.temp/test-ebusy-${Date.now()}`);
+      const mockBinDir = path.join(testBaseDir, 'src-tauri/target/release');
+      const mockTargetDir = path.join(testBaseDir, 'release');
+
+      fs.mkdirSync(mockBinDir, { recursive: true });
+      fs.mkdirSync(mockTargetDir, { recursive: true });
+
+      const binPath = path.join(mockBinDir, 'codex-config-manager.exe');
+      fs.writeFileSync(binPath, 'BINARY_FOR_EBUSY');
+
+      const originalCopyFileSync = fs.copyFileSync;
+      try {
+        fs.copyFileSync = (src, dest) => {
+          if (dest.endsWith('codex-config-manager.exe')) {
+            const err = new Error('resource busy');
+            err.code = 'EBUSY';
+            throw err;
+          }
+          originalCopyFileSync(src, dest);
+        };
+
+        const result = copyReleaseArtifacts({
+          rootDir: testBaseDir,
+          targetDir: mockTargetDir,
+          bundleDir: path.join(testBaseDir, 'empty-bundle'),
+          releaseBinDir: mockBinDir,
+          productName: 'Codex配置助手',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.copiedFiles.map((f) => f.name)).toEqual(['Codex配置助手.exe']);
+        expect(fs.existsSync(path.join(mockTargetDir, 'Codex配置助手.exe'))).toBe(true);
+      } finally {
+        fs.copyFileSync = originalCopyFileSync;
+      }
     });
 
     it('当未找到任何候选产物时应返回 false', () => {
