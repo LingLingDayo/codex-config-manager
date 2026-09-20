@@ -40,9 +40,13 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
     };
 
     // 依据 config.toml 中生效的 model_catalog_json 定位并读取模型目录文件
+    // 严格隔离原则：仅读取本工具自管的专属目录文件，绝不读取第三方工具的文件
     let catalog_content = config_content.as_deref().and_then(|content| {
         let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
         let catalog_file = catalog::parse_active_catalog_file_from_lines(&lines)?;
+        if catalog_file != default_catalog_file_name() {
+            return None;
+        }
         let catalog_path = catalog::resolve_catalog_path(&codex_dir, &catalog_file);
         if catalog_path.exists() {
             fs::read_to_string(&catalog_path).ok()
@@ -151,7 +155,7 @@ pub fn save_codex_config(
         patcher::apply_model_reasoning_effort_to_lines(&mut lines, e);
     }
 
-    // 处理模型别名：依附于当前生效的模型 slug，写入 model_catalog_json 指向的目录文件
+    // 处理模型别名：依附于当前生效的模型 slug，写入专属自管目录文件
     if let Some(ref dn) = model_display_name {
         let slug = match &model {
             Some(m) if !m.trim().is_empty() => m.trim().to_string(),
@@ -166,18 +170,13 @@ pub fn save_codex_config(
         };
         if !slug.is_empty() {
             let trimmed_dn = dn.trim();
-            // 确定目录文件：优先沿用 config.toml 中已生效的 model_catalog_json；
-            // 写入别名且无生效配置时，恢复注释行或插入本工具自管的默认目录文件名
-            let catalog_file = catalog::parse_active_catalog_file_from_lines(&lines).or_else(|| {
-                if trimmed_dn.is_empty() {
-                    None
-                } else {
-                    catalog::apply_model_catalog_json_to_lines(&mut lines, default_catalog_file_name());
-                    catalog::parse_active_catalog_file_from_lines(&lines)
-                }
-            });
-            if let Some(file) = catalog_file {
-                let catalog_path = catalog::resolve_catalog_path(&codex_dir, &file);
+            let catalog_file_name = default_catalog_file_name();
+            let catalog_path = codex_dir.join(catalog_file_name);
+
+            if !trimmed_dn.is_empty() {
+                // 1. 设置别名：强制将 config.toml 中的 model_catalog_json 统一指向本工具专属文件
+                catalog::apply_model_catalog_json_to_lines(&mut lines, catalog_file_name);
+
                 let existing = if catalog_path.exists() {
                     Some(
                         fs::read_to_string(&catalog_path)
@@ -191,6 +190,39 @@ pub fn save_codex_config(
                 {
                     fs::write(&catalog_path, new_content)
                         .map_err(|e| format!("写入模型目录文件失败: {}", e))?;
+                }
+            } else {
+                // 2. 清除别名：如果专属文件存在，在专属文件中清除该 slug 的别名
+                if catalog_path.exists() {
+                    let existing = fs::read_to_string(&catalog_path)
+                        .map_err(|e| format!("读取模型目录文件失败: {}", e))?;
+                    if let Some(new_content) =
+                        catalog::apply_display_name_to_catalog(Some(&existing), &slug, "")?
+                    {
+                        // 检查 models 数组是否已空，若已空则删除专属文件并注释掉 config.toml 中的配置
+                        let is_empty_models = serde_json::from_str::<serde_json::Value>(&new_content)
+                            .ok()
+                            .and_then(|v| {
+                                v.get("models")
+                                    .and_then(|m| m.as_array().map(|a| a.is_empty()))
+                            })
+                            .unwrap_or(false);
+
+                        if is_empty_models {
+                            let _ = fs::remove_file(&catalog_path);
+                            catalog::comment_out_model_catalog_json_in_lines(&mut lines);
+                        } else {
+                            fs::write(&catalog_path, new_content)
+                                .map_err(|e| format!("写入模型目录文件失败: {}", e))?;
+                        }
+                    }
+                } else {
+                    // 若专属文件原本就不存在，且当前 config.toml 中有指向专属文件的生效行，则注释掉
+                    if catalog::parse_active_catalog_file_from_lines(&lines).as_deref()
+                        == Some(catalog_file_name)
+                    {
+                        catalog::comment_out_model_catalog_json_in_lines(&mut lines);
+                    }
                 }
             }
         }
@@ -216,22 +248,30 @@ pub fn restore_codex_default() -> Result<(), String> {
     let config_path = codex_dir.join(config_file);
     let auth_path = codex_dir.join(auth_file);
 
+    // 1. 物理移除本工具专属生成的模型目录文件（彻底清理，不留残留）
+    let catalog_file_name = default_catalog_file_name();
+    let catalog_path = codex_dir.join(catalog_file_name);
+    if catalog_path.exists() {
+        let _ = fs::remove_file(&catalog_path);
+    }
+
     if !config_path.exists() {
         return Ok(());
     }
 
-    // 1. 修改 config.toml，注释掉所有 model_provider、model 及 model_reasoning_effort 行
+    // 2. 修改 config.toml，注释掉所有自定义中转站配置及模型目录关联配置
     let config_content =
         fs::read_to_string(&config_path).map_err(|e| format!("读取 config.toml 失败: {}", e))?;
 
     let mut lines: Vec<String> = config_content.lines().map(|s| s.to_string()).collect();
 
     patcher::comment_out_custom_provider_to_lines(&mut lines);
+    catalog::comment_out_model_catalog_json_in_lines(&mut lines);
 
     let new_content = lines.join("\r\n");
     fs::write(&config_path, new_content).map_err(|e| format!("写入 config.toml 失败: {}", e))?;
 
-    // 2. 清理 auth.json 中的 OPENAI_API_KEY，保留有效 JSON 结构及其他凭证
+    // 3. 清理 auth.json 中的 OPENAI_API_KEY，保留有效 JSON 结构及其他凭证
     auth::restore_auth_default(&auth_path)?;
 
     Ok(())

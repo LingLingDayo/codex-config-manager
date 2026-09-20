@@ -55,28 +55,30 @@ pub fn resolve_catalog_path(codex_dir: &Path, catalog_file: &str) -> PathBuf {
     }
 }
 
-/// 确保 lines 顶层存在生效的 model_catalog_json 行：
-/// 已有未注释行则沿用不动；仅有注释行则恢复启用；完全缺失则在顶层规范位置插入默认文件名
+/// 确保 lines 顶层存在生效的指向本工具专属文件（如 ccm-model-catalog.json）的 model_catalog_json 行：
+/// 绝不复用第三方工具的目录文件；若存在旧的行，统一规范为本工具专属文件；
+/// 仅有注释行则恢复启用为专属文件；完全缺失则在顶层规范位置插入。
 pub fn apply_model_catalog_json_to_lines(lines: &mut Vec<String>, file_name: &str) {
-    // 已存在生效的 model_catalog_json 行：沿用其指向的目录文件，不做任何改动
-    if parse_active_catalog_file_from_lines(lines).is_some() {
-        return;
-    }
+    let target_line = format!("model_catalog_json = \"{}\"", file_name);
 
     let first_section_idx = lines.iter().position(|l| l.trim().starts_with('['));
+    let mut root_active_indices = Vec::new();
     let mut root_commented_indices = Vec::new();
     let mut section_indices = Vec::new();
 
     for (i, line) in lines.iter().enumerate() {
         if is_line_exact_key(line, "model_catalog_json") {
+            let trimmed = line.trim();
             if let Some(sec_idx) = first_section_idx {
-                if i < sec_idx {
-                    root_commented_indices.push(i);
-                } else {
+                if i >= sec_idx {
                     section_indices.push(i);
+                    continue;
                 }
-            } else {
+            }
+            if trimmed.starts_with('#') {
                 root_commented_indices.push(i);
+            } else {
+                root_active_indices.push(i);
             }
         }
     }
@@ -87,10 +89,20 @@ pub fn apply_model_catalog_json_to_lines(lines: &mut Vec<String>, file_name: &st
         lines.remove(idx);
     }
 
+    // 若顶层已有生效行，保留首行并强制指向专属文件，删除多余行
+    if let Some(&first_active) = root_active_indices.first() {
+        lines[first_active] = target_line;
+        let mut dup_indices: Vec<usize> = root_active_indices.iter().skip(1).copied().collect();
+        dup_indices.sort_unstable();
+        for idx in dup_indices.into_iter().rev() {
+            lines.remove(idx);
+        }
+        return;
+    }
+
+    // 若仅有注释行，恢复首个注释行并更新为专属文件，删除其余重复注释行
     if let Some(&first_idx) = root_commented_indices.first() {
-        // 恢复首个注释行并保留其原指向的文件，删除其余重复注释行
-        let without_comment = lines[first_idx].trim().trim_start_matches('#').trim();
-        lines[first_idx] = without_comment.to_string();
+        lines[first_idx] = target_line;
         let mut dup_indices: Vec<usize> = root_commented_indices.iter().skip(1).copied().collect();
         dup_indices.sort_unstable();
         for idx in dup_indices.into_iter().rev() {
@@ -100,7 +112,6 @@ pub fn apply_model_catalog_json_to_lines(lines: &mut Vec<String>, file_name: &st
     }
 
     // 完全缺失：归位插入到顶层，优先在 model_reasoning_effort / model 之后，其次 model_provider 之前
-    let new_line = format!("model_catalog_json = \"{}\"", file_name);
     let current_first_sec = lines.iter().position(|l| l.trim().starts_with('['));
     let limit = current_first_sec.unwrap_or(lines.len());
 
@@ -129,28 +140,22 @@ pub fn apply_model_catalog_json_to_lines(lines: &mut Vec<String>, file_name: &st
         }
     }
 
-    lines.insert(insert_pos, new_line);
+    lines.insert(insert_pos, target_line);
 }
 
-/// 为指定 slug 创建一个结构完整且符合 Codex ModelInfo 规范的模型条目：
-/// 优先从现有的 models 数组中挑选一个参考模型条目（深拷贝）并替换 slug、display_name 与 description；
-/// 若当前没有任何参考条目，则基于最小完备骨架构造，确保绝不会因字段缺失导致 Codex 反序列化失败崩溃。
-pub fn create_model_entry(
-    existing_models: &[serde_json::Value],
-    slug: &str,
-    display_name: &str,
-) -> serde_json::Value {
-    if let Some(template) = existing_models.first() {
-        if let Some(obj) = template.as_object() {
-            let mut cloned = obj.clone();
-            cloned.insert("slug".to_string(), serde_json::json!(slug));
-            cloned.insert("display_name".to_string(), serde_json::json!(display_name));
-            cloned.insert("description".to_string(), serde_json::json!(display_name));
-            cloned.insert("is_custom_added".to_string(), serde_json::json!(true));
-            return serde_json::Value::Object(cloned);
+/// 将 lines 中所有未注释的 model_catalog_json 行注释掉，彻底解除目录接管
+pub fn comment_out_model_catalog_json_in_lines(lines: &mut Vec<String>) {
+    for line in lines.iter_mut() {
+        let trimmed = line.trim();
+        if !trimmed.starts_with('#') && is_line_exact_key(line, "model_catalog_json") {
+            let without_comment = trimmed.trim_start_matches('#').trim();
+            *line = format!("# {}", without_comment);
         }
     }
+}
 
+/// 为指定 slug 创建一个结构完整且符合 Codex ModelInfo 规范的模型条目
+pub fn create_model_entry(slug: &str, display_name: &str) -> serde_json::Value {
     serde_json::json!({
         "slug": slug,
         "display_name": display_name,
@@ -172,7 +177,6 @@ pub fn create_model_entry(
         "input_modalities": ["text", "image"],
         "instructions": null,
         "instructions_variables": null,
-        "is_custom_added": true,
         "model_specialty": null,
         "multi_agent": null,
         "multi_agent_version": "v2",
@@ -203,7 +207,7 @@ pub fn create_model_entry(
     })
 }
 
-/// 在模型目录 JSON 中为指定 slug 写入/更新/清除显示别名（display_name）
+/// 在专属模型目录 JSON 中为指定 slug 写入/更新/清除显示别名（display_name）
 /// 返回 Ok(Some(新内容)) 表示需要写回；Ok(None) 表示无需变更；Err 表示目录文件结构异常，已拒绝覆盖
 pub fn apply_display_name_to_catalog(
     catalog_content: Option<&str>,
@@ -217,7 +221,7 @@ pub fn apply_display_name_to_catalog(
     let trimmed_dn = display_name.trim();
 
     if trimmed_dn.is_empty() {
-        // 清除别名：仅处理已存在且结构合法的目录文件
+        // 清除别名：在专属自管文件中直接移除该模型条目
         let content = match catalog_content {
             Some(c) if !c.trim().is_empty() => c,
             _ => return Ok(None),
@@ -236,29 +240,7 @@ pub fn apply_display_name_to_catalog(
             None => return Ok(None),
         };
 
-        let is_custom_added = models[idx]
-            .get("is_custom_added")
-            .and_then(|b| b.as_bool())
-            .unwrap_or(false);
-
-        // 如果是自定义追加的模型，或者条目仅有极简壳（小于等于3个字段），直接整体移除
-        if is_custom_added || models[idx].as_object().map(|e| e.len() <= 3).unwrap_or(false) {
-            models.remove(idx);
-            return serde_json::to_string_pretty(&v)
-                .map(Some)
-                .map_err(|e| format!("序列化模型目录失败: {}", e));
-        }
-
-        // 原生内置条目：绝对不能直接删除 display_name 字段，否则 Codex 反序列化将因 missing field 崩溃；
-        // 将 display_name 安全重置为 slug 本身
-        let current_dn = models[idx].get("display_name").and_then(|s| s.as_str()).unwrap_or("");
-        if current_dn == slug {
-            return Ok(None);
-        }
-        if let Some(entry) = models[idx].as_object_mut() {
-            entry.insert("display_name".to_string(), serde_json::json!(slug));
-        }
-
+        models.remove(idx);
         return serde_json::to_string_pretty(&v)
             .map(Some)
             .map_err(|e| format!("序列化模型目录失败: {}", e));
@@ -292,8 +274,9 @@ pub fn apply_display_name_to_catalog(
             return Ok(None);
         }
         entry["display_name"] = serde_json::Value::String(trimmed_dn.to_string());
+        entry["description"] = serde_json::Value::String(trimmed_dn.to_string());
     } else {
-        let new_entry = create_model_entry(models, slug, trimmed_dn);
+        let new_entry = create_model_entry(slug, trimmed_dn);
         models.push(new_entry);
     }
 
@@ -335,26 +318,37 @@ mod tests {
     }
 
     #[test]
-    fn test_apply_model_catalog_json_keeps_existing_active_line() {
+    fn test_apply_model_catalog_json_overwrites_existing_active_line() {
+        // 关键测试：若已存在第三方行，必须强制覆盖指向本工具专属文件，绝不复用第三方文件
         let mut lines = vec![
             "model = \"gpt-5.6-sol\"".to_string(),
             "model_catalog_json = \"cockpit-model-catalog.json\"".to_string(),
         ];
         apply_model_catalog_json_to_lines(&mut lines, "ccm-model-catalog.json");
         assert_eq!(lines.len(), 2);
-        assert_eq!(lines[1], "model_catalog_json = \"cockpit-model-catalog.json\"");
+        assert_eq!(lines[1], "model_catalog_json = \"ccm-model-catalog.json\"");
     }
 
     #[test]
     fn test_apply_model_catalog_json_restores_commented_line() {
         let mut lines = vec![
             "model = \"gpt-5.6-sol\"".to_string(),
-            "# model_catalog_json = \"cockpit-model-catalog.json\"".to_string(),
+            "# model_catalog_json = \"old.json\"".to_string(),
             "# model_catalog_json = \"dup.json\"".to_string(),
         ];
         apply_model_catalog_json_to_lines(&mut lines, "ccm-model-catalog.json");
         assert_eq!(lines.len(), 2);
-        assert_eq!(lines[1], "model_catalog_json = \"cockpit-model-catalog.json\"");
+        assert_eq!(lines[1], "model_catalog_json = \"ccm-model-catalog.json\"");
+    }
+
+    #[test]
+    fn test_comment_out_model_catalog_json_in_lines() {
+        let mut lines = vec![
+            "model = \"gpt-5.6-sol\"".to_string(),
+            "model_catalog_json = \"ccm-model-catalog.json\"".to_string(),
+        ];
+        comment_out_model_catalog_json_in_lines(&mut lines);
+        assert_eq!(lines[1], "# model_catalog_json = \"ccm-model-catalog.json\"");
     }
 
     #[test]
@@ -387,30 +381,6 @@ mod tests {
     }
 
     #[test]
-    fn test_apply_display_name_to_catalog_clones_existing_template() {
-        let catalog = r#"{
-  "models": [
-    {
-      "slug": "gpt-5.6-sol",
-      "display_name": "5.6 Sol",
-      "priority": 1,
-      "shell_type": "shell_command",
-      "custom_field": "preserved"
-    }
-  ]
-}"#;
-        let result = apply_display_name_to_catalog(Some(catalog), "glm-5.3", "GLM 5.3").unwrap();
-        let content = result.expect("应成功追加条目");
-        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
-        let models = v["models"].as_array().unwrap();
-        assert_eq!(models.len(), 2);
-        assert_eq!(models[1]["slug"], "glm-5.3");
-        assert_eq!(models[1]["display_name"], "GLM 5.3");
-        assert_eq!(models[1]["custom_field"], "preserved");
-        assert_eq!(models[1]["is_custom_added"], true);
-    }
-
-    #[test]
     fn test_apply_display_name_to_catalog_updates_existing_and_preserves_others() {
         let catalog = r#"{
   "models": [
@@ -432,21 +402,10 @@ mod tests {
     }
 
     #[test]
-    fn test_apply_display_name_to_catalog_clear_alias_safe() {
-        // 原生模型：清除别名时，必须保留 display_name 键，重置为 slug
-        let catalog = r#"{ "models": [ { "slug": "gpt-5.6-sol", "display_name": "Custom Sol", "context_window": 100, "priority": 1 } ] }"#;
-        let result = apply_display_name_to_catalog(Some(catalog), "gpt-5.6-sol", "").unwrap();
+    fn test_apply_display_name_to_catalog_clear_alias() {
+        let catalog = r#"{ "models": [ { "slug": "glm-5.3", "display_name": "GLM" } ] }"#;
+        let result = apply_display_name_to_catalog(Some(catalog), "glm-5.3", "").unwrap();
         let content = result.expect("应产生清除变更");
-        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
-        let models = v["models"].as_array().unwrap();
-        assert_eq!(models.len(), 1);
-        assert_eq!(models[0]["display_name"], "gpt-5.6-sol");
-        assert_eq!(models[0]["context_window"], 100);
-
-        // 自定义追加的模型：清除别名时，安全整项删除
-        let custom_catalog = r#"{ "models": [ { "slug": "glm-5.3", "display_name": "GLM", "is_custom_added": true } ] }"#;
-        let result = apply_display_name_to_catalog(Some(custom_catalog), "glm-5.3", "").unwrap();
-        let content = result.expect("应移除自定义条目");
         let v: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(v["models"].as_array().unwrap().len(), 0);
     }
