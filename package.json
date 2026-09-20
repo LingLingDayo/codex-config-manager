@@ -21,6 +21,7 @@
     "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
+    "@lucide/vue": "^1.47.0",
     "@tauri-apps/api": "^2.2.0",
     "vue": "^3.5.13"
   },
