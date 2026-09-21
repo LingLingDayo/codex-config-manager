@@ -52,6 +52,10 @@ const datalistId = computed(() =>
   props.idPrefix ? `${props.idPrefix}-model-alias-options` : 'model-alias-options'
 );
 
+const canManageList = computed(
+  () => Boolean(props.apiKey.trim() && props.providerUrl.trim())
+);
+
 const statusText = computed(() => {
   if (isLoading.value) return '正在获取模型列表...';
   if (fetchError.value) return fetchError.value;
@@ -176,7 +180,7 @@ onMounted(() => {
           type="button"
           class="btn-text"
           title="重新获取并补充尚未加入的模型"
-          :disabled="isLoading || !apiKey.trim() || !providerUrl.trim()"
+          :disabled="isLoading || !canManageList"
           @click="performFetch(true)"
         >
           <svg
@@ -197,7 +201,13 @@ onMounted(() => {
           </svg>
           <span>刷新</span>
         </button>
-        <button type="button" class="btn-text" title="向列表新增一个模型" @click="addRow()">
+        <button
+          type="button"
+          class="btn-text"
+          title="向列表新增一个模型"
+          :disabled="!canManageList"
+          @click="addRow()"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="11"
@@ -217,6 +227,7 @@ onMounted(() => {
       </div>
     </div>
 
+    <template v-if="canManageList">
     <div class="list-head">
       <span>模型</span>
       <span>别名</span>
@@ -274,8 +285,9 @@ onMounted(() => {
         </button>
       </div>
     </div>
+    </template>
 
-    <datalist :id="datalistId">
+    <datalist v-if="canManageList" :id="datalistId">
       <option v-for="model in fetchedModels" :key="model" :value="model" />
     </datalist>
   </div>

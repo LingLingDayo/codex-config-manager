@@ -8,10 +8,27 @@ describe('ModelAliasList.vue component', () => {
     vi.restoreAllMocks();
   });
 
+  it('未配置 key 或 url 时仅展示工具栏', () => {
+    const wrapper = mount(ModelAliasList, {
+      props: {
+        modelValue: [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }],
+        autoFetch: false,
+      },
+    });
+
+    expect(wrapper.find('.list-toolbar').exists()).toBe(true);
+    expect(wrapper.find('.list-head').exists()).toBe(false);
+    expect(wrapper.find('.list-body').exists()).toBe(false);
+    expect(wrapper.find('.list-empty').exists()).toBe(false);
+    expect(wrapper.findAll('.alias-row').length).toBe(0);
+  });
+
   it('渲染已有别名行并支持修改右侧别名', async () => {
     const wrapper = mount(ModelAliasList, {
       props: {
         modelValue: [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }],
+        apiKey: 'sk-test',
+        providerUrl: 'https://api.example.com/v1',
         autoFetch: false,
       },
     });
@@ -31,6 +48,8 @@ describe('ModelAliasList.vue component', () => {
     const wrapper = mount(ModelAliasList, {
       props: {
         modelValue: [],
+        apiKey: 'sk-test',
+        providerUrl: 'https://api.example.com/v1',
         autoFetch: false,
       },
     });

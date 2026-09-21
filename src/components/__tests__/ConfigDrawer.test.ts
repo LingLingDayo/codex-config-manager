@@ -22,6 +22,8 @@ describe('ConfigDrawer.vue component', () => {
         modelValue: 'gpt-5.6-sol',
         reasoningEffort: 'medium',
         modelAliases: [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }],
+        apiKey: 'sk-test',
+        providerUrl: 'https://api.example.com/v1',
       },
       attachTo: document.body,
     });
@@ -100,6 +102,8 @@ describe('ConfigDrawer.vue component', () => {
         visible: true,
         modelValue: 'gpt-5.6-sol',
         modelAliases: [{ slug: 'gpt-5.6-sol', display_name: '' }],
+        apiKey: 'sk-test',
+        providerUrl: 'https://api.example.com/v1',
       },
       attachTo: document.body,
     });

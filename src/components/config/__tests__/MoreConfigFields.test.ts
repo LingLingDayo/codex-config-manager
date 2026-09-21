@@ -86,6 +86,8 @@ describe('MoreConfigFields.vue component', () => {
     const wrapper = mount(MoreConfigFields, {
       props: {
         modelAliases: [{ slug: 'gpt-5.6-sol', display_name: 'Old Name' }],
+        apiKey: 'sk-test',
+        providerUrl: 'https://api.example.com/v1',
       },
     });
 
