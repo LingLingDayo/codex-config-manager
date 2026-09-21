@@ -4,13 +4,13 @@
  */
 export const MORE_CONFIG_META = {
   model: {
-    label: '自定义模型 (Model)',
+    label: '默认模型 (Model)',
     title:
       '对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。',
     placeholder: '例如: gpt-5.6-sol',
   },
   reasoningEffort: {
-    label: '思考强度 (Reasoning Effort)',
+    label: '默认思考强度 (Reasoning Effort)',
     title:
       '对应 config.toml 中的 model_reasoning_effort 字段。用于配置模型的深度思考与推理强度，请务必选择所选模型实际支持的思考强度档位（若模型不支持思考请设为 none 或留空）。',
     placeholder: '例如: low / medium / high',
@@ -83,7 +83,7 @@ const handleModelUpdate = (val: string) => {
 
 <template>
   <div class="more-config-fields-grid">
-    <!-- 自定义模型 -->
+    <!-- 默认模型 -->
     <SettingItem
       class="field-model"
       :label="MORE_CONFIG_META.model.label"
@@ -104,7 +104,7 @@ const handleModelUpdate = (val: string) => {
       />
     </SettingItem>
 
-    <!-- 思考强度 -->
+    <!-- 默认思考强度 -->
     <SettingItem
       class="field-reasoning"
       :label="MORE_CONFIG_META.reasoningEffort.label"
