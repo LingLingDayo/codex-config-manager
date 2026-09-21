@@ -291,11 +291,18 @@ onUnmounted(() => {
 }
 
 .btn-arrow {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+  transition: color 0.2s ease;
+
+  svg {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
   &.rotated {
-    transform: rotate(180deg);
     color: $accent-blue;
+
+    svg {
+      transform: rotate(180deg);
+    }
   }
 }
 

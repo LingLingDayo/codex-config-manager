@@ -440,11 +440,18 @@ onUnmounted(() => {
 }
 
 .btn-dropdown {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+  transition: color 0.2s ease;
+
+  svg:not(.spin) {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
   &.rotated {
-    transform: rotate(180deg);
     color: $accent-blue;
+
+    svg:not(.spin) {
+      transform: rotate(180deg);
+    }
   }
 
   &.is-loading {
