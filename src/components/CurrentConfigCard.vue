@@ -3,7 +3,7 @@ import { ref, watch, computed } from 'vue';
 import ConfigCardHeader from './config/ConfigCardHeader.vue';
 import ConfigCardActions from './config/ConfigCardActions.vue';
 import ConfigDrawer from './ConfigDrawer.vue';
-import type { CodexConfig, PresetConfig } from '../types/config';
+import type { CodexConfig, ConfigFormPayload, PresetConfig } from '../types/config';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
@@ -28,38 +28,11 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (
-    e: 'save-config',
-    data: {
-      key: string;
-      providerUrl: string;
-      model?: string;
-      modelReasoningEffort?: string;
-      modelDisplayName?: string;
-    }
-  ): void;
+  (e: 'save-config', data: ConfigFormPayload): void;
   (e: 'restore-default'): void;
-  (
-    e: 'save-as-preset',
-    data: {
-      key: string;
-      providerUrl: string;
-      model?: string;
-      modelReasoningEffort?: string;
-      modelDisplayName?: string;
-    }
-  ): void;
+  (e: 'save-as-preset', data: ConfigFormPayload): void;
   (e: 'open-presets'): void;
-  (
-    e: 'launch-app',
-    data?: {
-      key: string;
-      providerUrl: string;
-      model?: string;
-      modelReasoningEffort?: string;
-      modelDisplayName?: string;
-    }
-  ): void;
+  (e: 'launch-app', data?: ConfigFormPayload): void;
 }>();
 
 const apiKey = ref<string>('');

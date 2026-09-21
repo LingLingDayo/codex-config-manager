@@ -14,6 +14,12 @@ export interface SaveConfigPayload {
   modelDisplayName?: string;
 }
 
+/** 主配置卡片提交给编排层的表单快照 */
+export interface ConfigFormPayload extends SaveConfigPayload {
+  key: string;
+  providerUrl: string;
+}
+
 export interface PresetConfig {
   id: string;
   name: string;

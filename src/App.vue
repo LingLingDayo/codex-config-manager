@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import AppHeader from './components/AppHeader.vue';
 import CurrentConfigCard from './components/CurrentConfigCard.vue';
 import PresetListModal from './components/PresetListModal.vue';
@@ -8,237 +8,33 @@ import ToastMessage from './components/ToastMessage.vue';
 import ConfirmModal from './components/ConfirmModal.vue';
 import SettingsModal from './components/settings/SettingsModal.vue';
 
-import { useCodexConfig } from './composables/useCodexConfig';
-import { usePresets } from './composables/usePresets';
-import { useSettings } from './composables/useSettings';
-import { useToast } from './composables/useToast';
-import { useConfirm } from './composables/useConfirm';
-import {
-  DEFAULT_STATION_NAME,
-  DEFAULT_STATION_URL,
-  isDefaultStation,
-  normalizeUrl,
-} from './utils/format';
+import { useAppWorkflow } from './composables/useAppWorkflow';
 import { APP_VERSION } from './constants/version';
-import type { PresetConfig, PresetFormData } from './types/config';
 
 const {
   currentConfig,
   isLoading,
-  loadConfig,
-  saveConfig,
-  restoreDefault,
-} = useCodexConfig();
-const { presets, loadPresets, saveOrUpdatePreset, deletePreset, isPresetActive } = usePresets();
-const {
-  settings,
-  detectedPath,
-  detectPath,
+  presets,
   isLaunching,
-  launchApp,
-  loadSettings,
-} = useSettings();
-const { showToast } = useToast();
-const { showConfirm } = useConfirm();
+  activePreset,
+  isSettingsModalVisible,
+  isPresetListModalVisible,
+  isModalVisible,
+  modalTitle,
+  modalInitialData,
+  handleSaveCurrentConfig,
+  handleApplyPreset,
+  handleRestoreDefault,
+  handleLaunchApp,
+  handleSaveAsPreset,
+  handleAddPreset,
+  handleEditPreset,
+  handleModalSave,
+  deletePreset,
+  bootstrap,
+} = useAppWorkflow();
 
-// 全屏系统设置弹窗状态
-const isSettingsModalVisible = ref<boolean>(false);
-
-// 预设配置管理弹窗状态
-const isPresetListModalVisible = ref<boolean>(false);
-
-// 新增 / 编辑预设表单弹窗状态
-const isModalVisible = ref<boolean>(false);
-const modalTitle = ref<string>('新增中转站配置');
-const modalInitialData = ref<PresetFormData | null>(null);
-
-// 计算当前匹配的生效预设
-const activePreset = computed(() => {
-  return presets.value.find((p) => isPresetActive(p, currentConfig));
-});
-
-// 快捷使用预设
-const handleApplyPreset = async (preset: PresetConfig) => {
-  if (!preset.key.trim()) {
-    showToast(`「${preset.name}」尚未填写 Key，请先编辑填写`, 'warning');
-    handleEditPreset(preset);
-    return;
-  }
-  const success = await saveConfig(preset.key, preset.provider_url, {
-    model: preset.model ?? '',
-    modelReasoningEffort: preset.model_reasoning_effort ?? '',
-    modelDisplayName: preset.model_display_name ?? '',
-  });
-  if (success) {
-    showToast(`已快捷切换至「${preset.name}」并生效，请重新打开 Codex`);
-  }
-};
-
-// 恢复官方默认配置二次确认
-const handleRestoreDefault = async () => {
-  const confirmed = await showConfirm({
-    title: '恢复官方默认配置',
-    message: '确定要恢复为 Codex 官方默认设置吗？',
-    detail: '当前的自定义中转站地址和 API Key 将被清除，恢复后将变成使用账号登录。',
-    type: 'warning',
-    confirmText: '恢复默认',
-    cancelText: '取消',
-  });
-  if (confirmed) {
-    await restoreDefault();
-  }
-};
-
-// 保存当前配置并启动应用
-const handleLaunchApp = async (data?: {
-  key: string;
-  providerUrl: string;
-  model?: string;
-  modelReasoningEffort?: string;
-  modelDisplayName?: string;
-}) => {
-  if (isLaunching.value) return;
-
-  // 1. 检查是否存在或已检测到 Codex 安装路径
-  const targetPath =
-    settings.value.codex_path?.trim() ||
-    detectedPath.value ||
-    (await detectPath());
-
-  if (!targetPath) {
-    showToast('未检测到 Codex 安装路径，请前往设置中进行配置', 'warning');
-    const confirmed = await showConfirm({
-      title: '未检测到应用路径',
-      message: '未检测到 Codex 安装路径，请前往设置中进行配置',
-      detail: '未能自动检测到 ChatGPT / Codex 安装位置。是否前往系统设置配置应用路径？',
-      type: 'warning',
-      confirmText: '前往设置',
-      cancelText: '取消',
-    });
-    if (confirmed) {
-      isSettingsModalVisible.value = true;
-    }
-    return;
-  }
-
-  if (data) {
-    const trimmedKey = data.key.trim();
-    const trimmedUrl = data.providerUrl.trim();
-
-    // 若 Key 与 URL 均为空且当前处于官方默认登录模式（未启用中转），直接启动
-    if (!trimmedKey && !trimmedUrl && !currentConfig.is_enabled) {
-      await launchApp();
-      return;
-    }
-
-    // 先保存当前填写的配置（静默成功 Toast，避免与启动 Toast 冲突）
-    const saveSuccess = await saveConfig(
-      data.key,
-      data.providerUrl,
-      {
-        model: data.model,
-        modelReasoningEffort: data.modelReasoningEffort,
-        modelDisplayName: data.modelDisplayName,
-      },
-      { silent: true }
-    );
-    if (!saveSuccess) {
-      return;
-    }
-  }
-
-  await launchApp();
-};
-
-// 当前配置卡片点击“保存配置”
-const handleSaveAsPreset = (data: {
-  key: string;
-  providerUrl: string;
-  model?: string;
-  modelReasoningEffort?: string;
-  modelDisplayName?: string;
-}) => {
-  if (!data.key.trim()) {
-    showToast('请先在上方输入 API Key', 'error');
-    return;
-  }
-
-  const trimmedKey = data.key.trim();
-  const normalizedInputUrl = normalizeUrl(data.providerUrl);
-
-  const matched = presets.value.find(
-    (p) =>
-      p.key.trim() === trimmedKey &&
-      normalizeUrl(p.provider_url) === normalizedInputUrl
-  );
-
-  if (matched) {
-    modalTitle.value = '编辑配置';
-    modalInitialData.value = {
-      id: matched.id,
-      name: matched.name,
-      provider_url: isDefaultStation(matched.provider_url)
-        ? DEFAULT_STATION_URL
-        : matched.provider_url,
-      key: matched.key,
-      model: data.model !== undefined ? data.model : matched.model,
-      model_reasoning_effort:
-        data.modelReasoningEffort !== undefined
-          ? data.modelReasoningEffort
-          : matched.model_reasoning_effort,
-      model_display_name:
-        data.modelDisplayName !== undefined
-          ? data.modelDisplayName
-          : matched.model_display_name,
-    };
-  } else {
-    const isDefault = isDefaultStation(data.providerUrl);
-    modalTitle.value = '新增中转站配置';
-    modalInitialData.value = {
-      name: isDefault ? `${DEFAULT_STATION_NAME} 常用配置` : (data.providerUrl ? '中转站配置' : ''),
-      provider_url: isDefault ? DEFAULT_STATION_URL : (data.providerUrl || ''),
-      key: data.key,
-      model: data.model || '',
-      model_reasoning_effort: data.modelReasoningEffort || '',
-      model_display_name: data.modelDisplayName || '',
-    };
-  }
-  isModalVisible.value = true;
-};
-
-// 打开新增预设弹窗
-const handleAddPreset = () => {
-  modalTitle.value = '新增中转站配置';
-  modalInitialData.value = null;
-  isModalVisible.value = true;
-};
-
-// 打开编辑预设弹窗
-const handleEditPreset = (preset: PresetConfig) => {
-  modalTitle.value = '编辑中转站配置';
-  modalInitialData.value = {
-    id: preset.id,
-    name: preset.name,
-    provider_url: isDefaultStation(preset.provider_url) ? DEFAULT_STATION_URL : preset.provider_url,
-    key: preset.key,
-    model: preset.model || '',
-    model_reasoning_effort: preset.model_reasoning_effort || '',
-    model_display_name: preset.model_display_name || '',
-  };
-  isModalVisible.value = true;
-};
-
-// 提交预设模态框保存
-const handleModalSave = async (formData: PresetFormData) => {
-  const success = await saveOrUpdatePreset(formData);
-  if (success) {
-    isModalVisible.value = false;
-  }
-};
-
-onMounted(async () => {
-  await Promise.all([loadConfig(), loadPresets(), loadSettings()]);
-});
+onMounted(bootstrap);
 </script>
 
 <template>
@@ -259,7 +55,7 @@ onMounted(async () => {
         :is-launching="isLaunching"
         :presets-count="presets.length"
         :active-preset-name="activePreset?.name"
-        @save-config="(data) => saveConfig(data.key, data.providerUrl, { model: data.model, modelReasoningEffort: data.modelReasoningEffort, modelDisplayName: data.modelDisplayName })"
+        @save-config="handleSaveCurrentConfig"
         @restore-default="handleRestoreDefault"
         @save-as-preset="handleSaveAsPreset"
         @open-presets="isPresetListModalVisible = true"

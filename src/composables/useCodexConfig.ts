@@ -26,7 +26,8 @@ function createEmptyConfig(): CodexConfig {
 const currentConfig = reactive<CodexConfig>(createEmptyConfig());
 const isLoading = ref<boolean>(false);
 
-function hydrateConfig(source: Partial<CodexConfig>) {
+function hydrateConfig(source: Partial<CodexConfig> | null | undefined) {
+  if (!source) return;
   currentConfig.key = source.key || '';
   currentConfig.provider_url = normalizeUrl(source.provider_url || '');
   currentConfig.is_enabled = source.is_enabled ?? false;
