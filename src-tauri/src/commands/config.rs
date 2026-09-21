@@ -8,6 +8,7 @@ use crate::utils::{
 
 pub mod auth;
 pub mod catalog;
+pub mod field_patcher;
 pub mod parser;
 pub mod patcher;
 pub mod toml_utils;

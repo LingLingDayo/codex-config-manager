@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use super::field_patcher::apply_top_level_string_field;
 use super::toml_utils::{is_line_exact_key, parse_toml_string_value};
 
 /// 从模型目录 JSON 中查询指定 slug 的显示别名（display_name）
@@ -59,88 +60,13 @@ pub fn resolve_catalog_path(codex_dir: &Path, catalog_file: &str) -> PathBuf {
 /// 绝不复用第三方工具的目录文件；若存在旧的行，统一规范为本工具专属文件；
 /// 仅有注释行则恢复启用为专属文件；完全缺失则在顶层规范位置插入。
 pub fn apply_model_catalog_json_to_lines(lines: &mut Vec<String>, file_name: &str) {
-    let target_line = format!("model_catalog_json = \"{}\"", file_name);
-
-    let first_section_idx = lines.iter().position(|l| l.trim().starts_with('['));
-    let mut root_active_indices = Vec::new();
-    let mut root_commented_indices = Vec::new();
-    let mut section_indices = Vec::new();
-
-    for (i, line) in lines.iter().enumerate() {
-        if is_line_exact_key(line, "model_catalog_json") {
-            let trimmed = line.trim();
-            if let Some(sec_idx) = first_section_idx {
-                if i >= sec_idx {
-                    section_indices.push(i);
-                    continue;
-                }
-            }
-            if trimmed.starts_with('#') {
-                root_commented_indices.push(i);
-            } else {
-                root_active_indices.push(i);
-            }
-        }
-    }
-
-    // 清理 section 内部错位的行，防止歧义
-    section_indices.sort_unstable();
-    for idx in section_indices.into_iter().rev() {
-        lines.remove(idx);
-    }
-
-    // 若顶层已有生效行，保留首行并强制指向专属文件，删除多余行
-    if let Some(&first_active) = root_active_indices.first() {
-        lines[first_active] = target_line;
-        let mut dup_indices: Vec<usize> = root_active_indices.iter().skip(1).copied().collect();
-        dup_indices.sort_unstable();
-        for idx in dup_indices.into_iter().rev() {
-            lines.remove(idx);
-        }
-        return;
-    }
-
-    // 若仅有注释行，恢复首个注释行并更新为专属文件，删除其余重复注释行
-    if let Some(&first_idx) = root_commented_indices.first() {
-        lines[first_idx] = target_line;
-        let mut dup_indices: Vec<usize> = root_commented_indices.iter().skip(1).copied().collect();
-        dup_indices.sort_unstable();
-        for idx in dup_indices.into_iter().rev() {
-            lines.remove(idx);
-        }
-        return;
-    }
-
-    // 完全缺失：归位插入到顶层，优先在 model_reasoning_effort / model 之后，其次 model_provider 之前
-    let current_first_sec = lines.iter().position(|l| l.trim().starts_with('['));
-    let limit = current_first_sec.unwrap_or(lines.len());
-
-    let mut insert_pos = limit;
-    let mut found_anchor = false;
-    for anchor_key in ["model_reasoning_effort", "model"] {
-        for (i, line) in lines[..limit].iter().enumerate() {
-            if is_line_exact_key(line, anchor_key) {
-                insert_pos = i + 1;
-                found_anchor = true;
-                break;
-            }
-        }
-        if found_anchor {
-            break;
-        }
-    }
-    if !found_anchor {
-        for (i, line) in lines[..limit].iter().enumerate() {
-            let trimmed = line.trim();
-            let without_comment = trimmed.trim_start_matches('#').trim();
-            if without_comment.starts_with("model_provider") && without_comment.contains('=') {
-                insert_pos = i;
-                break;
-            }
-        }
-    }
-
-    lines.insert(insert_pos, target_line);
+    apply_top_level_string_field(
+        lines,
+        "model_catalog_json",
+        file_name,
+        &["model_reasoning_effort", "model"],
+        &["model_provider"],
+    );
 }
 
 /// 将 lines 中所有未注释的 model_catalog_json 行注释掉，彻底解除目录接管
@@ -291,7 +217,8 @@ mod tests {
 
     #[test]
     fn test_parse_display_name_from_catalog_edge_cases() {
-        let catalog = r#"{ "models": [ { "slug": "a" }, { "slug": "b", "display_name": "B 别名" } ] }"#;
+        let catalog =
+            r#"{ "models": [ { "slug": "a" }, { "slug": "b", "display_name": "B 别名" } ] }"#;
         assert_eq!(parse_display_name_from_catalog(catalog, "b"), "B 别名");
         assert_eq!(parse_display_name_from_catalog(catalog, "a"), "");
         assert_eq!(parse_display_name_from_catalog(catalog, "c"), "");
@@ -348,7 +275,10 @@ mod tests {
             "model_catalog_json = \"ccm-model-catalog.json\"".to_string(),
         ];
         comment_out_model_catalog_json_in_lines(&mut lines);
-        assert_eq!(lines[1], "# model_catalog_json = \"ccm-model-catalog.json\"");
+        assert_eq!(
+            lines[1],
+            "# model_catalog_json = \"ccm-model-catalog.json\""
+        );
     }
 
     #[test]
@@ -388,7 +318,8 @@ mod tests {
     { "slug": "gpt-5.6-terra", "display_name": "5.6 Terra" }
   ]
 }"#;
-        let result = apply_display_name_to_catalog(Some(catalog), "gpt-5.6-sol", "5.6 Sol").unwrap();
+        let result =
+            apply_display_name_to_catalog(Some(catalog), "gpt-5.6-sol", "5.6 Sol").unwrap();
         let content = result.expect("应产生更新");
         let v: serde_json::Value = serde_json::from_str(&content).unwrap();
         let models = v["models"].as_array().unwrap();
@@ -397,7 +328,8 @@ mod tests {
         assert_eq!(models[0]["context_window"], 272000);
         assert_eq!(models[1]["display_name"], "5.6 Terra");
 
-        let no_change = apply_display_name_to_catalog(Some(&content), "gpt-5.6-sol", "5.6 Sol").unwrap();
+        let no_change =
+            apply_display_name_to_catalog(Some(&content), "gpt-5.6-sol", "5.6 Sol").unwrap();
         assert!(no_change.is_none());
     }
 
