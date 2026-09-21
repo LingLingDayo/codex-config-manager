@@ -37,8 +37,6 @@ fn default_true() -> bool {
 pub struct AppSettings {
     #[serde(default)]
     pub codex_path: String,
-    #[serde(default)]
-    pub custom_model: String,
     #[serde(default = "default_true")]
     pub launch_kill_previous: bool,
     #[serde(default = "default_true")]
@@ -49,7 +47,6 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             codex_path: String::new(),
-            custom_model: String::new(),
             launch_kill_previous: true,
             show_provider_presets: true,
         }

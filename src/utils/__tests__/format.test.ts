@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
+  applyStationAlias,
   isDefaultStation,
   isLingAI,
   normalizeUrl,
@@ -57,6 +58,18 @@ describe('format utils', () => {
       expect(normalizeUrl('https://api.openai.com/v1/')).toBe('https://api.openai.com/v1');
       expect(normalizeUrl('https://api.deepseek.com///')).toBe('https://api.deepseek.com');
       expect(normalizeUrl('  https://api.anthropic.com  ')).toBe('https://api.anthropic.com');
+    });
+  });
+
+  describe('applyStationAlias', () => {
+    it('应将默认同义标识即时映射为标准地址', () => {
+      expect(applyStationAlias('lingai')).toBe(DEFAULT_STATION_URL);
+      expect(applyStationAlias(DEFAULT_STATION_NAME)).toBe(DEFAULT_STATION_URL);
+      expect(applyStationAlias(`${DEFAULT_STATION_URL}/v1`)).toBe(DEFAULT_STATION_URL);
+    });
+
+    it('第三方地址应原样返回', () => {
+      expect(applyStationAlias('https://api.openai.com/v1')).toBe('https://api.openai.com/v1');
     });
   });
 

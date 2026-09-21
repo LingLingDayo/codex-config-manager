@@ -4,8 +4,8 @@ import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
   isDefaultStation,
-  normalizeUrl,
 } from '../utils/format';
+import { matchesPresetIdentity } from '../utils/preset';
 import { useCodexConfig } from './useCodexConfig';
 import { useConfirm } from './useConfirm';
 import { usePresets } from './usePresets';
@@ -117,11 +117,8 @@ export function useAppWorkflow() {
       return;
     }
 
-    const trimmedKey = data.key.trim();
-    const normalizedInputUrl = normalizeUrl(data.providerUrl);
-
-    const matched = presets.value.find(
-      (p) => p.key.trim() === trimmedKey && normalizeUrl(p.provider_url) === normalizedInputUrl
+    const matched = presets.value.find((p) =>
+      matchesPresetIdentity(p, data.key, data.providerUrl)
     );
 
     if (matched) {

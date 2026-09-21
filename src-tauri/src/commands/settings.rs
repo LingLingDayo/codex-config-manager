@@ -364,7 +364,6 @@ mod tests {
     fn test_app_settings_default() {
         let settings = AppSettings::default();
         assert_eq!(settings.codex_path, "");
-        assert_eq!(settings.custom_model, "");
         assert!(settings.launch_kill_previous);
         assert!(settings.show_provider_presets);
     }
@@ -374,7 +373,6 @@ mod tests {
         let json = r#"{"codex_path":"C:\\test.exe","custom_model":"gpt-4o","launch_kill_previous":false,"show_provider_presets":false}"#;
         let parsed: AppSettings = serde_json::from_str(json).unwrap();
         assert_eq!(parsed.codex_path, "C:\\test.exe");
-        assert_eq!(parsed.custom_model, "gpt-4o");
         assert!(!parsed.launch_kill_previous);
         assert!(!parsed.show_provider_presets);
 

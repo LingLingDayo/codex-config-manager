@@ -49,6 +49,18 @@ export function normalizeUrl(url: string): string {
 }
 
 /**
+ * 将输入框中的默认中转站别名即时映射为标准地址
+ */
+export function applyStationAlias(input: string): string {
+  if (!input) return input;
+  const trimmed = input.trim().replace(/\/+$/, '');
+  if (isDefaultStation(trimmed)) {
+    return DEFAULT_STATION_URL;
+  }
+  return input;
+}
+
+/**
  * 密钥脱敏显示 (例如: sk-12••••••34ab)
  */
 export function maskKey(key: string): string {

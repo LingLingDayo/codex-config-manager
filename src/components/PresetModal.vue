@@ -4,9 +4,11 @@ import type { PresetFormData } from '../types/config';
 import { REASONING_EFFORT_OPTIONS } from '../types/config';
 import { useSettings } from '../composables/useSettings';
 import SettingSelect from './settings/SettingSelect.vue';
+import { PROVIDER_PRESETS } from '../constants/providers';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
+  applyStationAlias,
   isDefaultStation,
 } from '../utils/format';
 
@@ -33,13 +35,7 @@ const isMoreExpanded = ref<boolean>(false);
 const showKey = ref<boolean>(false);
 const nameInputRef = ref<HTMLInputElement | null>(null);
 
-const presetChips = [
-  { label: DEFAULT_STATION_NAME, url: DEFAULT_STATION_URL },
-  { label: 'OpenAI', url: 'https://api.openai.com/v1' },
-  { label: 'DeepSeek', url: 'https://api.deepseek.com/v1' },
-  { label: 'Moonshot', url: 'https://api.moonshot.cn/v1' },
-  { label: '智谱 GLM', url: 'https://open.bigmodel.cn/api/paas/v4' },
-];
+const presetChips = PROVIDER_PRESETS;
 
 const isChipActive = (chipUrl: string) => {
   if (chipUrl === DEFAULT_STATION_URL) {
@@ -92,13 +88,7 @@ const handleChipClick = (url: string) => {
 };
 
 const handleUrlInput = () => {
-  const trimmed = formUrl.value.trim().replace(/\/+$/, '');
-  if (
-    trimmed.toLowerCase() === DEFAULT_STATION_NAME.toLowerCase() ||
-    trimmed.toLowerCase() === 'lingai'
-  ) {
-    formUrl.value = DEFAULT_STATION_URL;
-  }
+  formUrl.value = applyStationAlias(formUrl.value);
 };
 
 const handleClose = () => {

@@ -1,14 +1,16 @@
 import { ref } from 'vue';
-import type { CodexConfig, PresetConfig, PresetFormData } from '../types/config';
+import type { PresetConfig, PresetFormData } from '../types/config';
 import {
-  normalizeUrl,
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
   isDefaultStation,
 } from '../utils/format';
 import { invokeCommand, readLocalJson, writeLocalJson } from '../utils/hybridStorage';
+import { isPresetActive } from '../utils/preset';
 import { useToast } from './useToast';
 import { useConfirm } from './useConfirm';
+
+export { isPresetActive };
 
 const PRESETS_STORAGE_KEY = 'codex_presets';
 
@@ -31,15 +33,6 @@ const isPresetsLoading = ref<boolean>(false);
 export function resetPresetsState() {
   presets.value = [];
   isPresetsLoading.value = false;
-}
-
-export function isPresetActive(preset: PresetConfig, currentConfig: CodexConfig): boolean {
-  if (!currentConfig.is_enabled) return false;
-  if (!currentConfig.key || !preset.key) return false;
-  return (
-    preset.key.trim() === currentConfig.key.trim() &&
-    normalizeUrl(preset.provider_url) === normalizeUrl(currentConfig.provider_url)
-  );
 }
 
 export function usePresets() {

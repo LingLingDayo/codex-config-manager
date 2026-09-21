@@ -3,6 +3,7 @@ import { onMounted, onUnmounted } from 'vue';
 import { Lightbulb } from '@lucide/vue';
 import type { CodexConfig, PresetConfig } from '../types/config';
 import { normalizeUrl } from '../utils/format';
+import { isPresetActive as matchPresetActive } from '../utils/preset';
 
 const props = defineProps<{
   visible: boolean;
@@ -19,12 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const isPresetActive = (preset: PresetConfig): boolean => {
-  if (!props.currentConfig.is_enabled) return false;
-  if (!props.currentConfig.key || !preset.key) return false;
-  return (
-    preset.key.trim() === props.currentConfig.key.trim() &&
-    normalizeUrl(preset.provider_url) === normalizeUrl(props.currentConfig.provider_url)
-  );
+  return matchPresetActive(preset, props.currentConfig);
 };
 
 const handleRowClick = (preset: PresetConfig) => {

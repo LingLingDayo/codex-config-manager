@@ -1,115 +1,38 @@
 <script setup lang="ts">
-import { computed, getCurrentInstance, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import type { ConfirmType } from '../types/config';
 import { useConfirm, getDefaultTitle, getDefaultConfirmText } from '../composables/useConfirm';
 
 const props = withDefaults(
   defineProps<{
-    visible?: boolean;
-    title?: string;
-    message?: string;
-    detail?: string;
-    type?: ConfirmType;
-    confirmText?: string;
-    cancelText?: string;
-    showCancel?: boolean;
-    loading?: boolean;
     teleport?: boolean;
   }>(),
   {
-    showCancel: true,
     teleport: true,
-    loading: false,
   }
 );
 
-const emit = defineEmits<{
-  (e: 'confirm'): void;
-  (e: 'cancel'): void;
-  (e: 'update:visible', value: boolean): void;
-  (e: 'close'): void;
-}>();
+const { confirmState, handleConfirm, handleCancel } = useConfirm();
 
-const { confirmState, handleConfirm: globalConfirm, handleCancel: globalCancel } = useConfirm();
+const isVisible = computed(() => confirmState.value.visible);
+const resolvedType = computed<ConfirmType>(() => confirmState.value.type || 'warning');
+const resolvedTitle = computed(
+  () => confirmState.value.title || getDefaultTitle(resolvedType.value)
+);
+const resolvedMessage = computed(() => confirmState.value.message);
+const resolvedDetail = computed(() => confirmState.value.detail);
+const resolvedConfirmText = computed(
+  () => confirmState.value.confirmText || getDefaultConfirmText(resolvedType.value)
+);
+const resolvedCancelText = computed(() => confirmState.value.cancelText || '取消');
+const resolvedShowCancel = computed(() => confirmState.value.showCancel !== false);
 
-// 判断是否为受控模式（外部显式传入 visible prop）
-const instance = getCurrentInstance();
-const isControlled = computed(() => {
-  const vnodeProps = instance?.vnode.props;
-  return vnodeProps ? 'visible' in vnodeProps : false;
-});
-
-// 解析当前的各项属性（受控优先，降级到全局单例状态）
-const isVisible = computed(() => (isControlled.value ? !!props.visible : confirmState.value.visible));
-const resolvedType = computed<ConfirmType>(() => {
-  if (isControlled.value) {
-    return props.type || 'warning';
-  }
-  return confirmState.value.type || 'warning';
-});
-
-const resolvedTitle = computed(() => {
-  if (isControlled.value && props.title !== undefined) {
-    return props.title;
-  }
-  return confirmState.value.title || getDefaultTitle(resolvedType.value);
-});
-
-const resolvedMessage = computed(() => {
-  if (isControlled.value && props.message !== undefined) {
-    return props.message;
-  }
-  return confirmState.value.message;
-});
-
-const resolvedDetail = computed(() => {
-  if (isControlled.value && props.detail !== undefined) {
-    return props.detail;
-  }
-  return confirmState.value.detail;
-});
-
-const resolvedConfirmText = computed(() => {
-  if (isControlled.value && props.confirmText !== undefined) {
-    return props.confirmText;
-  }
-  return confirmState.value.confirmText || getDefaultConfirmText(resolvedType.value);
-});
-
-const resolvedCancelText = computed(() => {
-  if (isControlled.value && props.cancelText !== undefined) {
-    return props.cancelText;
-  }
-  return confirmState.value.cancelText || '取消';
-});
-
-const resolvedShowCancel = computed(() => {
-  if (isControlled.value) {
-    return props.showCancel !== false;
-  }
-  return confirmState.value.showCancel !== false;
-});
-
-// 操作触发
 const onConfirm = () => {
-  if (props.loading) return;
-  if (isControlled.value) {
-    emit('confirm');
-    emit('update:visible', false);
-  } else {
-    globalConfirm();
-  }
+  handleConfirm();
 };
 
 const onCancel = () => {
-  if (props.loading) return;
-  if (isControlled.value) {
-    emit('cancel');
-    emit('close');
-    emit('update:visible', false);
-  } else {
-    globalCancel();
-  }
+  handleCancel();
 };
 
 const handleKeyDown = (e: KeyboardEvent) => {
@@ -271,7 +194,6 @@ onUnmounted(() => {
             v-if="resolvedShowCancel"
             type="button"
             class="btn btn-cancel"
-            :disabled="loading"
             @click="onCancel"
           >
             {{ resolvedCancelText }}
@@ -281,24 +203,9 @@ onUnmounted(() => {
             type="button"
             class="btn btn-confirm"
             :class="[resolvedType]"
-            :disabled="loading"
             @click="onConfirm"
           >
-            <svg
-              v-if="loading"
-              class="loading-spinner"
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-            >
-              <circle cx="12" cy="12" r="10" stroke-opacity="0.25" />
-              <path d="M12 2a10 10 0 0 1 10 10" />
-            </svg>
-            <span>{{ loading ? '处理中...' : resolvedConfirmText }}</span>
+            <span>{{ resolvedConfirmText }}</span>
           </button>
         </div>
       </div>
@@ -516,19 +423,6 @@ onUnmounted(() => {
   &:disabled {
     opacity: 0.55;
     cursor: not-allowed;
-  }
-}
-
-.loading-spinner {
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }
 </style>

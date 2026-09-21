@@ -29,7 +29,7 @@ describe('App.vue - 启动 Codex 安装路径检测测试', () => {
         return { key: 'test-key', provider_url: 'https://api.test.com/v1', is_enabled: true };
       }
       if (cmd === 'get_app_settings') {
-        return { codex_path: '', custom_model: '', launch_kill_previous: true };
+        return { codex_path: '', launch_kill_previous: true };
       }
       if (cmd === 'detect_codex_path') {
         return null;
@@ -80,7 +80,6 @@ describe('App.vue - 启动 Codex 安装路径检测测试', () => {
       if (cmd === 'get_app_settings') {
         return {
           codex_path: 'C:\\Program Files\\ChatGPT\\ChatGPT.exe',
-          custom_model: '',
           launch_kill_previous: true,
         };
       }
@@ -124,7 +123,7 @@ describe('App.vue - 启动 Codex 安装路径检测测试', () => {
         return { key: 'test-key', provider_url: 'https://api.test.com/v1', is_enabled: true };
       }
       if (cmd === 'get_app_settings') {
-        return { codex_path: '', custom_model: '', launch_kill_previous: true };
+        return { codex_path: '', launch_kill_previous: true };
       }
       if (cmd === 'detect_codex_path') {
         return 'C:\\Users\\admin\\AppData\\Local\\Programs\\ChatGPT\\ChatGPT.exe';

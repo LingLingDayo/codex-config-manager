@@ -7,7 +7,6 @@ const SETTINGS_STORAGE_KEY = 'codex_app_settings';
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   codex_path: '',
-  custom_model: '',
   launch_kill_previous: true,
   show_provider_presets: true,
 };

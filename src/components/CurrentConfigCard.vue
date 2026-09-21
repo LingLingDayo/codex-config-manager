@@ -7,9 +7,10 @@ import type { CodexConfig, ConfigFormPayload, PresetConfig } from '../types/conf
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
+  applyStationAlias,
   isDefaultStation,
-  normalizeUrl,
 } from '../utils/format';
+import { matchesPresetIdentity } from '../utils/preset';
 
 const props = withDefaults(
   defineProps<{
@@ -66,15 +67,8 @@ watch(
   { immediate: true, deep: true }
 );
 
-// 监听提供商输入框变化，自动映射特定地址
 const handleProviderInput = () => {
-  const trimmed = providerUrl.value.trim().replace(/\/+$/, '');
-  if (
-    trimmed.toLowerCase() === DEFAULT_STATION_NAME.toLowerCase() ||
-    trimmed.toLowerCase() === 'lingai'
-  ) {
-    providerUrl.value = DEFAULT_STATION_URL;
-  }
+  providerUrl.value = applyStationAlias(providerUrl.value);
 };
 
 const handleSave = () => {
@@ -113,15 +107,10 @@ const handleSaveAsPreset = () => {
 
 const matchingPreset = computed(() => {
   const currentKey = apiKey.value.trim();
-  const currentUrl = normalizeUrl(providerUrl.value);
-  if (!currentKey || !currentUrl) return null;
+  if (!currentKey || !providerUrl.value.trim()) return null;
 
   return (
-    props.presets?.find(
-      (p) =>
-        p.key.trim() === currentKey &&
-        normalizeUrl(p.provider_url) === currentUrl
-    ) || null
+    props.presets?.find((p) => matchesPresetIdentity(p, currentKey, providerUrl.value)) || null
   );
 });
 

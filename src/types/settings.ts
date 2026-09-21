@@ -6,11 +6,6 @@ export interface AppSettings {
   codex_path: string;
 
   /**
-   * 自定义模型名称，对应 config.toml 中的 model 字段。
-   */
-  custom_model: string;
-
-  /**
    * 启动应用前是否先检测并终止已运行的实例，默认为 true。
    */
   launch_kill_previous: boolean;
