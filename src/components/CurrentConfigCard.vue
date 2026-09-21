@@ -238,6 +238,11 @@ const isSaved = computed(() => {
     font-size: 0.78rem;
     font-weight: 600;
     color: $text-muted;
+    width: fit-content;
+
+    &[title]:not([title='']) {
+      cursor: help;
+    }
   }
 
   input[type='text'] {

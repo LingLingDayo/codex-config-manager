@@ -434,6 +434,11 @@ onUnmounted(() => {
     font-size: 0.76rem;
     font-weight: 600;
     color: $text-muted;
+    width: fit-content;
+
+    &[title]:not([title='']) {
+      cursor: help;
+    }
   }
 
   .required {

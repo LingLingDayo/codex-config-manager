@@ -87,6 +87,15 @@ withDefaults(
   display: flex;
   align-items: center;
   gap: 4px;
+  width: fit-content;
+
+  &[title]:not([title='']) {
+    cursor: help;
+
+    .item-label {
+      cursor: help;
+    }
+  }
 }
 
 .item-label {
