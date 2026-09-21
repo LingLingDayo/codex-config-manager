@@ -3,6 +3,7 @@ import {
   buildModelsUrl,
   parseModelList,
   fetchProviderModels,
+  clearModelFetchCache,
 } from '../modelFetcher';
 
 describe('modelFetcher utility', () => {
@@ -82,6 +83,7 @@ describe('modelFetcher utility', () => {
 
     beforeEach(() => {
       vi.restoreAllMocks();
+      clearModelFetchCache();
     });
 
     afterEach(() => {

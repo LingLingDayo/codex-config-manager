@@ -1,5 +1,13 @@
 import { normalizeUrl } from './format';
 
+const MODEL_FETCH_CACHE_TTL_MS = 60_000;
+let modelFetchCache: { key: string; url: string; models: string[]; expireAt: number } | null =
+  null;
+
+export function clearModelFetchCache() {
+  modelFetchCache = null;
+}
+
 /**
  * 依据中转站基准地址计算 models 查询端点
  */
@@ -80,6 +88,15 @@ export async function fetchProviderModels(
     throw new Error('请先配置中转站地址');
   }
 
+  if (
+    modelFetchCache &&
+    modelFetchCache.key === trimmedKey &&
+    modelFetchCache.url === trimmedUrl &&
+    modelFetchCache.expireAt > Date.now()
+  ) {
+    return [...modelFetchCache.models];
+  }
+
   const endpoint = buildModelsUrl(trimmedUrl);
   let response: Response;
 
@@ -148,6 +165,13 @@ export async function fetchProviderModels(
   if (models.length === 0 && json?.error?.message) {
     throw new Error(json.error.message);
   }
+
+  modelFetchCache = {
+    key: trimmedKey,
+    url: trimmedUrl,
+    models,
+    expireAt: Date.now() + MODEL_FETCH_CACHE_TTL_MS,
+  };
 
   return models;
 }

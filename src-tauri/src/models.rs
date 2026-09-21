@@ -1,5 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+/// 写入 Codex 模型目录的 slug → 显示别名映射
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Default)]
+pub struct ModelAlias {
+    #[serde(default)]
+    pub slug: String,
+    #[serde(default)]
+    pub display_name: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct CodexConfig {
     pub key: String,
@@ -11,6 +20,8 @@ pub struct CodexConfig {
     pub model_reasoning_effort: String,
     #[serde(default)]
     pub model_display_name: String,
+    #[serde(default)]
+    pub model_aliases: Vec<ModelAlias>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -25,6 +36,8 @@ pub struct PresetConfig {
     pub model_reasoning_effort: String,
     #[serde(default)]
     pub model_display_name: String,
+    #[serde(default)]
+    pub model_aliases: Vec<ModelAlias>,
     #[serde(default)]
     pub updated_at: Option<u64>,
 }

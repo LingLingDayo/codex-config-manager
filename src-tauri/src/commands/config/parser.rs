@@ -1,5 +1,5 @@
 use crate::models::CodexConfig;
-use super::catalog::parse_display_name_from_catalog;
+use super::catalog::{parse_display_name_from_catalog, parse_model_aliases_from_catalog};
 use super::toml_utils::{is_line_exact_key, parse_toml_string_value};
 
 pub fn parse_codex_config_from_content(
@@ -121,6 +121,10 @@ pub fn parse_codex_config_from_content(
         }
     }
 
+    let model_aliases = catalog_content
+        .map(parse_model_aliases_from_catalog)
+        .unwrap_or_default();
+
     // 别名依附于当前生效的模型 slug：从模型目录中查询其 display_name
     // 若未显式配置自定义 model，则尝试查询官方默认模型 gpt-5.6-sol 的定制别名
     let model_display_name = if !model.is_empty() {
@@ -145,6 +149,7 @@ pub fn parse_codex_config_from_content(
         model,
         model_reasoning_effort,
         model_display_name,
+        model_aliases,
     }
 }
 
@@ -243,6 +248,11 @@ model_catalog_json = "ccm-model-catalog.json"
             parse_codex_config_from_content(Some(toml_content), None, Some(catalog_content));
         assert_eq!(config.model, "gpt-5.6-sol");
         assert_eq!(config.model_display_name, "5.6 Sol");
+        assert_eq!(config.model_aliases.len(), 2);
+        assert_eq!(config.model_aliases[0].slug, "gpt-5.6-sol");
+        assert_eq!(config.model_aliases[0].display_name, "5.6 Sol");
+        assert_eq!(config.model_aliases[1].slug, "gpt-5.6-terra");
+        assert_eq!(config.model_aliases[1].display_name, "5.6 Terra");
     }
 
     #[test]

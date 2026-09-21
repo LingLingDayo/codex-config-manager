@@ -1,3 +1,8 @@
+export interface ModelAlias {
+  slug: string;
+  display_name: string;
+}
+
 export interface CodexConfig {
   key: string;
   provider_url: string;
@@ -5,6 +10,7 @@ export interface CodexConfig {
   model?: string;
   model_reasoning_effort?: string;
   model_display_name?: string;
+  model_aliases?: ModelAlias[];
 }
 
 /** saveConfig 的可选模型配置载荷，未提供的字段不会写入 config.toml */
@@ -12,6 +18,7 @@ export interface SaveConfigPayload {
   model?: string;
   modelReasoningEffort?: string;
   modelDisplayName?: string;
+  modelAliases?: ModelAlias[];
 }
 
 /** 主配置卡片提交给编排层的表单快照 */
@@ -28,6 +35,7 @@ export interface PresetConfig {
   model?: string;
   model_reasoning_effort?: string;
   model_display_name?: string;
+  model_aliases?: ModelAlias[];
   updated_at?: number;
 }
 
@@ -47,6 +55,7 @@ export interface PresetFormData {
   model?: string;
   model_reasoning_effort?: string;
   model_display_name?: string;
+  model_aliases?: ModelAlias[];
 }
 
 export const REASONING_EFFORT_OPTIONS = [

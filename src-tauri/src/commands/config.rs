@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::models::CodexConfig;
+use crate::models::{CodexConfig, ModelAlias};
 use crate::utils::{
     config_file_names, default_catalog_file_name, get_codex_dir, get_default_station_url,
     is_default_station,
@@ -15,8 +15,9 @@ pub mod toml_utils;
 
 // 公开重导出以保持与现有调用及测试的 100% 向后兼容性
 pub use catalog::{
-    apply_display_name_to_catalog, apply_model_catalog_json_to_lines,
-    parse_active_catalog_file_from_lines, parse_display_name_from_catalog, resolve_catalog_path,
+    apply_display_name_to_catalog, apply_model_aliases_to_catalog, apply_model_catalog_json_to_lines,
+    parse_active_catalog_file_from_lines, parse_display_name_from_catalog,
+    parse_model_aliases_from_catalog, resolve_catalog_path,
 };
 pub use parser::parse_codex_config_from_content;
 pub use patcher::{apply_model_reasoning_effort_to_lines, apply_model_to_lines};
@@ -122,6 +123,7 @@ pub fn save_codex_config(
     model: Option<String>,
     model_reasoning_effort: Option<String>,
     model_display_name: Option<String>,
+    model_aliases: Option<Vec<ModelAlias>>,
 ) -> Result<(), String> {
     let codex_dir = get_codex_dir()?;
     if !codex_dir.exists() {
@@ -156,8 +158,10 @@ pub fn save_codex_config(
         patcher::apply_model_reasoning_effort_to_lines(&mut lines, e);
     }
 
-    // 处理模型别名：依附于当前生效的模型 slug，写入专属自管目录文件
-    if let Some(ref dn) = model_display_name {
+    // 处理模型别名：优先写入多项别名列表；未提供时回退到单个别名字段
+    if let Some(ref aliases) = model_aliases {
+        persist_managed_catalog(&codex_dir, &mut lines, aliases)?;
+    } else if let Some(ref dn) = model_display_name {
         let slug = match &model {
             Some(m) if !m.trim().is_empty() => m.trim().to_string(),
             _ => {
@@ -239,6 +243,46 @@ pub fn save_codex_config(
     // 2. 写入 auth.json
     auth::save_auth_key(&auth_path, &key)?;
 
+    Ok(())
+}
+
+fn persist_managed_catalog(
+    codex_dir: &std::path::Path,
+    lines: &mut Vec<String>,
+    aliases: &[ModelAlias],
+) -> Result<(), String> {
+    let catalog_file_name = default_catalog_file_name();
+    let catalog_path = codex_dir.join(catalog_file_name);
+    let existing = if catalog_path.exists() {
+        Some(fs::read_to_string(&catalog_path).map_err(|e| format!("读取模型目录文件失败: {}", e))?)
+    } else {
+        None
+    };
+
+    let Some(new_content) =
+        catalog::apply_model_aliases_to_catalog(existing.as_deref(), aliases)?
+    else {
+        return Ok(());
+    };
+
+    let is_empty_models = serde_json::from_str::<serde_json::Value>(&new_content)
+        .ok()
+        .and_then(|v| {
+            v.get("models")
+                .and_then(|m| m.as_array().map(|a| a.is_empty()))
+        })
+        .unwrap_or(false);
+
+    if is_empty_models {
+        if catalog_path.exists() {
+            let _ = fs::remove_file(&catalog_path);
+        }
+        catalog::comment_out_model_catalog_json_in_lines(lines);
+        return Ok(());
+    }
+
+    catalog::apply_model_catalog_json_to_lines(lines, catalog_file_name);
+    fs::write(&catalog_path, new_content).map_err(|e| format!("写入模型目录文件失败: {}", e))?;
     Ok(())
 }
 

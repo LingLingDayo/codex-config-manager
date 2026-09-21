@@ -17,6 +17,7 @@ pub fn default_presets() -> Vec<PresetConfig> {
         model: "".to_string(),
         model_reasoning_effort: "".to_string(),
         model_display_name: "".to_string(),
+        model_aliases: vec![],
         updated_at: None,
     }]
 }
@@ -86,6 +87,7 @@ mod tests {
         assert_eq!(presets[0].model, "");
         assert_eq!(presets[0].model_reasoning_effort, "");
         assert_eq!(presets[0].model_display_name, "");
+        assert!(presets[0].model_aliases.is_empty());
     }
 
     #[test]
@@ -98,6 +100,10 @@ mod tests {
             model: "gpt-5.6-sol".to_string(),
             model_reasoning_effort: "high".to_string(),
             model_display_name: "5.6 Sol".to_string(),
+            model_aliases: vec![crate::models::ModelAlias {
+                slug: "gpt-5.6-sol".to_string(),
+                display_name: "5.6 Sol".to_string(),
+            }],
             updated_at: Some(123456789),
         };
 
@@ -111,6 +117,7 @@ mod tests {
         assert_eq!(legacy_parsed.model, "");
         assert_eq!(legacy_parsed.model_reasoning_effort, "");
         assert_eq!(legacy_parsed.model_display_name, "");
+        assert!(legacy_parsed.model_aliases.is_empty());
     }
 }
 

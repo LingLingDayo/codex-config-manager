@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use crate::models::ModelAlias;
+
 use super::field_patcher::apply_top_level_string_field;
 use super::toml_utils::{is_line_exact_key, parse_toml_string_value};
 
@@ -21,6 +23,64 @@ pub fn parse_display_name_from_catalog(catalog_content: &str, slug: &str) -> Str
         }
     }
     String::new()
+}
+
+/// 解析模型目录中的全部 slug → display_name 映射，供多项别名列表回填
+pub fn parse_model_aliases_from_catalog(catalog_content: &str) -> Vec<ModelAlias> {
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(catalog_content) else {
+        return Vec::new();
+    };
+    let Some(models) = v.get("models").and_then(|m| m.as_array()) else {
+        return Vec::new();
+    };
+
+    let mut aliases = Vec::new();
+    for entry in models {
+        let Some(slug) = entry.get("slug").and_then(|s| s.as_str()).map(str::trim) else {
+            continue;
+        };
+        if slug.is_empty() {
+            continue;
+        }
+        let display_name = entry
+            .get("display_name")
+            .and_then(|s| s.as_str())
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .unwrap_or(slug)
+            .to_string();
+        aliases.push(ModelAlias {
+            slug: slug.to_string(),
+            display_name,
+        });
+    }
+    aliases
+}
+
+/// 规范化别名列表：去掉空 slug、别名为空时回退为 slug 本身，重复 slug 保留最后一次
+pub fn normalize_model_aliases(aliases: &[ModelAlias]) -> Vec<ModelAlias> {
+    let mut result: Vec<ModelAlias> = Vec::new();
+    for alias in aliases {
+        let slug = alias.slug.trim();
+        if slug.is_empty() {
+            continue;
+        }
+        let trimmed_dn = alias.display_name.trim();
+        let display_name = if trimmed_dn.is_empty() {
+            slug.to_string()
+        } else {
+            trimmed_dn.to_string()
+        };
+        if let Some(existing) = result.iter_mut().find(|item| item.slug == slug) {
+            existing.display_name = display_name;
+        } else {
+            result.push(ModelAlias {
+                slug: slug.to_string(),
+                display_name,
+            });
+        }
+    }
+    result
 }
 
 /// 解析 lines 中当前生效（未注释）的 model_catalog_json 指向的目录文件名
@@ -211,9 +271,87 @@ pub fn apply_display_name_to_catalog(
         .map_err(|e| format!("序列化模型目录失败: {}", e))
 }
 
+/// 将多项模型别名整体同步到专属模型目录 JSON。
+/// 以传入列表为唯一事实来源：保留已有条目的扩展字段，缺失的条目按 Codex ModelInfo 骨架新建，
+/// 列表中不再出现的 slug 会从自管目录中移除。
+pub fn apply_model_aliases_to_catalog(
+    catalog_content: Option<&str>,
+    aliases: &[ModelAlias],
+) -> Result<Option<String>, String> {
+    let normalized = normalize_model_aliases(aliases);
+
+    let mut v: serde_json::Value = match catalog_content {
+        Some(c) if !c.trim().is_empty() => serde_json::from_str(c)
+            .map_err(|e| format!("模型目录文件解析失败，已拒绝覆盖: {}", e))?,
+        _ => serde_json::json!({ "models": [] }),
+    };
+    if !v.is_object() {
+        return Err("模型目录文件结构异常（顶层非对象），已拒绝覆盖".to_string());
+    }
+    if v.get("models").is_some() && !v["models"].is_array() {
+        return Err("模型目录文件结构异常（models 非数组），已拒绝覆盖".to_string());
+    }
+    if v.get("models").is_none() {
+        v["models"] = serde_json::json!([]);
+    }
+
+    let existing_models = v["models"].as_array().cloned().unwrap_or_default();
+    if normalized.is_empty() {
+        if existing_models.is_empty() {
+            return Ok(None);
+        }
+        v["models"] = serde_json::json!([]);
+        return serde_json::to_string_pretty(&v)
+            .map(Some)
+            .map_err(|e| format!("序列化模型目录失败: {}", e));
+    }
+
+    let mut by_slug: std::collections::HashMap<String, serde_json::Value> =
+        std::collections::HashMap::new();
+    for entry in existing_models {
+        if let Some(slug) = entry
+            .get("slug")
+            .and_then(|s| s.as_str())
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
+            by_slug.insert(slug.to_string(), entry);
+        }
+    }
+
+    let mut new_models: Vec<serde_json::Value> = Vec::with_capacity(normalized.len());
+    for alias in &normalized {
+        if let Some(mut entry) = by_slug.remove(&alias.slug) {
+            if !entry.is_object() {
+                return Err("模型目录条目结构异常，已拒绝覆盖".to_string());
+            }
+            entry["display_name"] = serde_json::Value::String(alias.display_name.clone());
+            entry["description"] = serde_json::Value::String(alias.display_name.clone());
+            new_models.push(entry);
+        } else {
+            new_models.push(create_model_entry(&alias.slug, &alias.display_name));
+        }
+    }
+
+    v["models"] = serde_json::Value::Array(new_models);
+
+    if let Some(original) = catalog_content {
+        if let Ok(old_v) = serde_json::from_str::<serde_json::Value>(original) {
+            if old_v == v {
+                return Ok(None);
+            }
+        }
+    }
+
+    serde_json::to_string_pretty(&v)
+        .map(Some)
+        .map_err(|e| format!("序列化模型目录失败: {}", e))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::ModelAlias;
 
     #[test]
     fn test_parse_display_name_from_catalog_edge_cases() {
@@ -347,5 +485,112 @@ mod tests {
         assert!(apply_display_name_to_catalog(Some("not json"), "a", "A").is_err());
         assert!(apply_display_name_to_catalog(Some(r#"{ "models": {} }"#), "a", "A").is_err());
         assert!(apply_display_name_to_catalog(Some(r#"["a"]"#), "a", "A").is_err());
+    }
+
+    fn alias(slug: &str, display_name: &str) -> ModelAlias {
+        ModelAlias {
+            slug: slug.to_string(),
+            display_name: display_name.to_string(),
+        }
+    }
+
+    #[test]
+    fn test_parse_model_aliases_from_catalog() {
+        let catalog = r#"{
+  "models": [
+    { "slug": "gpt-5.6-sol", "display_name": "5.6 Sol" },
+    { "slug": "glm-5.3" },
+    { "slug": "  " },
+    { "display_name": "orphan" }
+  ]
+}"#;
+        let aliases = parse_model_aliases_from_catalog(catalog);
+        assert_eq!(aliases.len(), 2);
+        assert_eq!(aliases[0].slug, "gpt-5.6-sol");
+        assert_eq!(aliases[0].display_name, "5.6 Sol");
+        assert_eq!(aliases[1].slug, "glm-5.3");
+        assert_eq!(aliases[1].display_name, "glm-5.3");
+        assert!(parse_model_aliases_from_catalog("not json").is_empty());
+    }
+
+    #[test]
+    fn test_normalize_model_aliases_trims_and_deduplicates() {
+        let aliases = vec![
+            alias(" gpt-5.6-sol ", ""),
+            alias("", "ignored"),
+            alias("glm-5.3", "GLM"),
+            alias("gpt-5.6-sol", "5.6 Sol"),
+        ];
+        let normalized = normalize_model_aliases(&aliases);
+        assert_eq!(normalized.len(), 2);
+        assert_eq!(normalized[0].slug, "gpt-5.6-sol");
+        assert_eq!(normalized[0].display_name, "5.6 Sol");
+        assert_eq!(normalized[1].slug, "glm-5.3");
+        assert_eq!(normalized[1].display_name, "GLM");
+    }
+
+    #[test]
+    fn test_apply_model_aliases_to_catalog_creates_complete_entries() {
+        let aliases = vec![alias("glm-5.3", "GLM 5.3"), alias("gpt-5.6-sol", "")];
+        let result = apply_model_aliases_to_catalog(None, &aliases).unwrap();
+        let content = result.expect("应生成新目录内容");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let models = v["models"].as_array().unwrap();
+        assert_eq!(models.len(), 2);
+        assert_eq!(models[0]["slug"], "glm-5.3");
+        assert_eq!(models[0]["display_name"], "GLM 5.3");
+        assert_eq!(models[0]["shell_type"], "shell_command");
+        assert_eq!(models[0]["visibility"], "list");
+        assert_eq!(models[1]["slug"], "gpt-5.6-sol");
+        assert_eq!(models[1]["display_name"], "gpt-5.6-sol");
+        assert_eq!(models[1]["priority"], 10);
+    }
+
+    #[test]
+    fn test_apply_model_aliases_to_catalog_updates_preserves_and_removes() {
+        let catalog = r#"{
+  "models": [
+    { "slug": "gpt-5.6-sol", "display_name": "Old Name", "context_window": 272000 },
+    { "slug": "obsolete", "display_name": "Gone" }
+  ]
+}"#;
+        let aliases = vec![
+            alias("gpt-5.6-sol", "5.6 Sol"),
+            alias("glm-5.3", "GLM 5.3"),
+        ];
+        let result = apply_model_aliases_to_catalog(Some(catalog), &aliases).unwrap();
+        let content = result.expect("应产生更新");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let models = v["models"].as_array().unwrap();
+        assert_eq!(models.len(), 2);
+        assert_eq!(models[0]["slug"], "gpt-5.6-sol");
+        assert_eq!(models[0]["display_name"], "5.6 Sol");
+        assert_eq!(models[0]["context_window"], 272000);
+        assert_eq!(models[1]["slug"], "glm-5.3");
+        assert_eq!(models[1]["display_name"], "GLM 5.3");
+        assert_eq!(models[1]["visibility"], "list");
+
+        let no_change = apply_model_aliases_to_catalog(Some(&content), &aliases).unwrap();
+        assert!(no_change.is_none());
+    }
+
+    #[test]
+    fn test_apply_model_aliases_to_catalog_clears_all() {
+        let catalog = r#"{ "models": [ { "slug": "glm-5.3", "display_name": "GLM" } ] }"#;
+        let result = apply_model_aliases_to_catalog(Some(catalog), &[]).unwrap();
+        let content = result.expect("应清空 models");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        assert_eq!(v["models"].as_array().unwrap().len(), 0);
+
+        assert!(apply_model_aliases_to_catalog(None, &[]).unwrap().is_none());
+    }
+
+    #[test]
+    fn test_apply_model_aliases_to_catalog_rejects_invalid_structure() {
+        assert!(apply_model_aliases_to_catalog(Some("not json"), &[alias("a", "A")]).is_err());
+        assert!(
+            apply_model_aliases_to_catalog(Some(r#"{ "models": {} }"#), &[alias("a", "A")])
+                .is_err()
+        );
     }
 }
