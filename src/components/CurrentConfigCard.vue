@@ -201,6 +201,8 @@ const isSaved = computed(() => {
       v-model="customModel"
       v-model:reasoning-effort="reasoningEffort"
       v-model:display-name="modelDisplayName"
+      :api-key="apiKey"
+      :provider-url="providerUrl"
       @close="closeConfigDrawer"
     />
   </section>

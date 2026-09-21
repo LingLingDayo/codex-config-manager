@@ -29,6 +29,7 @@ import { computed } from 'vue';
 import SettingItem from '../settings/SettingItem.vue';
 import SettingInput from '../settings/SettingInput.vue';
 import SettingSelect from '../settings/SettingSelect.vue';
+import ModelSelect from './ModelSelect.vue';
 import { REASONING_EFFORT_OPTIONS } from '../../types/config';
 
 const props = withDefaults(
@@ -39,6 +40,8 @@ const props = withDefaults(
     displayName?: string;
     idPrefix?: string;
     fullWidthDisplayName?: boolean;
+    apiKey?: string;
+    providerUrl?: string;
   }>(),
   {
     modelValue: '',
@@ -47,6 +50,8 @@ const props = withDefaults(
     displayName: '',
     idPrefix: '',
     fullWidthDisplayName: false,
+    apiKey: '',
+    providerUrl: '',
   }
 );
 
@@ -86,14 +91,15 @@ const handleModelUpdate = (val: string) => {
       :span="1"
       :title="MORE_CONFIG_META.model.title"
     >
-      <SettingInput
+      <ModelSelect
         :id="modelInputId"
         :model-value="resolvedModel"
+        :api-key="apiKey"
+        :provider-url="providerUrl"
         :placeholder="MORE_CONFIG_META.model.placeholder"
         :title="MORE_CONFIG_META.model.title"
-        autocomplete="off"
         @update:model-value="handleModelUpdate"
-        @keydown.enter="emit('enter')"
+        @enter="emit('enter')"
       />
     </SettingItem>
 

@@ -8,10 +8,14 @@ const props = withDefaults(
     modelValue: string;
     reasoningEffort?: string;
     displayName?: string;
+    apiKey?: string;
+    providerUrl?: string;
   }>(),
   {
     reasoningEffort: '',
     displayName: '',
+    apiKey: '',
+    providerUrl: '',
   }
 );
 
@@ -71,6 +75,8 @@ onUnmounted(() => {
               :model="modelValue"
               :reasoning-effort="reasoningEffort"
               :display-name="displayName"
+              :api-key="apiKey"
+              :provider-url="providerUrl"
               @update:model="emit('update:modelValue', $event)"
               @update:reasoning-effort="emit('update:reasoningEffort', $event)"
               @update:display-name="emit('update:displayName', $event)"

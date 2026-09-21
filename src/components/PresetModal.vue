@@ -268,6 +268,8 @@ onUnmounted(() => {
                 v-model:model="formModel"
                 v-model:reasoning-effort="formReasoningEffort"
                 v-model:display-name="formDisplayName"
+                :api-key="formKey"
+                :provider-url="formUrl"
                 id-prefix="modal-preset"
                 :full-width-display-name="true"
               />
