@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
-import SettingItem from './settings/SettingItem.vue';
-import SettingInput from './settings/SettingInput.vue';
-import SettingSelect from './settings/SettingSelect.vue';
-import { REASONING_EFFORT_OPTIONS } from '../types/config';
+import MoreConfigFields from './config/MoreConfigFields.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -24,14 +21,6 @@ const emit = defineEmits<{
   (e: 'update:displayName', value: string): void;
   (e: 'close'): void;
 }>();
-
-const reasoningEffortOptions = REASONING_EFFORT_OPTIONS;
-
-const reasoningEffortTooltip =
-  '对应 config.toml 中的 model_reasoning_effort 字段。用于配置模型的深度思考与推理强度，请务必选择所选模型实际支持的思考强度档位（若模型不支持思考请设为 none 或留空）。';
-
-const displayNameTooltip =
-  '为当前自定义模型设置显示别名，Codex 的模型选择器中将直接展示该名称。别名通过 config.toml 的 model_catalog_json 模型目录机制生效（写入该模型的 display_name），依附于上方填写的自定义模型，留空则恢复显示原始模型名。';
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.visible) {
@@ -76,59 +65,17 @@ onUnmounted(() => {
             </svg>
           </button>
 
-          <!-- 抽屉配置项列表主体：默认两列网格布局 -->
+          <!-- 抽屉配置项列表主体：复用统一的更多配置表单组件 -->
           <div class="drawer-content">
-            <!-- 自定义模型：占据 1 列 -->
-            <SettingItem
-              label="自定义模型 (Model)"
-              direction="vertical"
-              :span="1"
-              title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
-            >
-              <SettingInput
-                id="custom-model-input"
-                :model-value="modelValue"
-                placeholder="例如: gpt-5.6-sol"
-                @update:model-value="emit('update:modelValue', $event)"
-                @keydown.enter="emit('close')"
-              />
-            </SettingItem>
-
-            <!-- 思考强度：占据 1 列，位于自定义模型右侧 -->
-            <SettingItem
-              label="思考强度 (Reasoning Effort)"
-              direction="vertical"
-              :span="1"
-              :title="reasoningEffortTooltip"
-            >
-              <SettingSelect
-                id="reasoning-effort-select"
-                :model-value="reasoningEffort"
-                :options="reasoningEffortOptions"
-                placeholder="例如: low / medium / high"
-                :allow-custom="true"
-                :title="reasoningEffortTooltip"
-                @update:model-value="emit('update:reasoningEffort', $event)"
-                @keydown.enter="emit('close')"
-              />
-            </SettingItem>
-
-            <!-- 模型别名：占据 1 列，依附于自定义模型 -->
-            <SettingItem
-              label="模型别名 (Display Name)"
-              direction="vertical"
-              :span="1"
-              :title="displayNameTooltip"
-            >
-              <SettingInput
-                id="model-display-name-input"
-                :model-value="displayName"
-                placeholder="例如: 5.6 Sol"
-                :title="displayNameTooltip"
-                @update:model-value="emit('update:displayName', $event)"
-                @keydown.enter="emit('close')"
-              />
-            </SettingItem>
+            <MoreConfigFields
+              :model="modelValue"
+              :reasoning-effort="reasoningEffort"
+              :display-name="displayName"
+              @update:model="emit('update:modelValue', $event)"
+              @update:reasoning-effort="emit('update:reasoningEffort', $event)"
+              @update:display-name="emit('update:displayName', $event)"
+              @enter="emit('close')"
+            />
           </div>
         </div>
       </div>
@@ -209,12 +156,8 @@ onUnmounted(() => {
 .drawer-content {
   flex: 1;
   overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
   padding-top: 4px;
   padding-right: 20px;
-  align-content: start;
   @include custom-scrollbar;
 }
 </style>

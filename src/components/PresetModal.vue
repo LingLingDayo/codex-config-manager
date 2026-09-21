@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import type { PresetFormData } from '../types/config';
-import { REASONING_EFFORT_OPTIONS } from '../types/config';
 import { useSettings } from '../composables/useSettings';
-import SettingSelect from './settings/SettingSelect.vue';
+import MoreConfigFields from './config/MoreConfigFields.vue';
 import { PROVIDER_PRESETS } from '../constants/providers';
 import {
   DEFAULT_STATION_NAME,
@@ -265,59 +264,13 @@ onUnmounted(() => {
           <!-- 更多配置展开内容 -->
           <Transition name="expand">
             <div v-if="isMoreExpanded" class="more-config-fields">
-              <div class="fields-row">
-                <!-- 自定义模型 -->
-                <div class="input-group flex-1">
-                  <label
-                    for="modal-preset-model"
-                    title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
-                  >
-                    自定义模型 (Model)
-                  </label>
-                  <input
-                    id="modal-preset-model"
-                    v-model="formModel"
-                    type="text"
-                    placeholder="例如: gpt-5.6-sol"
-                    autocomplete="off"
-                  />
-                </div>
-
-                <!-- 思考强度 -->
-                <div class="input-group flex-1">
-                  <label
-                    for="modal-preset-reasoning"
-                    title="对应 config.toml 中的 model_reasoning_effort 字段。用于配置深度思考推理强度。"
-                  >
-                    思考强度 (Reasoning Effort)
-                  </label>
-                  <SettingSelect
-                    id="modal-preset-reasoning"
-                    :model-value="formReasoningEffort"
-                    :options="REASONING_EFFORT_OPTIONS"
-                    placeholder="例如: low / medium"
-                    :allow-custom="true"
-                    @update:model-value="formReasoningEffort = $event"
-                  />
-                </div>
-              </div>
-
-              <!-- 模型别名 -->
-              <div class="input-group">
-                <label
-                  for="modal-preset-display-name"
-                  title="为当前自定义模型设置显示别名，Codex 的模型选择器中将直接展示该名称。留空恢复默认。"
-                >
-                  模型别名 (Display Name)
-                </label>
-                <input
-                  id="modal-preset-display-name"
-                  v-model="formDisplayName"
-                  type="text"
-                  placeholder="例如: 5.6 Sol (在 Codex 界面中显示的别名)"
-                  autocomplete="off"
-                />
-              </div>
+              <MoreConfigFields
+                v-model:model="formModel"
+                v-model:reasoning-effort="formReasoningEffort"
+                v-model:display-name="formDisplayName"
+                id-prefix="modal-preset"
+                :full-width-display-name="true"
+              />
             </div>
           </Transition>
         </div>
