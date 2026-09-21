@@ -235,15 +235,16 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   max-width: 380px;
+  max-height: calc(100vh - 20px);
   background: $bg-tertiary;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: $border-radius-lg;
-  padding: 18px 20px 16px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
   animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
 }
 
 .dialog-header {
@@ -251,6 +252,9 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
 }
 
 .icon-and-title {
@@ -327,7 +331,11 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 2px 0 6px;
+  padding: 12px 18px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  @include custom-scrollbar;
 }
 
 .confirm-message {
@@ -352,7 +360,10 @@ onUnmounted(() => {
   justify-content: flex-end;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
+  padding: 10px 18px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: $bg-tertiary;
+  flex-shrink: 0;
 }
 
 .btn {

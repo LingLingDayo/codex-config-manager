@@ -146,179 +146,181 @@ onUnmounted(() => {
       </div>
 
       <form class="modal-form" @submit.prevent="handleSubmit">
-        <div class="input-group">
-          <label for="modal-preset-name">
-            配置别名 / 命名 <span class="required">*</span>
-          </label>
-          <input
-            id="modal-preset-name"
-            ref="nameInputRef"
-            v-model="formName"
-            type="text"
-            :placeholder="`例如：${DEFAULT_STATION_NAME} 主力站、个人备用、公司服务等`"
-            required
-            autocomplete="off"
-          />
-        </div>
-
-        <div class="input-group">
-          <div class="input-label-row">
-            <label for="modal-preset-url">
-              模型提供商 (Base URL) <span class="required">*</span>
+        <div class="modal-body">
+          <div class="input-group">
+            <label for="modal-preset-name">
+              配置别名 / 命名 <span class="required">*</span>
             </label>
-          </div>
-          <!-- 快捷标签 -->
-          <div v-if="settings.show_provider_presets !== false" class="preset-chips">
-            <span
-              v-for="chip in presetChips"
-              :key="chip.label"
-              class="chip"
-              :class="{ active: isChipActive(chip.url) }"
-              @click="handleChipClick(chip.url)"
-            >
-              {{ chip.label }}
-            </span>
-          </div>
-          <input
-            id="modal-preset-url"
-            v-model="formUrl"
-            type="text"
-            :placeholder="`例如：${DEFAULT_STATION_URL} 或输入 '${DEFAULT_STATION_NAME}' 自动识别`"
-            required
-            autocomplete="off"
-            @input="handleUrlInput"
-          />
-        </div>
-
-        <div class="input-group">
-          <div class="input-label-row">
-            <label for="modal-preset-key">
-              API Key / Token <span class="required">*</span>
-            </label>
-          </div>
-          <div class="password-wrapper">
             <input
-              id="modal-preset-key"
-              v-model="formKey"
-              :type="showKey ? 'text' : 'password'"
-              placeholder="请输入中转站 API Key (如 sk-...)"
+              id="modal-preset-name"
+              ref="nameInputRef"
+              v-model="formName"
+              type="text"
+              :placeholder="`例如：${DEFAULT_STATION_NAME} 主力站、个人备用、公司服务等`"
               required
               autocomplete="off"
             />
+          </div>
+
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="modal-preset-url">
+                模型提供商 (Base URL) <span class="required">*</span>
+              </label>
+            </div>
+            <!-- 快捷标签 -->
+            <div v-if="settings.show_provider_presets !== false" class="preset-chips">
+              <span
+                v-for="chip in presetChips"
+                :key="chip.label"
+                class="chip"
+                :class="{ active: isChipActive(chip.url) }"
+                @click="handleChipClick(chip.url)"
+              >
+                {{ chip.label }}
+              </span>
+            </div>
+            <input
+              id="modal-preset-url"
+              v-model="formUrl"
+              type="text"
+              :placeholder="`例如：${DEFAULT_STATION_URL} 或输入 '${DEFAULT_STATION_NAME}' 自动识别`"
+              required
+              autocomplete="off"
+              @input="handleUrlInput"
+            />
+          </div>
+
+          <div class="input-group">
+            <div class="input-label-row">
+              <label for="modal-preset-key">
+                API Key / Token <span class="required">*</span>
+              </label>
+            </div>
+            <div class="password-wrapper">
+              <input
+                id="modal-preset-key"
+                v-model="formKey"
+                :type="showKey ? 'text' : 'password'"
+                placeholder="请输入中转站 API Key (如 sk-...)"
+                required
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                class="icon-button"
+                :class="{ active: showKey }"
+                title="显示/隐藏 Key"
+                @click="showKey = !showKey"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- 更多配置折叠触发条 -->
+          <div class="more-config-divider">
             <button
               type="button"
-              class="icon-button"
-              :class="{ active: showKey }"
-              title="显示/隐藏 Key"
-              @click="showKey = !showKey"
+              class="more-config-toggle"
+              :class="{ active: isMoreExpanded }"
+              @click="isMoreExpanded = !isMoreExpanded"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
+              <div class="toggle-content">
+                <svg
+                  class="chevron-icon"
+                  :class="{ rotated: isMoreExpanded }"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <span class="toggle-label">更多配置</span>
+                <span class="toggle-hint">(可选)</span>
+              </div>
+              <span v-if="hasConfiguredMore" class="configured-badge">已配置</span>
             </button>
           </div>
-        </div>
 
-        <!-- 更多配置折叠触发条 -->
-        <div class="more-config-divider">
-          <button
-            type="button"
-            class="more-config-toggle"
-            :class="{ active: isMoreExpanded }"
-            @click="isMoreExpanded = !isMoreExpanded"
-          >
-            <div class="toggle-content">
-              <svg
-                class="chevron-icon"
-                :class="{ rotated: isMoreExpanded }"
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-              <span class="toggle-label">更多配置</span>
-              <span class="toggle-hint">(可选)</span>
-            </div>
-            <span v-if="hasConfiguredMore" class="configured-badge">已配置</span>
-          </button>
-        </div>
+          <!-- 更多配置展开内容 -->
+          <Transition name="expand">
+            <div v-if="isMoreExpanded" class="more-config-fields">
+              <div class="fields-row">
+                <!-- 自定义模型 -->
+                <div class="input-group flex-1">
+                  <label
+                    for="modal-preset-model"
+                    title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
+                  >
+                    自定义模型 (Model)
+                  </label>
+                  <input
+                    id="modal-preset-model"
+                    v-model="formModel"
+                    type="text"
+                    placeholder="例如: gpt-5.6-sol"
+                    autocomplete="off"
+                  />
+                </div>
 
-        <!-- 更多配置展开内容 -->
-        <Transition name="expand">
-          <div v-if="isMoreExpanded" class="more-config-fields">
-            <div class="fields-row">
-              <!-- 自定义模型 -->
-              <div class="input-group flex-1">
+                <!-- 思考强度 -->
+                <div class="input-group flex-1">
+                  <label
+                    for="modal-preset-reasoning"
+                    title="对应 config.toml 中的 model_reasoning_effort 字段。用于配置深度思考推理强度。"
+                  >
+                    思考强度 (Reasoning Effort)
+                  </label>
+                  <SettingSelect
+                    id="modal-preset-reasoning"
+                    :model-value="formReasoningEffort"
+                    :options="REASONING_EFFORT_OPTIONS"
+                    placeholder="例如: low / medium"
+                    :allow-custom="true"
+                    @update:model-value="formReasoningEffort = $event"
+                  />
+                </div>
+              </div>
+
+              <!-- 模型别名 -->
+              <div class="input-group">
                 <label
-                  for="modal-preset-model"
-                  title="对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。"
+                  for="modal-preset-display-name"
+                  title="为当前自定义模型设置显示别名，Codex 的模型选择器中将直接展示该名称。留空恢复默认。"
                 >
-                  自定义模型 (Model)
+                  模型别名 (Display Name)
                 </label>
                 <input
-                  id="modal-preset-model"
-                  v-model="formModel"
+                  id="modal-preset-display-name"
+                  v-model="formDisplayName"
                   type="text"
-                  placeholder="例如: gpt-5.6-sol"
+                  placeholder="例如: 5.6 Sol (在 Codex 界面中显示的别名)"
                   autocomplete="off"
                 />
               </div>
-
-              <!-- 思考强度 -->
-              <div class="input-group flex-1">
-                <label
-                  for="modal-preset-reasoning"
-                  title="对应 config.toml 中的 model_reasoning_effort 字段。用于配置深度思考推理强度。"
-                >
-                  思考强度 (Reasoning Effort)
-                </label>
-                <SettingSelect
-                  id="modal-preset-reasoning"
-                  :model-value="formReasoningEffort"
-                  :options="REASONING_EFFORT_OPTIONS"
-                  placeholder="例如: low / medium"
-                  :allow-custom="true"
-                  @update:model-value="formReasoningEffort = $event"
-                />
-              </div>
             </div>
-
-            <!-- 模型别名 -->
-            <div class="input-group">
-              <label
-                for="modal-preset-display-name"
-                title="为当前自定义模型设置显示别名，Codex 的模型选择器中将直接展示该名称。留空恢复默认。"
-              >
-                模型别名 (Display Name)
-              </label>
-              <input
-                id="modal-preset-display-name"
-                v-model="formDisplayName"
-                type="text"
-                placeholder="例如: 5.6 Sol (在 Codex 界面中显示的别名)"
-                autocomplete="off"
-              />
-            </div>
-          </div>
-        </Transition>
+          </Transition>
+        </div>
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" @click="handleClose">取消</button>
@@ -359,14 +361,12 @@ onUnmounted(() => {
   background: $bg-tertiary;
   border: 1px solid $border-card;
   border-radius: $border-radius-xl;
-  padding: 14px 18px 12px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
   animation: scaleIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  overflow-y: auto;
-  @include custom-scrollbar;
+  overflow: hidden;
 }
 
 .modal-header {
@@ -374,7 +374,8 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid $border-color;
-  padding-bottom: 8px;
+  padding: 12px 18px 10px;
+  flex-shrink: 0;
 
   h3 {
     font-size: 0.94rem;
@@ -408,7 +409,20 @@ onUnmounted(() => {
 .modal-form {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
   gap: 9px;
+  @include custom-scrollbar;
 }
 
 .input-group {
@@ -595,7 +609,10 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 4px;
+  padding: 10px 18px 12px;
+  border-top: 1px solid $border-color;
+  background: $bg-tertiary;
+  flex-shrink: 0;
 }
 
 .btn {

@@ -270,13 +270,13 @@ onUnmounted(() => {
   background: $bg-tertiary;
   border: 1px solid $border-card;
   border-radius: $border-radius-xl;
-  padding: 12px 16px 10px;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
   animation: scaleIn 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
   max-height: calc(100vh - 20px);
+  overflow: hidden;
 }
 
 .modal-header {
@@ -284,7 +284,8 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid $border-color;
-  padding-bottom: 12px;
+  padding: 12px 16px 10px;
+  flex-shrink: 0;
 }
 
 .title-group {
@@ -367,9 +368,10 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  max-height: 380px;
-  padding-right: 2px;
+  padding: 10px 16px;
   @include custom-scrollbar;
 }
 
@@ -542,12 +544,15 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 28px 16px;
+  padding: 24px 16px;
+  margin: 12px 16px;
   text-align: center;
   background: rgba($bg-secondary, 0.4);
   border: 1px dashed $border-color;
   border-radius: $border-radius-md;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
 
   .empty-icon-wrap {
     width: 44px;
@@ -602,8 +607,9 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid $border-color;
-  padding-top: 10px;
-  margin-top: 2px;
+  padding: 10px 16px 12px;
+  background: $bg-tertiary;
+  flex-shrink: 0;
 }
 
 .footer-tip {
