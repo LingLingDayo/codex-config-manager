@@ -197,7 +197,7 @@ onMounted(() => {
           </svg>
           <span>刷新</span>
         </button>
-        <button type="button" class="btn-text" title="新增一项模型别名" @click="addRow()">
+        <button type="button" class="btn-text" title="向列表新增一个模型" @click="addRow()">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="11"
@@ -224,7 +224,7 @@ onMounted(() => {
     </div>
 
     <div v-if="rows.length === 0" class="list-empty">
-      暂无模型别名，获取成功后将自动填入，也可手动新增
+      暂无模型，获取成功后将自动填入，也可手动新增
     </div>
 
     <div v-else class="list-body">

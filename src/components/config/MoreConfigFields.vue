@@ -16,9 +16,9 @@ export const MORE_CONFIG_META = {
     placeholder: '例如: low / medium / high',
   },
   aliases: {
-    label: '模型别名 (Aliases)',
+    label: '模型列表 (Models)',
     title:
-      '为中转站模型设置 Codex 选择器中的显示名称。左侧填写模型 ID，右侧填写自定义别名（默认与模型名相同）。保存后写入本工具自管的模型目录文件，重启 Codex 后即可在客户端中看到这些模型。',
+      '将中转站可用模型同步到 Codex 选择器。左侧为模型 ID，右侧可附带自定义显示别名（默认与模型名相同）。保存后写入本工具自管的模型目录文件，重启 Codex 后即可选用这些模型。',
   },
 } as const;
 </script>
@@ -124,7 +124,7 @@ const handleModelUpdate = (val: string) => {
       />
     </SettingItem>
 
-    <!-- 模型别名列表 -->
+    <!-- 模型列表 -->
     <SettingItem
       class="field-aliases"
       :label="MORE_CONFIG_META.aliases.label"
