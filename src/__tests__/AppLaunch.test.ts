@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { invoke } from '@tauri-apps/api/core';
 import App from '../App.vue';
+import { resetCodexConfigState } from '../composables/useCodexConfig';
+import { resetPresetsState } from '../composables/usePresets';
 import { resetSettingsState } from '../composables/useSettings';
 import { useConfirm } from '../composables/useConfirm';
 import { useToast } from '../composables/useToast';
@@ -16,6 +18,8 @@ describe('App.vue - 启动 Codex 安装路径检测测试', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    resetCodexConfigState();
+    resetPresetsState();
     resetSettingsState();
   });
 

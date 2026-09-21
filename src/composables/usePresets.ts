@@ -1,5 +1,4 @@
 import { ref } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
 import type { CodexConfig, PresetConfig, PresetFormData } from '../types/config';
 import {
   normalizeUrl,
@@ -7,6 +6,7 @@ import {
   DEFAULT_STATION_URL,
   isDefaultStation,
 } from '../utils/format';
+import { invokeCommand, readLocalJson, writeLocalJson } from '../utils/hybridStorage';
 import { useToast } from './useToast';
 import { useConfirm } from './useConfirm';
 
@@ -25,11 +25,26 @@ export const DEFAULT_PRESETS: PresetConfig[] = [
   },
 ];
 
+const presets = ref<PresetConfig[]>([]);
+const isPresetsLoading = ref<boolean>(false);
+
+export function resetPresetsState() {
+  presets.value = [];
+  isPresetsLoading.value = false;
+}
+
+export function isPresetActive(preset: PresetConfig, currentConfig: CodexConfig): boolean {
+  if (!currentConfig.is_enabled) return false;
+  if (!currentConfig.key || !preset.key) return false;
+  return (
+    preset.key.trim() === currentConfig.key.trim() &&
+    normalizeUrl(preset.provider_url) === normalizeUrl(currentConfig.provider_url)
+  );
+}
+
 export function usePresets() {
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
-  const presets = ref<PresetConfig[]>([]);
-  const isPresetsLoading = ref<boolean>(false);
 
   const normalizePresetList = (list: PresetConfig[]): PresetConfig[] => {
     return list.map((p) => {
@@ -46,19 +61,14 @@ export function usePresets() {
   const loadPresets = async () => {
     isPresetsLoading.value = true;
     try {
-      // 优先从 Rust 后端读取
-      const backendPresets = await invoke<PresetConfig[]>('get_presets');
-      if (backendPresets && Array.isArray(backendPresets) && backendPresets.length > 0) {
-        presets.value = normalizePresetList(backendPresets);
-      } else if (backendPresets && Array.isArray(backendPresets)) {
+      const backendPresets = await invokeCommand<PresetConfig[]>('get_presets');
+      if (Array.isArray(backendPresets)) {
         presets.value = normalizePresetList(backendPresets);
       } else {
-        // 降级从 localStorage 读取
-        const localData = localStorage.getItem(PRESETS_STORAGE_KEY);
+        const localData = readLocalJson<PresetConfig[]>(PRESETS_STORAGE_KEY);
         if (localData) {
-          presets.value = normalizePresetList(JSON.parse(localData));
-          // 同步回后端
-          await invoke('save_presets', { presets: presets.value }).catch(() => {});
+          presets.value = normalizePresetList(localData);
+          await invokeCommand('save_presets', { presets: presets.value }).catch(() => {});
         } else {
           presets.value = DEFAULT_PRESETS;
           await persistPresets(DEFAULT_PRESETS);
@@ -66,16 +76,8 @@ export function usePresets() {
       }
     } catch (e) {
       console.warn('从后端读取预设失败，尝试从本地缓存读取', e);
-      const localData = localStorage.getItem(PRESETS_STORAGE_KEY);
-      if (localData) {
-        try {
-          presets.value = normalizePresetList(JSON.parse(localData));
-        } catch {
-          presets.value = DEFAULT_PRESETS;
-        }
-      } else {
-        presets.value = DEFAULT_PRESETS;
-      }
+      const localData = readLocalJson<PresetConfig[]>(PRESETS_STORAGE_KEY);
+      presets.value = localData ? normalizePresetList(localData) : DEFAULT_PRESETS;
     } finally {
       isPresetsLoading.value = false;
     }
@@ -86,9 +88,9 @@ export function usePresets() {
    */
   const persistPresets = async (newList: PresetConfig[]) => {
     presets.value = newList;
-    localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(newList));
+    writeLocalJson(PRESETS_STORAGE_KEY, newList);
     try {
-      await invoke('save_presets', { presets: newList });
+      await invokeCommand('save_presets', { presets: newList });
     } catch (e) {
       console.error('保存预设到后端失败:', e);
     }
@@ -109,7 +111,6 @@ export function usePresets() {
 
     const currentList = [...presets.value];
     if (data.id) {
-      // 编辑已有预设
       const index = currentList.findIndex((p) => p.id === data.id);
       if (index !== -1) {
         currentList[index] = {
@@ -131,7 +132,6 @@ export function usePresets() {
         showToast(`配置「${name}」已更新！`);
       }
     } else {
-      // 新增预设
       const newPreset: PresetConfig = {
         id: 'preset_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
         name,
@@ -168,18 +168,6 @@ export function usePresets() {
     await persistPresets(newList);
     showToast(`已删除预设「${preset.name}」`);
     return true;
-  };
-
-  /**
-   * 检查预设是否当前生效中
-   */
-  const isPresetActive = (preset: PresetConfig, currentConfig: CodexConfig): boolean => {
-    if (!currentConfig.is_enabled) return false;
-    if (!currentConfig.key || !preset.key) return false;
-    return (
-      preset.key.trim() === currentConfig.key.trim() &&
-      normalizeUrl(preset.provider_url) === normalizeUrl(currentConfig.provider_url)
-    );
   };
 
   return {

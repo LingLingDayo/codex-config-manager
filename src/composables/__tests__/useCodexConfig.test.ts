@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
-import { useCodexConfig } from '../useCodexConfig';
+import { resetCodexConfigState, useCodexConfig } from '../useCodexConfig';
 import type { CodexConfig } from '../../types/config';
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -13,6 +13,7 @@ describe('useCodexConfig composable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    resetCodexConfigState();
     // 默认模拟非 Tauri 环境
     delete (window as any).__TAURI_INTERNALS__;
   });
@@ -228,6 +229,15 @@ describe('useCodexConfig composable', () => {
         reasoningEffort: 'high',
       });
       expect(currentConfig.model_reasoning_effort).toBe('high');
+    });
+  });
+
+  describe('singleton state', () => {
+    it('多次调用 useCodexConfig 应共享同一份配置状态', async () => {
+      const first = useCodexConfig();
+      first.currentConfig.key = 'sk-shared';
+      const second = useCodexConfig();
+      expect(second.currentConfig.key).toBe('sk-shared');
     });
   });
 });

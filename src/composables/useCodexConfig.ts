@@ -1,68 +1,65 @@
 import { reactive, ref } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
 import type { CodexConfig, SaveConfigPayload } from '../types/config';
 import { normalizeUrl } from '../utils/format';
+import {
+  invokeCommand,
+  isTauriEnv,
+  readLocalJson,
+  removeLocalJson,
+  writeLocalJson,
+} from '../utils/hybridStorage';
 import { useToast } from './useToast';
 
-export function useCodexConfig() {
-  const { showToast } = useToast();
+const CODEX_CONFIG_STORAGE_KEY = 'codex_current_config';
 
-  const currentConfig = reactive<CodexConfig>({
+function createEmptyConfig(): CodexConfig {
+  return {
     key: '',
     provider_url: '',
     is_enabled: false,
     model: '',
     model_reasoning_effort: '',
     model_display_name: '',
-  });
+  };
+}
 
-  const isLoading = ref<boolean>(false);
+const currentConfig = reactive<CodexConfig>(createEmptyConfig());
+const isLoading = ref<boolean>(false);
 
-  const isTauriEnv = () => typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
-  const CODEX_CONFIG_STORAGE_KEY = 'codex_current_config';
+function hydrateConfig(source: Partial<CodexConfig>) {
+  currentConfig.key = source.key || '';
+  currentConfig.provider_url = normalizeUrl(source.provider_url || '');
+  currentConfig.is_enabled = source.is_enabled ?? false;
+  currentConfig.model = source.model || '';
+  currentConfig.model_reasoning_effort = source.model_reasoning_effort || '';
+  currentConfig.model_display_name = source.model_display_name || '';
+}
 
-  /**
-   * 从后端加载当前生效配置
-   */
+export function resetCodexConfigState() {
+  hydrateConfig(createEmptyConfig());
+  isLoading.value = false;
+}
+
+export function useCodexConfig() {
+  const { showToast } = useToast();
+
   const loadConfig = async () => {
     isLoading.value = true;
     try {
       if (isTauriEnv()) {
-        const config = await invoke<CodexConfig>('get_codex_config');
-        currentConfig.key = config.key || '';
-        currentConfig.provider_url = normalizeUrl(config.provider_url) || '';
-        currentConfig.is_enabled = config.is_enabled;
-        currentConfig.model = config.model || '';
-        currentConfig.model_reasoning_effort = config.model_reasoning_effort || '';
-        currentConfig.model_display_name = config.model_display_name || '';
+        const config = await invokeCommand<CodexConfig>('get_codex_config');
+        hydrateConfig(config);
       } else {
-        // 纯浏览器预览模式
-        const local = localStorage.getItem(CODEX_CONFIG_STORAGE_KEY);
+        const local = readLocalJson<CodexConfig>(CODEX_CONFIG_STORAGE_KEY);
         if (local) {
-          const parsed = JSON.parse(local);
-          currentConfig.key = parsed.key || '';
-          currentConfig.provider_url = normalizeUrl(parsed.provider_url) || '';
-          currentConfig.is_enabled = parsed.is_enabled ?? false;
-          currentConfig.model = parsed.model || '';
-          currentConfig.model_reasoning_effort = parsed.model_reasoning_effort || '';
-          currentConfig.model_display_name = parsed.model_display_name || '';
+          hydrateConfig(local);
         }
       }
     } catch (err) {
       console.warn('从后端加载配置失败，使用本地兜底:', err);
-      const local = localStorage.getItem(CODEX_CONFIG_STORAGE_KEY);
+      const local = readLocalJson<CodexConfig>(CODEX_CONFIG_STORAGE_KEY);
       if (local) {
-        try {
-          const parsed = JSON.parse(local);
-          currentConfig.key = parsed.key || '';
-          currentConfig.provider_url = normalizeUrl(parsed.provider_url) || '';
-          currentConfig.is_enabled = parsed.is_enabled ?? false;
-          currentConfig.model = parsed.model || '';
-          currentConfig.model_reasoning_effort = parsed.model_reasoning_effort || '';
-          currentConfig.model_display_name = parsed.model_display_name || '';
-        } catch {
-          currentConfig.is_enabled = false;
-        }
+        hydrateConfig(local);
       } else {
         currentConfig.is_enabled = false;
       }
@@ -95,7 +92,7 @@ export function useCodexConfig() {
 
     try {
       if (isTauriEnv()) {
-        await invoke('save_codex_config', {
+        await invokeCommand('save_codex_config', {
           key: trimmedKey,
           providerUrl: trimmedUrl,
           model: model !== undefined ? model.trim() : undefined,
@@ -118,7 +115,7 @@ export function useCodexConfig() {
         currentConfig.model_display_name = modelDisplayName.trim();
       }
 
-      localStorage.setItem(CODEX_CONFIG_STORAGE_KEY, JSON.stringify(currentConfig));
+      writeLocalJson(CODEX_CONFIG_STORAGE_KEY, currentConfig);
       if (!options?.silent) {
         showToast('配置保存成功，请重启 Codex 以使用新配置');
       }
@@ -136,11 +133,11 @@ export function useCodexConfig() {
     try {
       const trimmedModel = modelName.trim();
       if (isTauriEnv()) {
-        await invoke('save_codex_model', { model: trimmedModel });
+        await invokeCommand('save_codex_model', { model: trimmedModel });
       }
 
       currentConfig.model = trimmedModel;
-      localStorage.setItem(CODEX_CONFIG_STORAGE_KEY, JSON.stringify(currentConfig));
+      writeLocalJson(CODEX_CONFIG_STORAGE_KEY, currentConfig);
 
       if (trimmedModel) {
         showToast(`已成功指定自定义模型「${trimmedModel}」`);
@@ -161,11 +158,11 @@ export function useCodexConfig() {
     try {
       const trimmedEffort = effort.trim();
       if (isTauriEnv()) {
-        await invoke('save_codex_reasoning_effort', { reasoningEffort: trimmedEffort });
+        await invokeCommand('save_codex_reasoning_effort', { reasoningEffort: trimmedEffort });
       }
 
       currentConfig.model_reasoning_effort = trimmedEffort;
-      localStorage.setItem(CODEX_CONFIG_STORAGE_KEY, JSON.stringify(currentConfig));
+      writeLocalJson(CODEX_CONFIG_STORAGE_KEY, currentConfig);
 
       if (trimmedEffort) {
         showToast(`已成功指定思考强度「${trimmedEffort}」`);
@@ -185,15 +182,10 @@ export function useCodexConfig() {
   const restoreDefault = async (): Promise<boolean> => {
     try {
       if (isTauriEnv()) {
-        await invoke('restore_codex_default');
+        await invokeCommand('restore_codex_default');
       }
-      currentConfig.key = '';
-      currentConfig.provider_url = '';
-      currentConfig.is_enabled = false;
-      currentConfig.model = '';
-      currentConfig.model_reasoning_effort = '';
-      currentConfig.model_display_name = '';
-      localStorage.removeItem(CODEX_CONFIG_STORAGE_KEY);
+      hydrateConfig(createEmptyConfig());
+      removeLocalJson(CODEX_CONFIG_STORAGE_KEY);
       showToast('已成功恢复默认（已移除 API 登录与自定义模型）');
       return true;
     } catch (err) {

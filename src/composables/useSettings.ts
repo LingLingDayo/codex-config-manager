@@ -1,6 +1,6 @@
 import { ref } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
 import type { AppSettings, LaunchResult } from '../types/settings';
+import { invokeCommand, readLocalJson, writeLocalJson } from '../utils/hybridStorage';
 import { useToast } from './useToast';
 
 const SETTINGS_STORAGE_KEY = 'codex_app_settings';
@@ -40,34 +40,29 @@ export function useSettings() {
     isLoading.value = true;
     try {
       // 1. 尝试从 Rust 后端读取设置
-      const backendSettings = await invoke<AppSettings>('get_app_settings');
+      const backendSettings = await invokeCommand<AppSettings>('get_app_settings');
       if (backendSettings) {
         settings.value = {
           ...DEFAULT_APP_SETTINGS,
           ...backendSettings,
         };
       } else {
-        const cached = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        const cached = readLocalJson<Partial<AppSettings>>(SETTINGS_STORAGE_KEY);
         if (cached) {
-          settings.value = { ...DEFAULT_APP_SETTINGS, ...JSON.parse(cached) };
+          settings.value = { ...DEFAULT_APP_SETTINGS, ...cached };
         }
       }
     } catch (e) {
       console.warn('从后端加载设置失败，降级使用本地存储', e);
-      const cached = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (cached) {
-        try {
-          settings.value = { ...DEFAULT_APP_SETTINGS, ...JSON.parse(cached) };
-        } catch {
-          settings.value = { ...DEFAULT_APP_SETTINGS };
-        }
-      }
+      const cached = readLocalJson<Partial<AppSettings>>(SETTINGS_STORAGE_KEY);
+      settings.value = cached
+        ? { ...DEFAULT_APP_SETTINGS, ...cached }
+        : { ...DEFAULT_APP_SETTINGS };
     } finally {
       isLoading.value = false;
     }
 
-    // 尝试获取后端自动识别的安装路径（异步静默执行）
-    detectPath().catch(() => {});
+    await detectPath().catch(() => {});
   };
 
   /**
@@ -81,15 +76,15 @@ export function useSettings() {
     };
 
     try {
-      await invoke('save_app_settings', { settings: updated });
+      await invokeCommand('save_app_settings', { settings: updated });
       settings.value = updated;
-      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+      writeLocalJson(SETTINGS_STORAGE_KEY, updated);
       return true;
     } catch (e) {
       console.error('保存设置失败', e);
       // 即使后端保存失败，也缓存到本地并更新前端响应式
       settings.value = updated;
-      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+      writeLocalJson(SETTINGS_STORAGE_KEY, updated);
       showToast('设置已保存到本地缓存', 'warning');
       return false;
     } finally {
@@ -102,7 +97,7 @@ export function useSettings() {
    */
   const pickPath = async (): Promise<string | null> => {
     try {
-      const selected = await invoke<string | null>('pick_codex_path');
+      const selected = await invokeCommand<string | null>('pick_codex_path');
       if (selected) {
         await saveSettings({ codex_path: selected });
         showToast('已更新应用路径');
@@ -121,7 +116,7 @@ export function useSettings() {
    */
   const detectPath = async (): Promise<string | null> => {
     try {
-      const path = await invoke<string | null>('detect_codex_path');
+      const path = await invokeCommand<string | null>('detect_codex_path');
       detectedPath.value = path;
       return path;
     } catch (e) {
@@ -138,7 +133,7 @@ export function useSettings() {
     isLaunching.value = true;
 
     try {
-      const result = await invoke<LaunchResult>('launch_codex_app');
+      const result = await invokeCommand<LaunchResult>('launch_codex_app');
       if (result.success) {
         showToast(result.message, 'success');
       } else {

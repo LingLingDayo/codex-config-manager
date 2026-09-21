@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
-import { usePresets, DEFAULT_PRESETS } from '../usePresets';
+import { usePresets, DEFAULT_PRESETS, resetPresetsState } from '../usePresets';
 import { useConfirm } from '../useConfirm';
 import { DEFAULT_STATION_URL } from '../../utils/format';
 import type { CodexConfig, PresetConfig } from '../../types/config';
@@ -26,6 +26,7 @@ describe('usePresets composable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    resetPresetsState();
   });
 
   describe('loadPresets', () => {
