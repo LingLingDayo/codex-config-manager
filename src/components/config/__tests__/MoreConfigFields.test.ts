@@ -8,7 +8,7 @@ describe('MoreConfigFields.vue component', () => {
       props: {
         model: 'gpt-5.6-sol',
         reasoningEffort: 'medium',
-        displayName: '5.6 Sol',
+        modelAliases: [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }],
       },
     });
 
@@ -26,9 +26,9 @@ describe('MoreConfigFields.vue component', () => {
       MORE_CONFIG_META.reasoningEffort.title
     );
 
-    expect(items[2].find('.item-label').text()).toBe(MORE_CONFIG_META.displayName.label);
+    expect(items[2].find('.item-label').text()).toBe(MORE_CONFIG_META.aliases.label);
     expect(items[2].find('.item-label-wrap').attributes('title')).toBe(
-      MORE_CONFIG_META.displayName.title
+      MORE_CONFIG_META.aliases.title
     );
   });
 
@@ -82,17 +82,19 @@ describe('MoreConfigFields.vue component', () => {
     expect(wrapper.emitted('update:reasoningEffort')?.[0]).toEqual(['high']);
   });
 
-  it('输入模型别名触发 update:displayName 事件', async () => {
+  it('编辑模型别名触发 update:modelAliases 事件', async () => {
     const wrapper = mount(MoreConfigFields, {
       props: {
-        displayName: 'Old Name',
+        modelAliases: [{ slug: 'gpt-5.6-sol', display_name: 'Old Name' }],
       },
     });
 
-    const input = wrapper.find<HTMLInputElement>('#model-display-name-input');
-    await input.setValue('New Alias');
+    const aliasInput = wrapper.find<HTMLInputElement>('input[id$="-alias"]');
+    await aliasInput.setValue('New Alias');
 
-    expect(wrapper.emitted('update:displayName')?.[0]).toEqual(['New Alias']);
+    expect(wrapper.emitted('update:modelAliases')?.[0]).toEqual([
+      [{ slug: 'gpt-5.6-sol', display_name: 'New Alias' }],
+    ]);
   });
 
   it('支持传入 idPrefix 适配弹窗场景', () => {
@@ -104,18 +106,17 @@ describe('MoreConfigFields.vue component', () => {
 
     expect(wrapper.find('#modal-preset-model').exists()).toBe(true);
     expect(wrapper.find('#modal-preset-reasoning').exists()).toBe(true);
-    expect(wrapper.find('#modal-preset-display-name').exists()).toBe(true);
+    expect(wrapper.find('.model-alias-list').exists()).toBe(true);
   });
 
-  it('fullWidthDisplayName 为 true 时给别名项添加 full-width 类与 span=2 属性', () => {
+  it('模型别名列表始终占据两列宽度', () => {
     const wrapper = mount(MoreConfigFields, {
       props: {
-        fullWidthDisplayName: true,
+        modelAliases: [],
       },
     });
 
-    const displayNameField = wrapper.find('.field-display-name');
-    expect(displayNameField.classes()).toContain('full-width');
-    expect(displayNameField.classes()).toContain('col-span-2');
+    const aliasesField = wrapper.find('.field-aliases');
+    expect(aliasesField.classes()).toContain('col-span-2');
   });
 });

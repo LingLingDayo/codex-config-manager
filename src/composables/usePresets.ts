@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import type { PresetConfig, PresetFormData } from '../types/config';
+import { migrateLegacyDisplayName, normalizeModelAliases } from '../utils/modelAliases';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
@@ -23,6 +24,7 @@ export const DEFAULT_PRESETS: PresetConfig[] = [
     model: '',
     model_reasoning_effort: '',
     model_display_name: '',
+    model_aliases: [],
     updated_at: Date.now(),
   },
 ];
@@ -116,10 +118,16 @@ export function usePresets() {
             data.model_reasoning_effort !== undefined
               ? data.model_reasoning_effort.trim()
               : currentList[index].model_reasoning_effort,
-          model_display_name:
-            data.model_display_name !== undefined
-              ? data.model_display_name.trim()
-              : currentList[index].model_display_name,
+          model_aliases:
+            data.model_aliases !== undefined
+              ? normalizeModelAliases(data.model_aliases)
+              : migrateLegacyDisplayName(
+                  currentList[index].model_aliases,
+                  data.model !== undefined ? data.model.trim() : currentList[index].model,
+                  data.model_display_name !== undefined
+                    ? data.model_display_name.trim()
+                    : currentList[index].model_display_name
+                ),
           updated_at: Date.now(),
         };
         showToast(`配置「${name}」已更新！`);
@@ -132,7 +140,10 @@ export function usePresets() {
         key,
         model: data.model ? data.model.trim() : '',
         model_reasoning_effort: data.model_reasoning_effort ? data.model_reasoning_effort.trim() : '',
-        model_display_name: data.model_display_name ? data.model_display_name.trim() : '',
+        model_aliases: normalizeModelAliases(
+          data.model_aliases ??
+            migrateLegacyDisplayName([], data.model, data.model_display_name)
+        ),
         updated_at: Date.now(),
       };
       currentList.unshift(newPreset);

@@ -68,6 +68,10 @@ describe('useCodexConfig composable', () => {
         is_enabled: true,
         model: 'gpt-5.6-sol',
         model_display_name: '5.6 Sol',
+        model_aliases: [
+          { slug: 'gpt-5.6-sol', display_name: '5.6 Sol' },
+          { slug: 'glm-5.3', display_name: 'GLM 5.3' },
+        ],
       };
       mockedInvoke.mockResolvedValueOnce(backendConfig);
 
@@ -76,6 +80,10 @@ describe('useCodexConfig composable', () => {
 
       expect(currentConfig.model).toBe('gpt-5.6-sol');
       expect(currentConfig.model_display_name).toBe('5.6 Sol');
+      expect(currentConfig.model_aliases).toEqual([
+        { slug: 'gpt-5.6-sol', display_name: '5.6 Sol' },
+        { slug: 'glm-5.3', display_name: 'GLM 5.3' },
+      ]);
     });
   });
 
@@ -110,26 +118,34 @@ describe('useCodexConfig composable', () => {
       expect(localStorage.getItem('codex_current_config')).toBeTruthy();
     });
 
-    it('payload 携带模型别名时应透传至后端并同步本地状态', async () => {
+    it('payload 携带模型别名列表时应透传至后端并同步本地状态', async () => {
       (window as any).__TAURI_INTERNALS__ = {};
       mockedInvoke.mockResolvedValueOnce(undefined);
 
       const { currentConfig, saveConfig } = useCodexConfig();
+      const aliases = [
+        { slug: 'gpt-5.6-sol', display_name: '5.6 Sol' },
+        { slug: 'glm-5.3', display_name: 'GLM 5.3' },
+      ];
       const success = await saveConfig('sk-alias-key', 'https://api.openai.com/v1', {
         model: 'gpt-5.6-sol',
         modelReasoningEffort: 'high',
-        modelDisplayName: '5.6 Sol',
+        modelAliases: aliases,
       });
 
       expect(success).toBe(true);
-      expect(mockedInvoke).toHaveBeenCalledWith('save_codex_config', {
-        key: 'sk-alias-key',
-        providerUrl: 'https://api.openai.com/v1',
-        model: 'gpt-5.6-sol',
-        modelReasoningEffort: 'high',
-        modelDisplayName: '5.6 Sol',
-      });
+      expect(mockedInvoke).toHaveBeenCalledWith(
+        'save_codex_config',
+        expect.objectContaining({
+          key: 'sk-alias-key',
+          providerUrl: 'https://api.openai.com/v1',
+          model: 'gpt-5.6-sol',
+          modelReasoningEffort: 'high',
+          modelAliases: aliases,
+        })
+      );
       expect(currentConfig.model_display_name).toBe('5.6 Sol');
+      expect(currentConfig.model_aliases).toEqual(aliases);
     });
 
     it('payload 未提供的字段不应改动既有本地状态', async () => {
@@ -139,12 +155,16 @@ describe('useCodexConfig composable', () => {
       const { currentConfig, saveConfig } = useCodexConfig();
       currentConfig.model = 'gpt-5.6-sol';
       currentConfig.model_display_name = '5.6 Sol';
+      currentConfig.model_aliases = [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }];
 
       const success = await saveConfig('sk-partial-key', 'https://api.openai.com/v1');
 
       expect(success).toBe(true);
       expect(currentConfig.model).toBe('gpt-5.6-sol');
       expect(currentConfig.model_display_name).toBe('5.6 Sol');
+      expect(currentConfig.model_aliases).toEqual([
+        { slug: 'gpt-5.6-sol', display_name: '5.6 Sol' },
+      ]);
     });
 
     it('当传入 options.silent 为 true 时应成功保存且静默', async () => {
@@ -202,6 +222,7 @@ describe('useCodexConfig composable', () => {
       currentConfig.is_enabled = true;
       currentConfig.model_reasoning_effort = 'high';
       currentConfig.model_display_name = 'Some Alias';
+      currentConfig.model_aliases = [{ slug: 'gpt-5.6-sol', display_name: 'Some Alias' }];
       localStorage.setItem('codex_current_config', 'something');
 
       const success = await restoreDefault();
@@ -212,6 +233,7 @@ describe('useCodexConfig composable', () => {
       expect(currentConfig.is_enabled).toBe(false);
       expect(currentConfig.model_reasoning_effort).toBe('');
       expect(currentConfig.model_display_name).toBe('');
+      expect(currentConfig.model_aliases).toEqual([]);
       expect(localStorage.getItem('codex_current_config')).toBeNull();
     });
   });

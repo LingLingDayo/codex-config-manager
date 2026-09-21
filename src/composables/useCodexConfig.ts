@@ -1,6 +1,7 @@
 import { reactive, ref } from 'vue';
 import type { CodexConfig, SaveConfigPayload } from '../types/config';
 import { normalizeUrl } from '../utils/format';
+import { cloneModelAliases, migrateLegacyDisplayName, normalizeModelAliases } from '../utils/modelAliases';
 import {
   invokeCommand,
   isTauriEnv,
@@ -20,6 +21,7 @@ function createEmptyConfig(): CodexConfig {
     model: '',
     model_reasoning_effort: '',
     model_display_name: '',
+    model_aliases: [],
   };
 }
 
@@ -33,7 +35,15 @@ function hydrateConfig(source: Partial<CodexConfig> | null | undefined) {
   currentConfig.is_enabled = source.is_enabled ?? false;
   currentConfig.model = source.model || '';
   currentConfig.model_reasoning_effort = source.model_reasoning_effort || '';
-  currentConfig.model_display_name = source.model_display_name || '';
+  currentConfig.model_aliases = migrateLegacyDisplayName(
+    source.model_aliases,
+    source.model,
+    source.model_display_name
+  );
+  const activeAlias = currentConfig.model_aliases.find(
+    (item) => item.slug === (currentConfig.model || '').trim()
+  );
+  currentConfig.model_display_name = activeAlias?.display_name || source.model_display_name || '';
 }
 
 export function resetCodexConfigState() {
@@ -90,6 +100,8 @@ export function useCodexConfig() {
     const model = payload?.model;
     const modelReasoningEffort = payload?.modelReasoningEffort;
     const modelDisplayName = payload?.modelDisplayName;
+    const modelAliases =
+      payload?.modelAliases !== undefined ? normalizeModelAliases(payload.modelAliases) : undefined;
 
     try {
       if (isTauriEnv()) {
@@ -100,6 +112,7 @@ export function useCodexConfig() {
           modelReasoningEffort:
             modelReasoningEffort !== undefined ? modelReasoningEffort.trim() : undefined,
           modelDisplayName: modelDisplayName !== undefined ? modelDisplayName.trim() : undefined,
+          modelAliases,
         });
       }
 
@@ -112,7 +125,12 @@ export function useCodexConfig() {
       if (modelReasoningEffort !== undefined) {
         currentConfig.model_reasoning_effort = modelReasoningEffort.trim();
       }
-      if (modelDisplayName !== undefined) {
+      if (modelAliases !== undefined) {
+        currentConfig.model_aliases = cloneModelAliases(modelAliases);
+        const activeSlug = (currentConfig.model || '').trim();
+        currentConfig.model_display_name =
+          modelAliases.find((item) => item.slug === activeSlug)?.display_name || '';
+      } else if (modelDisplayName !== undefined) {
         currentConfig.model_display_name = modelDisplayName.trim();
       }
 

@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
 import MoreConfigFields from './config/MoreConfigFields.vue';
+import type { ModelAlias } from '../types/config';
 
 const props = withDefaults(
   defineProps<{
     visible: boolean;
     modelValue: string;
     reasoningEffort?: string;
-    displayName?: string;
+    modelAliases?: ModelAlias[];
     apiKey?: string;
     providerUrl?: string;
   }>(),
   {
     reasoningEffort: '',
-    displayName: '',
+    modelAliases: () => [],
     apiKey: '',
     providerUrl: '',
   }
@@ -22,7 +23,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
   (e: 'update:reasoningEffort', value: string): void;
-  (e: 'update:displayName', value: string): void;
+  (e: 'update:modelAliases', value: ModelAlias[]): void;
   (e: 'close'): void;
 }>();
 
@@ -74,12 +75,12 @@ onUnmounted(() => {
             <MoreConfigFields
               :model="modelValue"
               :reasoning-effort="reasoningEffort"
-              :display-name="displayName"
+              :model-aliases="modelAliases"
               :api-key="apiKey"
               :provider-url="providerUrl"
               @update:model="emit('update:modelValue', $event)"
               @update:reasoning-effort="emit('update:reasoningEffort', $event)"
-              @update:display-name="emit('update:displayName', $event)"
+              @update:model-aliases="emit('update:modelAliases', $event)"
               @enter="emit('close')"
             />
           </div>

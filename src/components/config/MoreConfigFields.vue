@@ -15,31 +15,30 @@ export const MORE_CONFIG_META = {
       '对应 config.toml 中的 model_reasoning_effort 字段。用于配置模型的深度思考与推理强度，请务必选择所选模型实际支持的思考强度档位（若模型不支持思考请设为 none 或留空）。',
     placeholder: '例如: low / medium / high',
   },
-  displayName: {
-    label: '模型别名 (Display Name)',
+  aliases: {
+    label: '模型别名 (Aliases)',
     title:
-      '为当前自定义模型设置显示别名，Codex 的模型选择器中将直接展示该名称。别名通过 config.toml 的 model_catalog_json 模型目录机制生效（写入该模型的 display_name），依附于上方填写的自定义模型，留空则恢复显示原始模型名。',
-    placeholder: '例如: 5.6 Sol',
+      '为中转站模型设置 Codex 选择器中的显示名称。左侧填写模型 ID，右侧填写自定义别名（默认与模型名相同）。保存后写入本工具自管的模型目录文件，重启 Codex 后即可在客户端中看到这些模型。',
   },
 } as const;
 </script>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import SettingItem from '../settings/SettingItem.vue';
-import SettingInput from '../settings/SettingInput.vue';
 import SettingSelect from '../settings/SettingSelect.vue';
 import ModelSelect from './ModelSelect.vue';
+import ModelAliasList from './ModelAliasList.vue';
 import { REASONING_EFFORT_OPTIONS } from '../../types/config';
+import type { ModelAlias } from '../../types/config';
 
 const props = withDefaults(
   defineProps<{
     modelValue?: string;
     model?: string;
     reasoningEffort?: string;
-    displayName?: string;
+    modelAliases?: ModelAlias[];
     idPrefix?: string;
-    fullWidthDisplayName?: boolean;
     apiKey?: string;
     providerUrl?: string;
   }>(),
@@ -47,9 +46,8 @@ const props = withDefaults(
     modelValue: '',
     model: '',
     reasoningEffort: '',
-    displayName: '',
+    modelAliases: () => [],
     idPrefix: '',
-    fullWidthDisplayName: false,
     apiKey: '',
     providerUrl: '',
   }
@@ -59,9 +57,11 @@ const emit = defineEmits<{
   (e: 'update:model', value: string): void;
   (e: 'update:modelValue', value: string): void;
   (e: 'update:reasoningEffort', value: string): void;
-  (e: 'update:displayName', value: string): void;
+  (e: 'update:modelAliases', value: ModelAlias[]): void;
   (e: 'enter'): void;
 }>();
+
+const fetchedModels = ref<string[]>([]);
 
 const resolvedModel = computed(() => props.model || props.modelValue || '');
 
@@ -71,8 +71,8 @@ const modelInputId = computed(() =>
 const reasoningSelectId = computed(() =>
   props.idPrefix ? `${props.idPrefix}-reasoning` : 'reasoning-effort-select'
 );
-const displayNameInputId = computed(() =>
-  props.idPrefix ? `${props.idPrefix}-display-name` : 'model-display-name-input'
+const aliasesListId = computed(() =>
+  props.idPrefix ? `${props.idPrefix}-aliases` : 'model-aliases'
 );
 
 const handleModelUpdate = (val: string) => {
@@ -98,6 +98,7 @@ const handleModelUpdate = (val: string) => {
         :provider-url="providerUrl"
         :placeholder="MORE_CONFIG_META.model.placeholder"
         :title="MORE_CONFIG_META.model.title"
+        :seed-models="fetchedModels"
         @update:model-value="handleModelUpdate"
         @enter="emit('enter')"
       />
@@ -123,23 +124,22 @@ const handleModelUpdate = (val: string) => {
       />
     </SettingItem>
 
-    <!-- 模型别名 -->
+    <!-- 模型别名列表 -->
     <SettingItem
-      class="field-display-name"
-      :class="{ 'full-width': fullWidthDisplayName }"
-      :label="MORE_CONFIG_META.displayName.label"
+      class="field-aliases"
+      :label="MORE_CONFIG_META.aliases.label"
       direction="vertical"
-      :span="fullWidthDisplayName ? 2 : 1"
-      :title="MORE_CONFIG_META.displayName.title"
+      :span="2"
+      :title="MORE_CONFIG_META.aliases.title"
     >
-      <SettingInput
-        :id="displayNameInputId"
-        :model-value="displayName"
-        :placeholder="MORE_CONFIG_META.displayName.placeholder"
-        :title="MORE_CONFIG_META.displayName.title"
-        autocomplete="off"
-        @update:model-value="emit('update:displayName', $event)"
-        @keydown.enter="emit('enter')"
+      <ModelAliasList
+        :id="aliasesListId"
+        :model-value="modelAliases"
+        :api-key="apiKey"
+        :provider-url="providerUrl"
+        :id-prefix="idPrefix"
+        @update:model-value="emit('update:modelAliases', $event)"
+        @fetched="fetchedModels = $event"
       />
     </SettingItem>
   </div>
@@ -163,13 +163,9 @@ const handleModelUpdate = (val: string) => {
     min-width: 0;
   }
 
-  .field-display-name {
-    grid-column: 1 / 2;
+  .field-aliases {
+    grid-column: 1 / -1;
     min-width: 0;
-
-    &.full-width {
-      grid-column: 1 / -1;
-    }
   }
 }
 </style>

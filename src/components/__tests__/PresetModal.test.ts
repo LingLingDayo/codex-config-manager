@@ -7,6 +7,13 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
 
+vi.mock('../../utils/modelFetcher', () => ({
+  fetchProviderModels: vi.fn().mockResolvedValue([]),
+  clearModelFetchCache: vi.fn(),
+  buildModelsUrl: vi.fn(),
+  parseModelList: vi.fn(),
+}));
+
 describe('PresetModal.vue component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -110,7 +117,7 @@ describe('PresetModal.vue component', () => {
     expect(wrapper.find('.more-config-fields').exists()).toBe(true);
     expect(wrapper.find('#modal-preset-model').exists()).toBe(true);
     expect(wrapper.find('#modal-preset-reasoning').exists()).toBe(true);
-    expect(wrapper.find('#modal-preset-display-name').exists()).toBe(true);
+    expect(wrapper.find('.model-alias-list').exists()).toBe(true);
 
     // 再次点击收起
     await toggleBtn.trigger('click');
@@ -129,7 +136,7 @@ describe('PresetModal.vue component', () => {
           key: 'sk-test',
           model: 'gpt-5.6-sol',
           model_reasoning_effort: 'high',
-          model_display_name: '5.6 Sol',
+          model_aliases: [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }],
         },
       },
     });
@@ -141,10 +148,10 @@ describe('PresetModal.vue component', () => {
     // 展开并验证回填值
     await wrapper.find('.more-config-toggle').trigger('click');
     const modelInput = wrapper.find<HTMLInputElement>('#modal-preset-model');
-    const displayNameInput = wrapper.find<HTMLInputElement>('#modal-preset-display-name');
+    const aliasInput = wrapper.find<HTMLInputElement>('input[id$="-alias"]');
 
     expect(modelInput.element.value).toBe('gpt-5.6-sol');
-    expect(displayNameInput.element.value).toBe('5.6 Sol');
+    expect(aliasInput.element.value).toBe('5.6 Sol');
   });
 
   it('提交表单时应完整保存包含更多配置的预设数据', async () => {
@@ -164,7 +171,11 @@ describe('PresetModal.vue component', () => {
     // 展开更多配置并填写
     await wrapper.find('.more-config-toggle').trigger('click');
     await wrapper.find('#modal-preset-model').setValue('gpt-5.6-turbo');
-    await wrapper.find('#modal-preset-display-name').setValue('Turbo 5.6');
+    await wrapper.find('.model-alias-list .btn-text:last-child').trigger('click');
+    const slugInput = wrapper.find<HTMLInputElement>('input[id$="-slug"]');
+    const aliasInput = wrapper.find<HTMLInputElement>('input[id$="-alias"]');
+    await slugInput.setValue('gpt-5.6-turbo');
+    await aliasInput.setValue('Turbo 5.6');
 
     // 触发提交
     await wrapper.find('form.modal-form').trigger('submit.prevent');
@@ -178,7 +189,7 @@ describe('PresetModal.vue component', () => {
       key: 'sk-abc123456',
       model: 'gpt-5.6-turbo',
       model_reasoning_effort: '',
-      model_display_name: 'Turbo 5.6',
+      model_aliases: [{ slug: 'gpt-5.6-turbo', display_name: 'Turbo 5.6' }],
     });
   });
 });

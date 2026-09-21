@@ -13,6 +13,7 @@ const props = withDefaults(
     clearable?: boolean;
     id?: string;
     title?: string;
+    seedModels?: string[];
   }>(),
   {
     modelValue: '',
@@ -21,6 +22,7 @@ const props = withDefaults(
     placeholder: '例如: gpt-5.6-sol 或下拉选择',
     disabled: false,
     clearable: true,
+    seedModels: () => [],
   }
 );
 
@@ -54,6 +56,17 @@ watch(
       lastFetchedUrl.value = '';
     }
   }
+);
+
+watch(
+  () => props.seedModels,
+  (models) => {
+    if (!models?.length) return;
+    cachedModels.value = [...models];
+    lastFetchedKey.value = props.apiKey?.trim() || lastFetchedKey.value;
+    lastFetchedUrl.value = props.providerUrl?.trim() || lastFetchedUrl.value;
+  },
+  { deep: true }
 );
 
 // 过滤后的模型列表：若用户在下拉打开期间输入，支持即时模糊筛选

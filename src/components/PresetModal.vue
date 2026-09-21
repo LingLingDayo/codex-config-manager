@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import type { PresetFormData } from '../types/config';
+import type { ModelAlias, PresetFormData } from '../types/config';
+import { cloneModelAliases, migrateLegacyDisplayName } from '../utils/modelAliases';
 import { useSettings } from '../composables/useSettings';
 import MoreConfigFields from './config/MoreConfigFields.vue';
 import { PROVIDER_PRESETS } from '../constants/providers';
@@ -29,7 +30,7 @@ const formUrl = ref<string>('');
 const formKey = ref<string>('');
 const formModel = ref<string>('');
 const formReasoningEffort = ref<string>('');
-const formDisplayName = ref<string>('');
+const formAliases = ref<ModelAlias[]>([]);
 const isMoreExpanded = ref<boolean>(false);
 const showKey = ref<boolean>(false);
 const nameInputRef = ref<HTMLInputElement | null>(null);
@@ -47,7 +48,7 @@ const hasConfiguredMore = computed(() => {
   return Boolean(
     formModel.value.trim() ||
       formReasoningEffort.value.trim() ||
-      formDisplayName.value.trim()
+      formAliases.value.some((item) => item.slug.trim() || item.display_name.trim())
   );
 });
 
@@ -63,14 +64,18 @@ watch(
         formKey.value = props.initialData.key;
         formModel.value = props.initialData.model || '';
         formReasoningEffort.value = props.initialData.model_reasoning_effort || '';
-        formDisplayName.value = props.initialData.model_display_name || '';
+        formAliases.value = migrateLegacyDisplayName(
+          props.initialData.model_aliases,
+          props.initialData.model,
+          props.initialData.model_display_name
+        );
       } else {
         formName.value = '';
         formUrl.value = '';
         formKey.value = '';
         formModel.value = '';
         formReasoningEffort.value = '';
-        formDisplayName.value = '';
+        formAliases.value = [];
       }
       showKey.value = false;
       isMoreExpanded.value = false;
@@ -102,7 +107,7 @@ const handleSubmit = () => {
     key: formKey.value,
     model: formModel.value.trim(),
     model_reasoning_effort: formReasoningEffort.value.trim(),
-    model_display_name: formDisplayName.value.trim(),
+    model_aliases: cloneModelAliases(formAliases.value),
   });
 };
 
@@ -267,11 +272,10 @@ onUnmounted(() => {
               <MoreConfigFields
                 v-model:model="formModel"
                 v-model:reasoning-effort="formReasoningEffort"
-                v-model:display-name="formDisplayName"
+                v-model:model-aliases="formAliases"
                 :api-key="formKey"
                 :provider-url="formUrl"
                 id-prefix="modal-preset"
-                :full-width-display-name="true"
               />
             </div>
           </Transition>

@@ -15,13 +15,13 @@ describe('ConfigDrawer.vue component', () => {
     expect(wrapper.find('.drawer-panel').exists()).toBe(false);
   });
 
-  it('visible 为 true 时渲染两列网格布局且内部控件配置为 1 列宽', () => {
+  it('visible 为 true 时渲染两列网格布局且别名列表占满整行', () => {
     const wrapper = mount(ConfigDrawer, {
       props: {
         visible: true,
         modelValue: 'gpt-5.6-sol',
         reasoningEffort: 'medium',
-        displayName: '5.6 Sol',
+        modelAliases: [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }],
       },
       attachTo: document.body,
     });
@@ -32,19 +32,17 @@ describe('ConfigDrawer.vue component', () => {
     const drawerContent = document.body.querySelector('.drawer-content');
     expect(drawerContent).not.toBeNull();
 
-    // 检查是否有三个 span-1 控件（自定义模型 / 思考强度 / 模型别名）
     const items = document.body.querySelectorAll('.setting-item');
     expect(items.length).toBe(3);
     expect(items[0].classList.contains('col-span-1')).toBe(true);
     expect(items[1].classList.contains('col-span-1')).toBe(true);
-    expect(items[2].classList.contains('col-span-1')).toBe(true);
+    expect(items[2].classList.contains('col-span-2')).toBe(true);
 
-    // 模型别名输入框应展示当前别名
-    const displayNameInput = document.body.querySelector(
-      '#model-display-name-input'
+    const aliasInput = document.body.querySelector(
+      'input[id$="-alias"]'
     ) as HTMLInputElement;
-    expect(displayNameInput).not.toBeNull();
-    expect(displayNameInput.value).toBe('5.6 Sol');
+    expect(aliasInput).not.toBeNull();
+    expect(aliasInput.value).toBe('5.6 Sol');
 
     wrapper.unmount();
   });
@@ -96,25 +94,27 @@ describe('ConfigDrawer.vue component', () => {
     wrapper.unmount();
   });
 
-  it('输入模型别名时触发 update:displayName 事件', async () => {
+  it('编辑模型别名时触发 update:modelAliases 事件', async () => {
     const wrapper = mount(ConfigDrawer, {
       props: {
         visible: true,
         modelValue: 'gpt-5.6-sol',
-        displayName: '',
+        modelAliases: [{ slug: 'gpt-5.6-sol', display_name: '' }],
       },
       attachTo: document.body,
     });
 
-    const displayNameInput = document.body.querySelector(
-      '#model-display-name-input'
+    const aliasInput = document.body.querySelector(
+      'input[id$="-alias"]'
     ) as HTMLInputElement;
-    expect(displayNameInput).not.toBeNull();
-    displayNameInput.value = '5.6 Sol';
-    displayNameInput.dispatchEvent(new Event('input'));
+    expect(aliasInput).not.toBeNull();
+    aliasInput.value = '5.6 Sol';
+    aliasInput.dispatchEvent(new Event('input'));
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.emitted('update:displayName')?.[0]).toEqual(['5.6 Sol']);
+    expect(wrapper.emitted('update:modelAliases')?.[0]).toEqual([
+      [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }],
+    ]);
 
     wrapper.unmount();
   });

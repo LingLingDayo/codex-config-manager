@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import type { ConfigFormPayload, PresetConfig, PresetFormData } from '../types/config';
+import { cloneModelAliases, migrateLegacyDisplayName } from '../utils/modelAliases';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
@@ -33,6 +34,7 @@ export function useAppWorkflow() {
     model: data.model,
     modelReasoningEffort: data.modelReasoningEffort,
     modelDisplayName: data.modelDisplayName,
+    modelAliases: data.modelAliases,
   });
 
   const handleSaveCurrentConfig = (data: ConfigFormPayload) => {
@@ -48,7 +50,11 @@ export function useAppWorkflow() {
     const success = await saveConfig(preset.key, preset.provider_url, {
       model: preset.model ?? '',
       modelReasoningEffort: preset.model_reasoning_effort ?? '',
-      modelDisplayName: preset.model_display_name ?? '',
+      modelAliases: migrateLegacyDisplayName(
+        preset.model_aliases,
+        preset.model,
+        preset.model_display_name
+      ),
     });
     if (success) {
       showToast(`已快捷切换至「${preset.name}」并生效，请重新打开 Codex`);
@@ -135,8 +141,14 @@ export function useAppWorkflow() {
           data.modelReasoningEffort !== undefined
             ? data.modelReasoningEffort
             : matched.model_reasoning_effort,
-        model_display_name:
-          data.modelDisplayName !== undefined ? data.modelDisplayName : matched.model_display_name,
+        model_aliases:
+          data.modelAliases !== undefined
+            ? cloneModelAliases(data.modelAliases)
+            : migrateLegacyDisplayName(
+                matched.model_aliases,
+                matched.model,
+                matched.model_display_name
+              ),
       };
     } else {
       const isDefault = isDefaultStation(data.providerUrl);
@@ -151,7 +163,7 @@ export function useAppWorkflow() {
         key: data.key,
         model: data.model || '',
         model_reasoning_effort: data.modelReasoningEffort || '',
-        model_display_name: data.modelDisplayName || '',
+        model_aliases: cloneModelAliases(data.modelAliases),
       };
     }
     isModalVisible.value = true;
@@ -174,7 +186,11 @@ export function useAppWorkflow() {
       key: preset.key,
       model: preset.model || '',
       model_reasoning_effort: preset.model_reasoning_effort || '',
-      model_display_name: preset.model_display_name || '',
+      model_aliases: migrateLegacyDisplayName(
+        preset.model_aliases,
+        preset.model,
+        preset.model_display_name
+      ),
     };
     isModalVisible.value = true;
   };

@@ -131,6 +131,7 @@ describe('usePresets composable', () => {
           model: 'old-model',
           model_reasoning_effort: 'low',
           model_display_name: 'Old Display',
+          model_aliases: [{ slug: 'old-model', display_name: 'Old Display' }],
         },
       ];
 
@@ -141,7 +142,7 @@ describe('usePresets composable', () => {
         key: 'sk-new',
         model: 'new-model',
         model_reasoning_effort: 'high',
-        model_display_name: 'New Display',
+        model_aliases: [{ slug: 'new-model', display_name: 'New Display' }],
       });
 
       expect(success).toBe(true);
@@ -150,10 +151,12 @@ describe('usePresets composable', () => {
       expect(presets.value[0].key).toBe('sk-new');
       expect(presets.value[0].model).toBe('new-model');
       expect(presets.value[0].model_reasoning_effort).toBe('high');
-      expect(presets.value[0].model_display_name).toBe('New Display');
+      expect(presets.value[0].model_aliases).toEqual([
+        { slug: 'new-model', display_name: 'New Display' },
+      ]);
     });
 
-    it('新增预设时应正确持久化更多配置参数（model, reasoning_effort, display_name）', async () => {
+    it('新增预设时应正确持久化更多配置参数（model, reasoning_effort, aliases）', async () => {
       mockedInvoke.mockResolvedValue(undefined);
       const { presets, saveOrUpdatePreset } = usePresets();
       presets.value = [];
@@ -164,13 +167,15 @@ describe('usePresets composable', () => {
         key: 'sk-deepseek-123',
         model: 'deepseek-reasoner',
         model_reasoning_effort: 'max',
-        model_display_name: 'DS-Reasoner',
+        model_aliases: [{ slug: 'deepseek-reasoner', display_name: 'DS-Reasoner' }],
       });
 
       expect(success).toBe(true);
       expect(presets.value[0].model).toBe('deepseek-reasoner');
       expect(presets.value[0].model_reasoning_effort).toBe('max');
-      expect(presets.value[0].model_display_name).toBe('DS-Reasoner');
+      expect(presets.value[0].model_aliases).toEqual([
+        { slug: 'deepseek-reasoner', display_name: 'DS-Reasoner' },
+      ]);
     });
   });
 

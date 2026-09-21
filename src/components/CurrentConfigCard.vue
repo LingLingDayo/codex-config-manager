@@ -3,7 +3,8 @@ import { ref, watch, computed } from 'vue';
 import ConfigCardHeader from './config/ConfigCardHeader.vue';
 import ConfigCardActions from './config/ConfigCardActions.vue';
 import ConfigDrawer from './ConfigDrawer.vue';
-import type { CodexConfig, ConfigFormPayload, PresetConfig } from '../types/config';
+import type { CodexConfig, ConfigFormPayload, ModelAlias, PresetConfig } from '../types/config';
+import { cloneModelAliases, migrateLegacyDisplayName } from '../utils/modelAliases';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
@@ -40,7 +41,7 @@ const apiKey = ref<string>('');
 const providerUrl = ref<string>('');
 const customModel = ref<string>('');
 const reasoningEffort = ref<string>('');
-const modelDisplayName = ref<string>('');
+const modelAliases = ref<ModelAlias[]>([]);
 const showKey = ref<boolean>(false);
 const isConfigDrawerOpen = ref<boolean>(false);
 
@@ -62,7 +63,11 @@ watch(
       : newVal.provider_url;
     customModel.value = newVal.model || '';
     reasoningEffort.value = newVal.model_reasoning_effort || '';
-    modelDisplayName.value = newVal.model_display_name || '';
+    modelAliases.value = migrateLegacyDisplayName(
+      newVal.model_aliases,
+      newVal.model,
+      newVal.model_display_name
+    );
   },
   { immediate: true, deep: true }
 );
@@ -77,7 +82,7 @@ const handleSave = () => {
     providerUrl: providerUrl.value,
     model: customModel.value,
     modelReasoningEffort: reasoningEffort.value,
-    modelDisplayName: modelDisplayName.value,
+    modelAliases: cloneModelAliases(modelAliases.value),
   });
 };
 
@@ -91,7 +96,7 @@ const handleLaunch = () => {
     providerUrl: providerUrl.value,
     model: customModel.value,
     modelReasoningEffort: reasoningEffort.value,
-    modelDisplayName: modelDisplayName.value,
+    modelAliases: cloneModelAliases(modelAliases.value),
   });
 };
 
@@ -101,7 +106,7 @@ const handleSaveAsPreset = () => {
     providerUrl: providerUrl.value,
     model: customModel.value,
     modelReasoningEffort: reasoningEffort.value,
-    modelDisplayName: modelDisplayName.value,
+    modelAliases: cloneModelAliases(modelAliases.value),
   });
 };
 
@@ -200,7 +205,7 @@ const isSaved = computed(() => {
       :visible="isConfigDrawerOpen"
       v-model="customModel"
       v-model:reasoning-effort="reasoningEffort"
-      v-model:display-name="modelDisplayName"
+      v-model:model-aliases="modelAliases"
       :api-key="apiKey"
       :provider-url="providerUrl"
       @close="closeConfigDrawer"
