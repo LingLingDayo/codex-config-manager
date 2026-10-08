@@ -258,24 +258,114 @@ fn kill_codex_processes(custom_exe: Option<&str>) {
     }
 }
 
+/// 从 WindowsApps 目录路径中解析出 UWP/MSIX 应用的 AUMID (AppUserModelID)
+#[cfg(windows)]
+fn parse_aumid_from_windows_apps_path(path_str: &str) -> Option<String> {
+    let path = Path::new(path_str);
+    for ancestor in path.ancestors() {
+        if let Some(file_name) = ancestor.file_name() {
+            let name_str = file_name.to_string_lossy();
+            if name_str.contains("__") {
+                let parts: Vec<&str> = name_str.split("__").collect();
+                if parts.len() == 2 {
+                    let left = parts[0];
+                    let publisher_id = parts[1];
+                    if let Some(app_name) = left.split('_').next() {
+                        if !app_name.is_empty() && !publisher_id.is_empty() {
+                            return Some(format!("{}_{}!App", app_name, publisher_id));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 /// 启动已解析的目标应用
 fn spawn_target(target: &str) -> Result<(), String> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const DETACHED_PROCESS: u32 = 0x00000008;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
 
         if target.starts_with("shell:AppsFolder\\") {
             std::process::Command::new("explorer")
                 .arg(target)
                 .spawn()
                 .map_err(|e| format!("启动应用失败: {}", e))?;
-        } else {
-            std::process::Command::new(target)
+            return Ok(());
+        }
+
+        let is_windows_apps = target.to_lowercase().contains("windowsapps");
+
+        // 若不是 WindowsApps 路径，优先尝试直接 Win32 CreateProcess 拉起
+        if !is_windows_apps {
+            match std::process::Command::new(target)
                 .creation_flags(DETACHED_PROCESS)
                 .spawn()
-                .map_err(|e| format!("启动应用失败: {}", e))?;
+            {
+                Ok(_) => return Ok(()),
+                Err(e) if e.raw_os_error() != Some(5) && e.kind() != std::io::ErrorKind::PermissionDenied => {
+                    return Err(format!("启动应用失败: {}", e));
+                }
+                Err(_) => {
+                    // 若遇 os error 5 (权限拒绝)，继续向下尝试外壳协议或备选方式安全拉起
+                }
+            }
         }
+
+        // 针对 WindowsApps (UWP/MSIX 商店包) 或受限路径：
+        // 1. 尝试直接快速解析 AUMID 并通过 explorer shell:AppsFolder 拉起 (最轻量、无终端闪烁、原生兼容 Win10/Win11)
+        if let Some(aumid) = parse_aumid_from_windows_apps_path(target) {
+            let shell_target = format!("shell:AppsFolder\\{}", aumid);
+            if std::process::Command::new("explorer")
+                .arg(&shell_target)
+                .spawn()
+                .is_ok()
+            {
+                return Ok(());
+            }
+        }
+
+        // 2. 备用：通过 PowerShell 查询精准 AppxPackage 并通过 Start-Process 拉起
+        let ps_launch_script = format!(
+            r#"
+            $target = '{}'
+            $pkg = Get-AppxPackage -Name '*OpenAI*' | Select-Object -First 1
+            if (!$pkg -and $target) {{
+                $pkg = Get-AppxPackage | Where-Object {{ $_.InstallLocation -and $target.StartsWith($_.InstallLocation, [System.StringComparison]::OrdinalIgnoreCase) }} | Select-Object -First 1
+            }}
+            if ($pkg) {{
+                $aumid = $pkg.PackageFamilyName + '!App'
+                Start-Process "shell:AppsFolder\$aumid"
+                Write-Output 'OK'
+            }} else {{
+                Start-Process -FilePath $target
+                Write-Output 'OK'
+            }}
+            "#,
+            target.replace('\'', "''")
+        );
+
+        if let Ok(output) = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &ps_launch_script])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+        {
+            let out_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if out_str.contains("OK") {
+                return Ok(());
+            }
+        }
+
+        // 3. 最终兜底尝试 explorer.exe 直接启动 target
+        std::process::Command::new("explorer")
+            .arg(target)
+            .spawn()
+            .map_err(|e| format!("启动应用失败: {}", e))?;
+
         Ok(())
     }
 
@@ -419,4 +509,24 @@ mod tests {
         }
         println!("===========================================================\n");
     }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_parse_aumid_from_windows_apps_path() {
+        let store_path_1 = r"C:\Program Files\WindowsApps\OpenAI.Codex_26.1002.7124.0_x64__2p2nqsd0c76g0\app\ChatGPT.exe";
+        assert_eq!(
+            parse_aumid_from_windows_apps_path(store_path_1),
+            Some("OpenAI.Codex_2p2nqsd0c76g0!App".to_string())
+        );
+
+        let store_path_2 = r"C:\Program Files\WindowsApps\OpenAI.ChatGPT-Desktop_1.2024.311.0_x64__2p2nqsd0c76g0\app\ChatGPT.exe";
+        assert_eq!(
+            parse_aumid_from_windows_apps_path(store_path_2),
+            Some("OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0!App".to_string())
+        );
+
+        let non_store_path = r"C:\Program Files\ChatGPT\ChatGPT.exe";
+        assert_eq!(parse_aumid_from_windows_apps_path(non_store_path), None);
+    }
 }
+
