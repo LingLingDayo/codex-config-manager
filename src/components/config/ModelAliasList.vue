@@ -48,9 +48,6 @@ const fetchError = ref('');
 const hasFetched = ref(false);
 const autoFilled = ref(false);
 
-const datalistId = computed(() =>
-  props.idPrefix ? `${props.idPrefix}-model-alias-options` : 'model-alias-options'
-);
 
 const canManageList = computed(
   () => Boolean(props.apiKey.trim() && props.providerUrl.trim())
@@ -245,7 +242,6 @@ onMounted(() => {
           class="alias-input"
           type="text"
           :value="row.slug"
-          :list="datalistId"
           placeholder="模型 ID"
           autocomplete="off"
           @input="handleSlugInput(row, ($event.target as HTMLInputElement).value)"
@@ -286,10 +282,6 @@ onMounted(() => {
       </div>
     </div>
     </template>
-
-    <datalist v-if="canManageList" :id="datalistId">
-      <option v-for="model in fetchedModels" :key="model" :value="model" />
-    </datalist>
   </div>
 </template>
 
