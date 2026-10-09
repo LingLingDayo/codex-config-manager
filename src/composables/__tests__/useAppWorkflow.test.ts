@@ -136,4 +136,19 @@ describe('useAppWorkflow', () => {
       model: 'new-model',
     });
   });
+
+  it('handleReorderPresets 应成功委托调用 reorderPresets 并更新预设顺序', async () => {
+    const { presets } = usePresets();
+    presets.value = [
+      { id: 'p1', name: '配置一', provider_url: 'https://p1.com', key: 'k1' },
+      { id: 'p2', name: '配置二', provider_url: 'https://p2.com', key: 'k2' },
+    ];
+
+    const workflow = useAppWorkflow();
+    const result = await workflow.handleReorderPresets(0, 1);
+
+    expect(result).toBe(true);
+    expect(workflow.presets.value.map((p) => p.id)).toEqual(['p2', 'p1']);
+  });
 });
+

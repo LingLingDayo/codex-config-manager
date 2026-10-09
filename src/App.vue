@@ -30,6 +30,7 @@ const {
   handleAddPreset,
   handleEditPreset,
   handleModalSave,
+  handleReorderPresets,
   deletePreset,
   bootstrap,
 } = useAppWorkflow();
@@ -88,6 +89,7 @@ onMounted(bootstrap);
       @edit-preset="handleEditPreset"
       @delete-preset="deletePreset"
       @apply-preset="handleApplyPreset"
+      @reorder-presets="handleReorderPresets"
     />
 
     <!-- 新增 / 编辑预设表单模态框 -->

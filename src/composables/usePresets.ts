@@ -174,6 +174,28 @@ export function usePresets() {
     return true;
   };
 
+  /**
+   * 重新排序预设列表并持久化
+   */
+  const reorderPresets = async (fromIndex: number, toIndex: number): Promise<boolean> => {
+    if (
+      fromIndex < 0 ||
+      fromIndex >= presets.value.length ||
+      toIndex < 0 ||
+      toIndex >= presets.value.length ||
+      fromIndex === toIndex
+    ) {
+      return false;
+    }
+
+    const currentList = [...presets.value];
+    const [movedItem] = currentList.splice(fromIndex, 1);
+    currentList.splice(toIndex, 0, movedItem);
+
+    await persistPresets(currentList);
+    return true;
+  };
+
   return {
     presets,
     isPresetsLoading,
@@ -181,5 +203,6 @@ export function usePresets() {
     saveOrUpdatePreset,
     deletePreset,
     isPresetActive,
+    reorderPresets,
   };
 }

@@ -15,7 +15,8 @@ import { useToast } from './useToast';
 
 export function useAppWorkflow() {
   const { currentConfig, isLoading, loadConfig, saveConfig, restoreDefault } = useCodexConfig();
-  const { presets, loadPresets, saveOrUpdatePreset, deletePreset, isPresetActive } = usePresets();
+  const { presets, loadPresets, saveOrUpdatePreset, deletePreset, isPresetActive, reorderPresets } =
+    usePresets();
   const { settings, detectedPath, detectPath, isLaunching, launchApp, loadSettings } = useSettings();
   const { showToast } = useToast();
   const { showConfirm } = useConfirm();
@@ -202,6 +203,10 @@ export function useAppWorkflow() {
     }
   };
 
+  const handleReorderPresets = async (fromIndex: number, toIndex: number) => {
+    return await reorderPresets(fromIndex, toIndex);
+  };
+
   const bootstrap = async () => {
     await Promise.all([loadConfig(), loadPresets(), loadSettings()]);
   };
@@ -225,6 +230,7 @@ export function useAppWorkflow() {
     handleAddPreset,
     handleEditPreset,
     handleModalSave,
+    handleReorderPresets,
     deletePreset,
     bootstrap,
   };

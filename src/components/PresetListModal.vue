@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
-import { Lightbulb } from '@lucide/vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { Lightbulb, GripVertical } from '@lucide/vue';
 import type { CodexConfig, PresetConfig } from '../types/config';
 import { normalizeUrl } from '../utils/format';
 import { isPresetActive as matchPresetActive } from '../utils/preset';
@@ -17,15 +17,99 @@ const emit = defineEmits<{
   (e: 'edit-preset', preset: PresetConfig): void;
   (e: 'delete-preset', preset: PresetConfig): void;
   (e: 'add-preset'): void;
+  (e: 'reorder-presets', fromIndex: number, toIndex: number): void;
 }>();
+
+const draggedIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
+const isDragging = ref<boolean>(false);
+let dragEndTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const isPresetActive = (preset: PresetConfig): boolean => {
   return matchPresetActive(preset, props.currentConfig);
 };
 
 const handleRowClick = (preset: PresetConfig) => {
+  if (isDragging.value) {
+    return;
+  }
   if (!isPresetActive(preset)) {
     emit('apply-preset', preset);
+  }
+};
+
+const cleanupDragState = () => {
+  draggedIndex.value = null;
+  dragOverIndex.value = null;
+  if (dragEndTimeout) {
+    clearTimeout(dragEndTimeout);
+  }
+  dragEndTimeout = setTimeout(() => {
+    isDragging.value = false;
+  }, 100);
+};
+
+const onDragStart = (e: DragEvent, index: number) => {
+  if (props.presets.length <= 1) return;
+  draggedIndex.value = index;
+  isDragging.value = true;
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  }
+};
+
+const onDragOver = (e: DragEvent, index: number) => {
+  if (draggedIndex.value === null) return;
+  e.preventDefault();
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = 'move';
+  }
+  if (draggedIndex.value !== index) {
+    dragOverIndex.value = index;
+  } else {
+    dragOverIndex.value = null;
+  }
+};
+
+const onDragEnter = (e: DragEvent, index: number) => {
+  if (draggedIndex.value === null) return;
+  e.preventDefault();
+  if (draggedIndex.value !== index) {
+    dragOverIndex.value = index;
+  }
+};
+
+const onDragLeave = (e: DragEvent, index: number) => {
+  const currentTarget = e.currentTarget as HTMLElement | null;
+  const relatedTarget = e.relatedTarget as HTMLElement | null;
+  if (!currentTarget || !relatedTarget || !currentTarget.contains(relatedTarget)) {
+    if (dragOverIndex.value === index) {
+      dragOverIndex.value = null;
+    }
+  }
+};
+
+const onDrop = (e: DragEvent, targetIndex: number) => {
+  e.preventDefault();
+  const fromIndex = draggedIndex.value;
+  if (fromIndex !== null && fromIndex !== targetIndex) {
+    emit('reorder-presets', fromIndex, targetIndex);
+  }
+  cleanupDragState();
+};
+
+const onDragEnd = () => {
+  cleanupDragState();
+};
+
+const onListDrop = (e: DragEvent) => {
+  if (e.target === e.currentTarget && draggedIndex.value !== null) {
+    const targetIndex = props.presets.length - 1;
+    if (draggedIndex.value !== targetIndex) {
+      emit('reorder-presets', draggedIndex.value, targetIndex);
+    }
+    cleanupDragState();
   }
 };
 
@@ -41,6 +125,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
+  if (dragEndTimeout) {
+    clearTimeout(dragEndTimeout);
+  }
 });
 </script>
 
@@ -117,15 +204,41 @@ onUnmounted(() => {
       </div>
 
       <!-- 预设列表 -->
-      <div v-if="presets.length > 0" class="preset-list">
+      <div
+        v-if="presets.length > 0"
+        class="preset-list"
+        @dragover.prevent
+        @drop="onListDrop"
+      >
         <div
-          v-for="preset in presets"
+          v-for="(preset, index) in presets"
           :key="preset.id"
           class="preset-item"
-          :class="{ 'is-active': isPresetActive(preset) }"
+          :class="{
+            'is-active': isPresetActive(preset),
+            'is-dragging': draggedIndex === index,
+            'is-drag-over': dragOverIndex === index,
+          }"
           :title="isPresetActive(preset) ? '当前正在生效' : '点击立即切换至此配置'"
+          :draggable="presets.length > 1"
+          @dragstart="onDragStart($event, index)"
+          @dragover="onDragOver($event, index)"
+          @dragenter="onDragEnter($event, index)"
+          @dragleave="onDragLeave($event, index)"
+          @drop="onDrop($event, index)"
+          @dragend="onDragEnd"
           @click="handleRowClick(preset)"
         >
+          <!-- 拖拽把手 (多于1个配置时支持拖拽排序) -->
+          <div
+            v-if="presets.length > 1"
+            class="drag-handle"
+            title="按住拖拽以调整顺序"
+            @click.stop
+          >
+            <GripVertical :size="13" class="drag-handle-icon" />
+          </div>
+
           <!-- 左侧基本信息 -->
           <div class="preset-info">
             <div class="preset-title-row">
@@ -138,7 +251,7 @@ onUnmounted(() => {
           </div>
 
           <!-- 右侧操作与状态 -->
-          <div class="preset-actions" @click.stop>
+          <div class="preset-actions" @click.stop @mousedown.stop>
             <span v-if="isPresetActive(preset)" class="active-pill">
               <span class="pill-dot"></span>生效中
             </span>
@@ -233,7 +346,7 @@ onUnmounted(() => {
       <div class="modal-footer">
         <span class="footer-tip">
           <Lightbulb :size="13" class="tip-icon" />
-          <span>点击任意配置项即可立即切换并生效</span>
+          <span>点击任意配置项即可立即切换并生效{{ presets.length > 1 ? '，按住可拖拽调整排序' : '' }}</span>
         </span>
         <button type="button" class="btn-close" @click="emit('close')">
           完成
@@ -383,10 +496,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 
   &:hover {
     background: rgba($bg-secondary, 0.95);
@@ -395,6 +508,29 @@ onUnmounted(() => {
     .preset-name {
       color: #fff;
     }
+
+    .drag-handle {
+      color: rgba(255, 255, 255, 0.55);
+    }
+  }
+
+  &.is-dragging {
+    opacity: 0.38;
+    background: rgba($bg-secondary, 0.45);
+    border: 1px dashed rgba($accent-blue, 0.6);
+    box-shadow: none;
+    cursor: grabbing;
+
+    * {
+      pointer-events: none;
+    }
+  }
+
+  &.is-drag-over {
+    border-color: $accent-blue;
+    background: rgba($accent-blue, 0.1);
+    box-shadow: 0 0 12px rgba($accent-blue, 0.22);
+    transform: translateY(-1px);
   }
 
   &.is-active {
@@ -414,6 +550,28 @@ onUnmounted(() => {
       border-top-left-radius: $border-radius-md;
       border-bottom-left-radius: $border-radius-md;
     }
+  }
+}
+
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.26);
+  cursor: grab;
+  padding: 4px 1px;
+  border-radius: $border-radius-xs;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+  user-select: none;
+
+  &:hover {
+    color: $accent-blue;
+    background: rgba($accent-blue, 0.12);
+  }
+
+  &:active {
+    cursor: grabbing;
   }
 }
 

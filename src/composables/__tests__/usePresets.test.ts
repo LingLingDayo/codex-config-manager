@@ -267,4 +267,53 @@ describe('usePresets composable', () => {
       expect(isPresetActive(samplePreset, activeConfig)).toBe(true);
     });
   });
+
+  describe('reorderPresets', () => {
+    it('成功拖拽交换位置时应更新列表顺序并持久化至本地与后端', async () => {
+      const initialPresets: PresetConfig[] = [
+        { id: 'p1', name: '配置一', provider_url: 'https://p1.com', key: 'k1' },
+        { id: 'p2', name: '配置二', provider_url: 'https://p2.com', key: 'k2' },
+        { id: 'p3', name: '配置三', provider_url: 'https://p3.com', key: 'k3' },
+      ];
+      mockedInvoke.mockResolvedValueOnce(initialPresets);
+
+      const { presets, loadPresets, reorderPresets } = usePresets();
+      await loadPresets();
+      expect(presets.value).toHaveLength(3);
+
+      // 将配置一从 index 0 移到 index 2 (尾部)
+      const success = await reorderPresets(0, 2);
+      expect(success).toBe(true);
+      expect(presets.value.map((p) => p.id)).toEqual(['p2', 'p3', 'p1']);
+
+      // 验证本地存储持久化
+      const localJson = localStorage.getItem('codex_presets');
+      expect(localJson).toBeTruthy();
+      const parsedLocal = JSON.parse(localJson!);
+      expect(parsedLocal.map((p: PresetConfig) => p.id)).toEqual(['p2', 'p3', 'p1']);
+
+      // 验证后端调用持久化
+      expect(mockedInvoke).toHaveBeenCalledWith('save_presets', { presets: presets.value });
+    });
+
+    it('当传入非法索引或相同索引时应直接返回 false 且不改变列表', async () => {
+      const initialPresets: PresetConfig[] = [
+        { id: 'p1', name: '配置一', provider_url: 'https://p1.com', key: 'k1' },
+        { id: 'p2', name: '配置二', provider_url: 'https://p2.com', key: 'k2' },
+      ];
+      mockedInvoke.mockResolvedValueOnce(initialPresets);
+
+      const { presets, loadPresets, reorderPresets } = usePresets();
+      await loadPresets();
+
+      // 相同索引
+      expect(await reorderPresets(0, 0)).toBe(false);
+      // 越界索引
+      expect(await reorderPresets(-1, 1)).toBe(false);
+      expect(await reorderPresets(0, 5)).toBe(false);
+      // 列表顺序保持不变
+      expect(presets.value.map((p) => p.id)).toEqual(['p1', 'p2']);
+    });
+  });
 });
+
