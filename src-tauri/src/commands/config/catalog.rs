@@ -140,6 +140,38 @@ pub fn comment_out_model_catalog_json_in_lines(lines: &mut Vec<String>) {
     }
 }
 
+/// 确保条目符合 Codex 校验要求：必须包含 base_instructions 或 model_messages.instructions_template
+pub fn ensure_model_entry_validity(entry: &mut serde_json::Value) {
+    if !entry.is_object() {
+        return;
+    }
+    let has_base = entry
+        .get("base_instructions")
+        .and_then(|v| v.as_str())
+        .is_some();
+    let has_template = entry
+        .get("model_messages")
+        .and_then(|m| m.get("instructions_template"))
+        .and_then(|v| v.as_str())
+        .is_some();
+
+    if !has_base && !has_template {
+        entry["base_instructions"] = serde_json::Value::String(String::new());
+        if entry.get("model_messages").is_none() || entry["model_messages"].is_null() {
+            entry["model_messages"] = serde_json::json!({
+                "approvals": null,
+                "auto_review": null,
+                "collaboration_modes": null,
+                "instructions_template": "",
+                "instructions_variables": null,
+                "multi_agent": null,
+                "permissions": null,
+                "token_budget": null
+            });
+        }
+    }
+}
+
 /// 为指定 slug 创建一个结构完整且符合 Codex ModelInfo 规范的模型条目
 pub fn create_model_entry(slug: &str, display_name: &str) -> serde_json::Value {
     serde_json::json!({
@@ -161,6 +193,17 @@ pub fn create_model_entry(slug: &str, display_name: &str) -> serde_json::Value {
         "experimental_supported_tools": [],
         "hidden": false,
         "input_modalities": ["text", "image"],
+        "base_instructions": "",
+        "model_messages": {
+            "approvals": null,
+            "auto_review": null,
+            "collaboration_modes": null,
+            "instructions_template": "",
+            "instructions_variables": null,
+            "multi_agent": null,
+            "permissions": null,
+            "token_budget": null
+        },
         "instructions": null,
         "instructions_variables": null,
         "model_specialty": null,
@@ -256,7 +299,13 @@ pub fn apply_display_name_to_catalog(
         if !entry.is_object() {
             return Err("模型目录条目结构异常，已拒绝覆盖".to_string());
         }
-        if entry.get("display_name").and_then(|s| s.as_str()) == Some(trimmed_dn) {
+        let needs_fix = entry.get("base_instructions").is_none()
+            && entry
+                .get("model_messages")
+                .and_then(|m| m.get("instructions_template"))
+                .is_none();
+        ensure_model_entry_validity(entry);
+        if !needs_fix && entry.get("display_name").and_then(|s| s.as_str()) == Some(trimmed_dn) {
             return Ok(None);
         }
         entry["display_name"] = serde_json::Value::String(trimmed_dn.to_string());
@@ -325,6 +374,7 @@ pub fn apply_model_aliases_to_catalog(
             if !entry.is_object() {
                 return Err("模型目录条目结构异常，已拒绝覆盖".to_string());
             }
+            ensure_model_entry_validity(&mut entry);
             entry["display_name"] = serde_json::Value::String(alias.display_name.clone());
             entry["description"] = serde_json::Value::String(alias.display_name.clone());
             new_models.push(entry);
@@ -541,9 +591,13 @@ mod tests {
         assert_eq!(models[0]["display_name"], "GLM 5.3");
         assert_eq!(models[0]["shell_type"], "shell_command");
         assert_eq!(models[0]["visibility"], "list");
+        assert_eq!(models[0]["base_instructions"], "");
+        assert!(models[0].get("model_messages").is_some());
         assert_eq!(models[1]["slug"], "gpt-5.6-sol");
         assert_eq!(models[1]["display_name"], "gpt-5.6-sol");
         assert_eq!(models[1]["priority"], 10);
+        assert_eq!(models[1]["base_instructions"], "");
+        assert!(models[1].get("model_messages").is_some());
     }
 
     #[test]
@@ -566,9 +620,12 @@ mod tests {
         assert_eq!(models[0]["slug"], "gpt-5.6-sol");
         assert_eq!(models[0]["display_name"], "5.6 Sol");
         assert_eq!(models[0]["context_window"], 272000);
+        assert_eq!(models[0]["base_instructions"], "");
+        assert!(models[0].get("model_messages").is_some());
         assert_eq!(models[1]["slug"], "glm-5.3");
         assert_eq!(models[1]["display_name"], "GLM 5.3");
         assert_eq!(models[1]["visibility"], "list");
+        assert_eq!(models[1]["base_instructions"], "");
 
         let no_change = apply_model_aliases_to_catalog(Some(&content), &aliases).unwrap();
         assert!(no_change.is_none());
@@ -591,6 +648,31 @@ mod tests {
         assert!(
             apply_model_aliases_to_catalog(Some(r#"{ "models": {} }"#), &[alias("a", "A")])
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn test_ensure_model_entry_validity_repairs_missing_fields() {
+        let mut entry = serde_json::json!({
+            "slug": "custom-model",
+            "display_name": "Custom Model"
+        });
+        ensure_model_entry_validity(&mut entry);
+        assert_eq!(entry["base_instructions"], "");
+        assert_eq!(
+            entry["model_messages"]["instructions_template"],
+            ""
+        );
+
+        // 已有完整 base_instructions 的条目不应被覆盖
+        let mut complete_entry = serde_json::json!({
+            "slug": "rich-model",
+            "base_instructions": "Existing system instructions"
+        });
+        ensure_model_entry_validity(&mut complete_entry);
+        assert_eq!(
+            complete_entry["base_instructions"],
+            "Existing system instructions"
         );
     }
 }

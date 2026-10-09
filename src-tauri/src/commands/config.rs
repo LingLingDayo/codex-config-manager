@@ -188,7 +188,15 @@ pub fn save_codex_config(
                             .map_err(|e| format!("读取模型目录文件失败: {}", e))?,
                     )
                 } else {
-                    None
+                    let active_catalog = catalog::parse_active_catalog_file_from_lines(&lines);
+                    active_catalog.and_then(|file_name| {
+                        let p = catalog::resolve_catalog_path(&codex_dir, &file_name);
+                        if p.exists() && file_name != catalog_file_name {
+                            fs::read_to_string(p).ok()
+                        } else {
+                            None
+                        }
+                    })
                 };
                 if let Some(new_content) =
                     catalog::apply_display_name_to_catalog(existing.as_deref(), &slug, trimmed_dn)?
@@ -256,7 +264,15 @@ fn persist_managed_catalog(
     let existing = if catalog_path.exists() {
         Some(fs::read_to_string(&catalog_path).map_err(|e| format!("读取模型目录文件失败: {}", e))?)
     } else {
-        None
+        let active_catalog = catalog::parse_active_catalog_file_from_lines(lines);
+        active_catalog.and_then(|file_name| {
+            let p = catalog::resolve_catalog_path(codex_dir, &file_name);
+            if p.exists() && file_name != catalog_file_name {
+                fs::read_to_string(p).ok()
+            } else {
+                None
+            }
+        })
     };
 
     let Some(new_content) =
