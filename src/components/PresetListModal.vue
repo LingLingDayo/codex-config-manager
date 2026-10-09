@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { Lightbulb, GripVertical } from '@lucide/vue';
+import { onMounted, onUnmounted } from 'vue';
+import { Lightbulb } from '@lucide/vue';
 import type { CodexConfig, PresetConfig } from '../types/config';
-import { normalizeUrl } from '../utils/format';
 import { isPresetActive as matchPresetActive } from '../utils/preset';
+import { usePresetDragReorder } from '../composables/usePresetDragReorder';
+import PresetListItem from './preset/PresetListItem.vue';
+import PresetListEmpty from './preset/PresetListEmpty.vue';
 
 const props = defineProps<{
   visible: boolean;
@@ -20,97 +22,24 @@ const emit = defineEmits<{
   (e: 'reorder-presets', fromIndex: number, toIndex: number): void;
 }>();
 
-const draggedIndex = ref<number | null>(null);
-const dragOverIndex = ref<number | null>(null);
-const isDragging = ref<boolean>(false);
-let dragEndTimeout: ReturnType<typeof setTimeout> | null = null;
+const {
+  draggedIndex,
+  dragOverIndex,
+  onDragStart,
+  onDragOver,
+  onDragEnter,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
+  onListDrop,
+  clearTimer,
+} = usePresetDragReorder({
+  getPresetsCount: () => props.presets.length,
+  onReorder: (from, to) => emit('reorder-presets', from, to),
+});
 
 const isPresetActive = (preset: PresetConfig): boolean => {
   return matchPresetActive(preset, props.currentConfig);
-};
-
-const handleRowClick = (preset: PresetConfig) => {
-  if (isDragging.value) {
-    return;
-  }
-  if (!isPresetActive(preset)) {
-    emit('apply-preset', preset);
-  }
-};
-
-const cleanupDragState = () => {
-  draggedIndex.value = null;
-  dragOverIndex.value = null;
-  if (dragEndTimeout) {
-    clearTimeout(dragEndTimeout);
-  }
-  dragEndTimeout = setTimeout(() => {
-    isDragging.value = false;
-  }, 100);
-};
-
-const onDragStart = (e: DragEvent, index: number) => {
-  if (props.presets.length <= 1) return;
-  draggedIndex.value = index;
-  isDragging.value = true;
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', String(index));
-  }
-};
-
-const onDragOver = (e: DragEvent, index: number) => {
-  if (draggedIndex.value === null) return;
-  e.preventDefault();
-  if (e.dataTransfer) {
-    e.dataTransfer.dropEffect = 'move';
-  }
-  if (draggedIndex.value !== index) {
-    dragOverIndex.value = index;
-  } else {
-    dragOverIndex.value = null;
-  }
-};
-
-const onDragEnter = (e: DragEvent, index: number) => {
-  if (draggedIndex.value === null) return;
-  e.preventDefault();
-  if (draggedIndex.value !== index) {
-    dragOverIndex.value = index;
-  }
-};
-
-const onDragLeave = (e: DragEvent, index: number) => {
-  const currentTarget = e.currentTarget as HTMLElement | null;
-  const relatedTarget = e.relatedTarget as HTMLElement | null;
-  if (!currentTarget || !relatedTarget || !currentTarget.contains(relatedTarget)) {
-    if (dragOverIndex.value === index) {
-      dragOverIndex.value = null;
-    }
-  }
-};
-
-const onDrop = (e: DragEvent, targetIndex: number) => {
-  e.preventDefault();
-  const fromIndex = draggedIndex.value;
-  if (fromIndex !== null && fromIndex !== targetIndex) {
-    emit('reorder-presets', fromIndex, targetIndex);
-  }
-  cleanupDragState();
-};
-
-const onDragEnd = () => {
-  cleanupDragState();
-};
-
-const onListDrop = (e: DragEvent) => {
-  if (e.target === e.currentTarget && draggedIndex.value !== null) {
-    const targetIndex = props.presets.length - 1;
-    if (draggedIndex.value !== targetIndex) {
-      emit('reorder-presets', draggedIndex.value, targetIndex);
-    }
-    cleanupDragState();
-  }
 };
 
 const handleKeyDown = (e: KeyboardEvent) => {
@@ -125,9 +54,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
-  if (dragEndTimeout) {
-    clearTimeout(dragEndTimeout);
-  }
+  clearTimer();
 });
 </script>
 
@@ -210,137 +137,28 @@ onUnmounted(() => {
         @dragover.prevent
         @drop="onListDrop"
       >
-        <div
+        <PresetListItem
           v-for="(preset, index) in presets"
           :key="preset.id"
-          class="preset-item"
-          :class="{
-            'is-active': isPresetActive(preset),
-            'is-dragging': draggedIndex === index,
-            'is-drag-over': dragOverIndex === index,
-          }"
-          :title="isPresetActive(preset) ? '当前正在生效' : '点击立即切换至此配置'"
+          :preset="preset"
+          :is-active="isPresetActive(preset)"
           :draggable="presets.length > 1"
+          :is-dragging="draggedIndex === index"
+          :is-drag-over="dragOverIndex === index"
+          @apply="emit('apply-preset', $event)"
+          @edit="emit('edit-preset', $event)"
+          @delete="emit('delete-preset', $event)"
           @dragstart="onDragStart($event, index)"
           @dragover="onDragOver($event, index)"
           @dragenter="onDragEnter($event, index)"
           @dragleave="onDragLeave($event, index)"
           @drop="onDrop($event, index)"
           @dragend="onDragEnd"
-          @click="handleRowClick(preset)"
-        >
-          <!-- 拖拽把手 (多于1个配置时支持拖拽排序) -->
-          <div
-            v-if="presets.length > 1"
-            class="drag-handle"
-            title="按住拖拽以调整顺序"
-            @click.stop
-          >
-            <GripVertical :size="13" class="drag-handle-icon" />
-          </div>
-
-          <!-- 左侧基本信息 -->
-          <div class="preset-info">
-            <div class="preset-title-row">
-              <span class="status-indicator-dot" :class="{ active: isPresetActive(preset) }"></span>
-              <span class="preset-name">{{ preset.name }}</span>
-            </div>
-            <span class="preset-url" :title="preset.provider_url">
-              {{ normalizeUrl(preset.provider_url) || '默认 URL' }}
-            </span>
-          </div>
-
-          <!-- 右侧操作与状态 -->
-          <div class="preset-actions" @click.stop @mousedown.stop>
-            <span v-if="isPresetActive(preset)" class="active-pill">
-              <span class="pill-dot"></span>生效中
-            </span>
-            <button
-              v-else
-              type="button"
-              class="btn-use"
-              title="切换并生效"
-              @click.stop="emit('apply-preset', preset)"
-            >
-              切换
-            </button>
-
-            <button
-              type="button"
-              class="btn-action-icon"
-              title="编辑配置"
-              @click.stop="emit('edit-preset', preset)"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                <path d="m15 5 4 4" />
-              </svg>
-            </button>
-
-            <button
-              type="button"
-              class="btn-action-icon btn-delete"
-              title="删除配置"
-              @click.stop="emit('delete-preset', preset)"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M3 6h18" />
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        />
       </div>
 
       <!-- 空状态 -->
-      <div v-else class="empty-state">
-        <div class="empty-icon-wrap">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="28"
-            height="28"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect width="20" height="14" x="2" y="5" rx="2" />
-            <line x1="2" y1="10" x2="22" y2="10" />
-          </svg>
-        </div>
-        <p class="empty-title">暂无保存的预设</p>
-        <p class="empty-desc">添加常用中转站 Key 与地址，随时一键切换</p>
-        <button
-          type="button"
-          class="btn-add-empty"
-          @click="emit('add-preset')"
-        >
-          + 立即添加第一个配置
-        </button>
-      </div>
+      <PresetListEmpty v-else @add-preset="emit('add-preset')" />
 
       <!-- 底部操作与提示 -->
       <div class="modal-footer">
@@ -486,278 +304,6 @@ onUnmounted(() => {
   overflow-y: auto;
   padding: 10px 16px;
   @include custom-scrollbar;
-}
-
-.preset-item {
-  background: $bg-secondary;
-  border: 1px solid $border-color;
-  border-radius: $border-radius-md;
-  padding: 10px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.18s ease;
-
-  &:hover {
-    background: rgba($bg-secondary, 0.95);
-    border-color: rgba($accent-blue, 0.35);
-
-    .preset-name {
-      color: #fff;
-    }
-
-    .drag-handle {
-      color: rgba(255, 255, 255, 0.55);
-    }
-  }
-
-  &.is-dragging {
-    opacity: 0.38;
-    background: rgba($bg-secondary, 0.45);
-    border: 1px dashed rgba($accent-blue, 0.6);
-    box-shadow: none;
-    cursor: grabbing;
-
-    * {
-      pointer-events: none;
-    }
-  }
-
-  &.is-drag-over {
-    border-color: $accent-blue;
-    background: rgba($accent-blue, 0.1);
-    box-shadow: 0 0 12px rgba($accent-blue, 0.22);
-    transform: translateY(-1px);
-  }
-
-  &.is-active {
-    border-color: rgba($accent-blue, 0.5);
-    background: linear-gradient(135deg, rgba($accent-blue, 0.08), rgba($accent-purple, 0.06)),
-      $bg-secondary;
-    box-shadow: 0 0 10px rgba($accent-blue, 0.12);
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: $accent-gradient;
-      border-top-left-radius: $border-radius-md;
-      border-bottom-left-radius: $border-radius-md;
-    }
-  }
-}
-
-.drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.26);
-  cursor: grab;
-  padding: 4px 1px;
-  border-radius: $border-radius-xs;
-  flex-shrink: 0;
-  transition: all 0.18s ease;
-  user-select: none;
-
-  &:hover {
-    color: $accent-blue;
-    background: rgba($accent-blue, 0.12);
-  }
-
-  &:active {
-    cursor: grabbing;
-  }
-}
-
-.preset-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-  flex: 1;
-}
-
-.preset-title-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
-.status-indicator-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: $text-dim;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-
-  &.active {
-    background-color: $success;
-    box-shadow: 0 0 6px $success;
-  }
-}
-
-.preset-name {
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: $text-main;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: color 0.2s ease;
-}
-
-.preset-url {
-  font-size: 0.72rem;
-  color: $text-muted;
-  font-family: $font-family-mono;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-left: 13px;
-}
-
-.preset-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.active-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba($success, 0.15);
-  border: 1px solid rgba($success, 0.3);
-  color: $success;
-  font-size: 0.68rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
-
-  .pill-dot {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: $success;
-  }
-}
-
-.btn-use {
-  background: rgba($accent-blue, 0.1);
-  border: none;
-  outline: none;
-  box-shadow: inset 0 0 0 1px rgba($accent-blue, 0.25);
-  color: $accent-blue;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 4px 11px;
-  border-radius: $border-radius-sm;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: $accent-gradient;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 4px rgba($accent-blue, 0.2);
-    filter: brightness(1.08);
-  }
-}
-
-.btn-action-icon {
-  background: transparent;
-  border: 1px solid transparent;
-  color: $text-muted;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: $border-radius-sm;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: $text-main;
-    border-color: $border-color;
-  }
-
-  &.btn-delete:hover {
-    background: rgba($danger, 0.15);
-    color: $danger;
-    border-color: rgba($danger, 0.3);
-  }
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  margin: 12px 16px;
-  text-align: center;
-  background: rgba($bg-secondary, 0.4);
-  border: 1px dashed $border-color;
-  border-radius: $border-radius-md;
-  gap: 8px;
-  flex: 1;
-  min-height: 0;
-
-  .empty-icon-wrap {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba($accent-blue, 0.08);
-    color: $accent-blue;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 2px;
-  }
-
-  .empty-title {
-    font-size: 0.86rem;
-    font-weight: 600;
-    color: $text-main;
-  }
-
-  .empty-desc {
-    font-size: 0.74rem;
-    color: $text-muted;
-    max-width: 240px;
-    line-height: 1.4;
-    margin-bottom: 4px;
-  }
-
-  .btn-add-empty {
-    background: rgba($accent-blue, 0.12);
-    border: none;
-    outline: none;
-    box-shadow: inset 0 0 0 1px rgba($accent-blue, 0.3);
-    color: $accent-blue;
-    padding: 7px 15px;
-    font-size: 0.76rem;
-    font-weight: 600;
-    border-radius: $border-radius-sm;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: $accent-gradient;
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 4px rgba($accent-blue, 0.2);
-      filter: brightness(1.08);
-    }
-  }
 }
 
 .modal-footer {
