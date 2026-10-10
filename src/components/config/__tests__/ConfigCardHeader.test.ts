@@ -69,5 +69,35 @@ describe('ConfigCardHeader.vue component', () => {
     const starSvg = btn.find('svg');
     expect(starSvg.attributes('fill')).toBe('currentColor');
     expect(starSvg.classes()).toContain('star-saved');
+    expect(btn.text()).toContain('收藏配置');
+  });
+
+  it('配置已保存且存在修改 (isModified 为 true) 时，文案应显示为更新配置', () => {
+    const wrapper = mount(ConfigCardHeader, {
+      props: {
+        isSaved: true,
+        isModified: true,
+      },
+    });
+
+    const btn = wrapper.find('.btn-text-action');
+    expect(btn.classes()).toContain('is-saved');
+    expect(btn.classes()).toContain('is-modified');
+    expect(btn.text()).toContain('更新配置');
+    expect(btn.attributes('title')).toBe('当前配置与已保存项不一致，点击可更新配置');
+  });
+
+  it('未保存状态即使 isModified 为 true，文案依然保持为收藏配置', () => {
+    const wrapper = mount(ConfigCardHeader, {
+      props: {
+        isSaved: false,
+        isModified: true,
+      },
+    });
+
+    const btn = wrapper.find('.btn-text-action');
+    expect(btn.classes()).not.toContain('is-saved');
+    expect(btn.text()).toContain('收藏配置');
+    expect(btn.attributes('title')).toBe('将当前填写的配置收藏到配置列表');
   });
 });

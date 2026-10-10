@@ -1,13 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Star } from '@lucide/vue';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     activePresetName?: string;
     isSaved?: boolean;
+    isModified?: boolean;
   }>(),
   {
     isSaved: false,
+    isModified: false,
   }
 );
 
@@ -15,6 +18,19 @@ const emit = defineEmits<{
   (e: 'open-presets'): void;
   (e: 'save-as-preset'): void;
 }>();
+
+const saveActionText = computed(() => {
+  return props.isSaved && props.isModified ? '更新配置' : '收藏配置';
+});
+
+const saveActionTitle = computed(() => {
+  if (props.isSaved) {
+    return props.isModified
+      ? '当前配置与已保存项不一致，点击可更新配置'
+      : '当前配置已在配置列表中，点击可编辑';
+  }
+  return '将当前填写的配置收藏到配置列表';
+});
 </script>
 
 <template>
@@ -52,12 +68,12 @@ const emit = defineEmits<{
 
     <!-- 头部右侧操作组 -->
     <div class="header-actions">
-      <!-- 收藏配置 -->
+      <!-- 收藏/更新配置 -->
       <button
         type="button"
         class="btn-text-action"
-        :class="{ 'is-saved': isSaved }"
-        :title="isSaved ? '当前配置已在配置列表中，点击可编辑' : '将当前填写的配置收藏到配置列表'"
+        :class="{ 'is-saved': isSaved, 'is-modified': isSaved && isModified }"
+        :title="saveActionTitle"
         @click="emit('save-as-preset')"
       >
         <Star
@@ -67,7 +83,7 @@ const emit = defineEmits<{
           class="action-icon"
           :class="{ 'star-saved': isSaved }"
         />
-        <span>收藏配置</span>
+        <span>{{ saveActionText }}</span>
       </button>
 
       <!-- 头部预设按钮 -->

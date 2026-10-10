@@ -11,7 +11,7 @@ import {
   applyStationAlias,
   isDefaultStation,
 } from '../utils/format';
-import { matchesPresetIdentity } from '../utils/preset';
+import { isPresetContentEqual, matchesPresetIdentity } from '../utils/preset';
 
 const props = withDefaults(
   defineProps<{
@@ -125,6 +125,17 @@ const isSaved = computed(() => {
   }
   return Boolean(props.activePresetName);
 });
+
+const isPresetModified = computed(() => {
+  if (!matchingPreset.value) return false;
+  return !isPresetContentEqual(matchingPreset.value, {
+    key: apiKey.value,
+    providerUrl: providerUrl.value,
+    model: customModel.value,
+    modelReasoningEffort: reasoningEffort.value,
+    modelAliases: modelAliases.value,
+  });
+});
 </script>
 
 <template>
@@ -133,6 +144,7 @@ const isSaved = computed(() => {
     <ConfigCardHeader
       :active-preset-name="activePresetName"
       :is-saved="isSaved"
+      :is-modified="isPresetModified"
       @open-presets="emit('open-presets')"
       @save-as-preset="handleSaveAsPreset"
     />
