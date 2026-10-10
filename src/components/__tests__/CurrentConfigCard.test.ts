@@ -140,7 +140,7 @@ describe('CurrentConfigCard.vue component', () => {
     expect(headerSaveBtn.classes()).not.toContain('is-saved');
   });
 
-  it('当当前配置与匹配预设内容一致时文案为收藏配置，修改内容后文案变为更新配置', async () => {
+  it('当当前配置与匹配预设内容完全一致时按钮不显示，修改内容后展示为更新配置，恢复后重新隐藏', async () => {
     const matchingFullPreset = {
       id: 'preset_full',
       name: '完全匹配预设',
@@ -159,9 +159,8 @@ describe('CurrentConfigCard.vue component', () => {
       },
     });
 
-    const headerSaveBtn = wrapper.find('.card-header .btn-text-action');
-    // 初始状态下全部内容完全一致，文案应为“收藏配置”
-    expect(headerSaveBtn.text()).toContain('收藏配置');
+    // 初始状态下全部内容完全一致，按钮应不显示
+    expect(wrapper.find('.card-header .btn-text-action').exists()).toBe(false);
 
     // 打开抽屉或修改 customModel
     const drawer = wrapper.findComponent({ name: 'ConfigDrawer' });
@@ -171,13 +170,15 @@ describe('CurrentConfigCard.vue component', () => {
     drawer.vm.$emit('update:modelValue', 'o3-mini');
     await wrapper.vm.$nextTick();
 
-    // 修改后完整配置与预设不一致，文案应变为“更新配置”
+    // 修改后完整配置与预设不一致，按钮应显示且文案为“更新配置”
+    const headerSaveBtn = wrapper.find('.card-header .btn-text-action');
+    expect(headerSaveBtn.exists()).toBe(true);
     expect(headerSaveBtn.text()).toContain('更新配置');
 
-    // 恢复为原有模型后，文案应恢复为“收藏配置”
+    // 恢复为原有模型后，按钮应再次隐藏
     drawer.vm.$emit('update:modelValue', mockConfig.model);
     await wrapper.vm.$nextTick();
 
-    expect(headerSaveBtn.text()).toContain('收藏配置');
+    expect(wrapper.find('.card-header .btn-text-action').exists()).toBe(false);
   });
 });

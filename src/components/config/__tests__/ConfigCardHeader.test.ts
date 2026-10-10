@@ -57,22 +57,18 @@ describe('ConfigCardHeader.vue component', () => {
     expect(starSvg.attributes('fill')).toBe('none');
   });
 
-  it('配置已保存 (isSaved 为 true) 时，星标图标填充 currentColor 且应用 is-saved 样式', () => {
+  it('配置已保存且未修改 (与已有配置完全一致) 时，按钮不显示', () => {
     const wrapper = mount(ConfigCardHeader, {
       props: {
         isSaved: true,
+        isModified: false,
       },
     });
 
-    const btn = wrapper.find('.btn-text-action');
-    expect(btn.classes()).toContain('is-saved');
-    const starSvg = btn.find('svg');
-    expect(starSvg.attributes('fill')).toBe('currentColor');
-    expect(starSvg.classes()).toContain('star-saved');
-    expect(btn.text()).toContain('收藏配置');
+    expect(wrapper.find('.btn-text-action').exists()).toBe(false);
   });
 
-  it('配置已保存且存在修改 (isModified 为 true) 时，文案应显示为更新配置', () => {
+  it('配置已保存且存在修改 (isModified 为 true) 时，按钮展示且文案为更新配置', () => {
     const wrapper = mount(ConfigCardHeader, {
       props: {
         isSaved: true,
@@ -81,8 +77,12 @@ describe('ConfigCardHeader.vue component', () => {
     });
 
     const btn = wrapper.find('.btn-text-action');
+    expect(btn.exists()).toBe(true);
     expect(btn.classes()).toContain('is-saved');
     expect(btn.classes()).toContain('is-modified');
+    const starSvg = btn.find('svg');
+    expect(starSvg.attributes('fill')).toBe('currentColor');
+    expect(starSvg.classes()).toContain('star-saved');
     expect(btn.text()).toContain('更新配置');
     expect(btn.attributes('title')).toBe('当前配置与已保存项不一致，点击可更新配置');
   });

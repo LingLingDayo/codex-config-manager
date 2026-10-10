@@ -23,6 +23,13 @@ const saveActionText = computed(() => {
   return props.isSaved && props.isModified ? '更新配置' : '收藏配置';
 });
 
+const shouldShowSaveButton = computed(() => {
+  if (props.isSaved && !props.isModified) {
+    return false;
+  }
+  return true;
+});
+
 const saveActionTitle = computed(() => {
   if (props.isSaved) {
     return props.isModified
@@ -70,6 +77,7 @@ const saveActionTitle = computed(() => {
     <div class="header-actions">
       <!-- 收藏/更新配置 -->
       <button
+        v-if="shouldShowSaveButton"
         type="button"
         class="btn-text-action"
         :class="{ 'is-saved': isSaved, 'is-modified': isSaved && isModified }"
