@@ -24,12 +24,16 @@ export const MORE_CONFIG_META = {
 </script>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import SettingItem from '../settings/SettingItem.vue';
 import SettingSelect from '../settings/SettingSelect.vue';
 import ModelSelect from './ModelSelect.vue';
 import ModelAliasList from './ModelAliasList.vue';
-import { getReasoningEffortOptions } from '../../utils/modelReasoning';
+import {
+  fetchModelReasoningSpec,
+  mapReasoningLevelsToOptions,
+} from '../../utils/modelReasoning';
+import { REASONING_EFFORT_OPTIONS } from '../../types/config';
 import type { ModelAlias } from '../../types/config';
 
 const props = withDefaults(
@@ -65,8 +69,19 @@ const fetchedModels = ref<string[]>([]);
 
 const resolvedModel = computed(() => props.model || props.modelValue || '');
 
-const availableReasoningOptions = computed(() =>
-  getReasoningEffortOptions(resolvedModel.value)
+const availableReasoningOptions = ref(REASONING_EFFORT_OPTIONS);
+
+watch(
+  resolvedModel,
+  async (newModel) => {
+    if (!newModel.trim()) {
+      availableReasoningOptions.value = REASONING_EFFORT_OPTIONS;
+      return;
+    }
+    const spec = await fetchModelReasoningSpec(newModel);
+    availableReasoningOptions.value = mapReasoningLevelsToOptions(spec.supported_levels);
+  },
+  { immediate: true }
 );
 
 const modelInputId = computed(() =>

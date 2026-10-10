@@ -73,3 +73,11 @@ pub struct LaunchResult {
     pub message: String,
     pub target: String,
 }
+
+/// 前端查询模型推理配置规格的响应 DTO
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ModelReasoningSpecDto {
+    pub default_level: String,
+    pub supported_levels: Vec<String>,
+}
+

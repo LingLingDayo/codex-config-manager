@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::models::{CodexConfig, ModelAlias};
+use crate::models::{CodexConfig, ModelAlias, ModelReasoningSpecDto};
 use crate::utils::{
     config_file_names, default_catalog_file_name, get_codex_dir, get_default_station_url,
     is_default_station,
@@ -17,10 +17,20 @@ pub mod toml_utils;
 pub use catalog::{
     apply_display_name_to_catalog, apply_model_aliases_to_catalog, apply_model_catalog_json_to_lines,
     parse_active_catalog_file_from_lines, parse_display_name_from_catalog,
-    parse_model_aliases_from_catalog, resolve_catalog_path,
+    parse_model_aliases_from_catalog, resolve_catalog_path, resolve_model_reasoning_spec,
 };
 pub use parser::parse_codex_config_from_content;
 pub use patcher::{apply_model_reasoning_effort_to_lines, apply_model_to_lines};
+
+#[tauri::command]
+pub fn get_model_reasoning_spec(slug: Option<String>) -> Result<ModelReasoningSpecDto, String> {
+    let raw = slug.unwrap_or_default();
+    let spec = catalog::resolve_model_reasoning_spec(&raw);
+    Ok(ModelReasoningSpecDto {
+        default_level: spec.default_level.to_string(),
+        supported_levels: spec.supported_levels.iter().map(|s| s.to_string()).collect(),
+    })
+}
 
 #[tauri::command]
 pub fn get_codex_config() -> Result<CodexConfig, String> {
@@ -337,3 +347,26 @@ pub fn restore_codex_default() -> Result<(), String> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_model_reasoning_spec_command() {
+        let res = get_model_reasoning_spec(Some("gpt-5.6-sol".to_string())).unwrap();
+        assert_eq!(res.default_level, "medium");
+        assert_eq!(
+            res.supported_levels,
+            vec!["none", "low", "medium", "high", "xhigh", "max", "ultra"]
+        );
+
+        let res_fallback = get_model_reasoning_spec(None).unwrap();
+        assert_eq!(res_fallback.default_level, "medium");
+        assert_eq!(
+            res_fallback.supported_levels,
+            vec!["low", "medium", "high", "xhigh", "max", "ultra"]
+        );
+    }
+}
+

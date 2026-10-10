@@ -58,6 +58,11 @@ export interface PresetFormData {
   model_aliases?: ModelAlias[];
 }
 
+export interface ModelReasoningSpec {
+  default_level: string;
+  supported_levels: string[];
+}
+
 export const REASONING_EFFORT_OPTIONS = [
   { label: 'none', value: 'none', description: '不思考' },
   { label: 'minimal', value: 'minimal', description: '极低思考强度' },
