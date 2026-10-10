@@ -29,7 +29,7 @@ import SettingItem from '../settings/SettingItem.vue';
 import SettingSelect from '../settings/SettingSelect.vue';
 import ModelSelect from './ModelSelect.vue';
 import ModelAliasList from './ModelAliasList.vue';
-import { REASONING_EFFORT_OPTIONS } from '../../types/config';
+import { getReasoningEffortOptions } from '../../utils/modelReasoning';
 import type { ModelAlias } from '../../types/config';
 
 const props = withDefaults(
@@ -64,6 +64,10 @@ const emit = defineEmits<{
 const fetchedModels = ref<string[]>([]);
 
 const resolvedModel = computed(() => props.model || props.modelValue || '');
+
+const availableReasoningOptions = computed(() =>
+  getReasoningEffortOptions(resolvedModel.value)
+);
 
 const modelInputId = computed(() =>
   props.idPrefix ? `${props.idPrefix}-model` : 'custom-model-input'
@@ -115,7 +119,7 @@ const handleModelUpdate = (val: string) => {
       <SettingSelect
         :id="reasoningSelectId"
         :model-value="reasoningEffort"
-        :options="REASONING_EFFORT_OPTIONS"
+        :options="availableReasoningOptions"
         :placeholder="MORE_CONFIG_META.reasoningEffort.placeholder"
         :allow-custom="true"
         :title="MORE_CONFIG_META.reasoningEffort.title"

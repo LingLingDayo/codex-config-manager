@@ -172,21 +172,136 @@ pub fn ensure_model_entry_validity(entry: &mut serde_json::Value) {
     }
 }
 
+/// 单个模型所支持的思考强度配置规格
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModelReasoningSpec {
+    pub default_level: &'static str,
+    pub supported_levels: &'static [&'static str],
+}
+
+/// 默认兜底思考强度规格（未在已知数据中的模型沿用完整列表）
+pub const DEFAULT_REASONING_SPEC: ModelReasoningSpec = ModelReasoningSpec {
+    default_level: "medium",
+    supported_levels: &["low", "medium", "high", "xhigh", "max", "ultra"],
+};
+
+/// 获取思考强度档位对应的标准英文描述
+pub fn reasoning_level_description(effort: &str) -> &'static str {
+    match effort {
+        "none" => "Disables reasoning",
+        "minimal" => "Minimal reasoning depth",
+        "low" => "Fast responses with lighter reasoning",
+        "medium" => "Balances speed and reasoning depth for everyday tasks",
+        "high" => "Greater reasoning depth for complex problems",
+        "xhigh" => "Extra high reasoning depth for complex problems",
+        "max" => "Maximum reasoning depth for the hardest problems",
+        "ultra" => "Maximum reasoning with automatic task delegation",
+        _ => "",
+    }
+}
+
+/// 根据模型 slug 解析其支持的思考强度列表与默认值
+pub fn resolve_model_reasoning_spec(slug: &str) -> ModelReasoningSpec {
+    let s = slug.to_ascii_lowercase();
+    let name = s.split('/').last().unwrap_or(&s).trim();
+    let name = name.split(':').next().unwrap_or(name);
+    let clean = name.replace(['_', ' '], "-");
+
+    if clean == "gpt-5.6-sol" || clean.starts_with("gpt-5.6-sol-") {
+        ModelReasoningSpec {
+            default_level: "medium",
+            supported_levels: &["none", "low", "medium", "high", "xhigh", "max", "ultra"],
+        }
+    } else if clean == "gpt-5.6-terra" || clean.starts_with("gpt-5.6-terra-") {
+        ModelReasoningSpec {
+            default_level: "medium",
+            supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
+        }
+    } else if clean == "gpt-5.6-luna" || clean.starts_with("gpt-5.6-luna-") {
+        ModelReasoningSpec {
+            default_level: "medium",
+            supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
+        }
+    } else if clean == "gpt-6.1-sol" || clean.starts_with("gpt-6.1-sol-") {
+        ModelReasoningSpec {
+            default_level: "medium",
+            supported_levels: &["low", "medium", "high", "xhigh", "max"],
+        }
+    } else if clean == "gpt-6-astra" || clean.starts_with("gpt-6-astra-") {
+        ModelReasoningSpec {
+            default_level: "medium",
+            supported_levels: &["low", "medium", "high", "xhigh", "max"],
+        }
+    } else if clean == "gpt-6-sol" || clean.starts_with("gpt-6-sol-") {
+        ModelReasoningSpec {
+            default_level: "medium",
+            supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
+        }
+    } else if clean == "gpt-6-luna" || clean.starts_with("gpt-6-luna-") {
+        ModelReasoningSpec {
+            default_level: "medium",
+            supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
+        }
+    } else if clean == "glm-5.3-flash" || clean.starts_with("glm-5.3-flash-") {
+        ModelReasoningSpec {
+            default_level: "max",
+            supported_levels: &["low", "high", "max"],
+        }
+    } else if clean == "glm-5.3" || clean.starts_with("glm-5.3-") {
+        ModelReasoningSpec {
+            default_level: "max",
+            supported_levels: &["low", "high", "max"],
+        }
+    } else if clean == "kimi-k3" || clean.starts_with("kimi-k3-") {
+        ModelReasoningSpec {
+            default_level: "max",
+            supported_levels: &["low", "high", "max"],
+        }
+    } else if clean == "deepseek-v4.1-flash" || clean.starts_with("deepseek-v4.1-flash-") {
+        ModelReasoningSpec {
+            default_level: "high",
+            supported_levels: &["none", "low", "high", "max"],
+        }
+    } else if clean == "deepseek-v4-pro" || clean.starts_with("deepseek-v4-pro-") {
+        ModelReasoningSpec {
+            default_level: "high",
+            supported_levels: &["none", "low", "high", "max"],
+        }
+    } else if clean == "grok-4.6" || clean.starts_with("grok-4.6-") {
+        ModelReasoningSpec {
+            default_level: "high",
+            supported_levels: &["low", "medium", "high", "xhigh"],
+        }
+    } else if clean == "grok-4.7" || clean.starts_with("grok-4.7-") {
+        ModelReasoningSpec {
+            default_level: "high",
+            supported_levels: &["low", "medium", "high", "xhigh"],
+        }
+    } else {
+        DEFAULT_REASONING_SPEC
+    }
+}
+
 /// 为指定 slug 创建一个结构完整且符合 Codex ModelInfo 规范的模型条目
 pub fn create_model_entry(slug: &str, display_name: &str) -> serde_json::Value {
+    let spec = resolve_model_reasoning_spec(slug);
+    let supported_levels: Vec<serde_json::Value> = spec
+        .supported_levels
+        .iter()
+        .map(|&effort| {
+            serde_json::json!({
+                "effort": effort,
+                "description": reasoning_level_description(effort),
+            })
+        })
+        .collect();
+
     serde_json::json!({
         "slug": slug,
         "display_name": display_name,
         "description": display_name,
-        "default_reasoning_level": "medium",
-        "supported_reasoning_levels": [
-            { "effort": "low", "description": "Fast responses with lighter reasoning" },
-            { "effort": "medium", "description": "Balances speed and reasoning depth for everyday tasks" },
-            { "effort": "high", "description": "Greater reasoning depth for complex problems" },
-            { "effort": "xhigh", "description": "Extra high reasoning depth for complex problems" },
-            { "effort": "max", "description": "Maximum reasoning depth for the hardest problems" },
-            { "effort": "ultra", "description": "Maximum reasoning with automatic task delegation" }
-        ],
+        "default_reasoning_level": spec.default_level,
+        "supported_reasoning_levels": supported_levels,
         "default_reasoning_summary": "none",
         "default_service_tier": null,
         "default_verbosity": "low",
@@ -674,5 +789,139 @@ mod tests {
             complete_entry["base_instructions"],
             "Existing system instructions"
         );
+    }
+
+    #[test]
+    fn test_resolve_model_reasoning_spec_all_models() {
+        // GPT-5.6 Sol
+        let spec = resolve_model_reasoning_spec("gpt-5.6-sol");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["none", "low", "medium", "high", "xhigh", "max", "ultra"]
+        );
+
+        // GPT-5.6 Terra
+        let spec = resolve_model_reasoning_spec("GPT-5.6 Terra");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["none", "low", "medium", "high", "xhigh", "max"]
+        );
+
+        // GPT-5.6 Luna
+        let spec = resolve_model_reasoning_spec("gpt-5.6_luna");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["none", "low", "medium", "high", "xhigh", "max"]
+        );
+
+        // GPT-6 Astra
+        let spec = resolve_model_reasoning_spec("gpt-6-astra");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["low", "medium", "high", "xhigh", "max"]
+        );
+
+        // GPT-6 Sol
+        let spec = resolve_model_reasoning_spec("gpt-6-sol");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["none", "low", "medium", "high", "xhigh", "max"]
+        );
+
+        // GPT-6 Luna
+        let spec = resolve_model_reasoning_spec("gpt-6-luna");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["none", "low", "medium", "high", "xhigh", "max"]
+        );
+
+        // GPT-6.1 Sol
+        let spec = resolve_model_reasoning_spec("gpt-6.1-sol");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["low", "medium", "high", "xhigh", "max"]
+        );
+
+        // Zhipu GLM-5.3 & GLM-5.3-FLASH
+        let spec = resolve_model_reasoning_spec("glm-5.3");
+        assert_eq!(spec.default_level, "max");
+        assert_eq!(spec.supported_levels, &["low", "high", "max"]);
+
+        let spec = resolve_model_reasoning_spec("GLM-5.3-FLASH");
+        assert_eq!(spec.default_level, "max");
+        assert_eq!(spec.supported_levels, &["low", "high", "max"]);
+
+        // Moonshot Kimi K3
+        let spec = resolve_model_reasoning_spec("kimi-k3");
+        assert_eq!(spec.default_level, "max");
+        assert_eq!(spec.supported_levels, &["low", "high", "max"]);
+
+        // DeepSeek DeepSeek-V4-Pro & DeepSeek-V4.1-Flash
+        let spec = resolve_model_reasoning_spec("deepseek-v4-pro");
+        assert_eq!(spec.default_level, "high");
+        assert_eq!(spec.supported_levels, &["none", "low", "high", "max"]);
+
+        let spec = resolve_model_reasoning_spec("deepseek-v4.1-flash");
+        assert_eq!(spec.default_level, "high");
+        assert_eq!(spec.supported_levels, &["none", "low", "high", "max"]);
+
+        // xAI Grok-4.6 & Grok-4.7
+        let spec = resolve_model_reasoning_spec("grok-4.6");
+        assert_eq!(spec.default_level, "high");
+        assert_eq!(
+            spec.supported_levels,
+            &["low", "medium", "high", "xhigh"]
+        );
+
+        let spec = resolve_model_reasoning_spec("grok-4.7");
+        assert_eq!(spec.default_level, "high");
+        assert_eq!(
+            spec.supported_levels,
+            &["low", "medium", "high", "xhigh"]
+        );
+
+        // 未知模型兜底（完整列表）
+        let spec = resolve_model_reasoning_spec("claude-3-7-sonnet");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["low", "medium", "high", "xhigh", "max", "ultra"]
+        );
+
+        // 前缀与特殊格式（如 openai/gpt-5.6-sol:latest）
+        let spec = resolve_model_reasoning_spec("openai/gpt-5.6-sol:latest");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["none", "low", "medium", "high", "xhigh", "max", "ultra"]
+        );
+    }
+
+    #[test]
+    fn test_create_model_entry_custom_reasoning_levels() {
+        let entry = create_model_entry("glm-5.3", "智谱 GLM 5.3");
+        assert_eq!(entry["default_reasoning_level"], "max");
+        let levels = entry["supported_reasoning_levels"].as_array().unwrap();
+        assert_eq!(levels.len(), 3);
+        assert_eq!(levels[0]["effort"], "low");
+        assert_eq!(levels[1]["effort"], "high");
+        assert_eq!(levels[2]["effort"], "max");
+
+        let entry = create_model_entry("deepseek-v4-pro", "DeepSeek V4 Pro");
+        assert_eq!(entry["default_reasoning_level"], "high");
+        let levels = entry["supported_reasoning_levels"].as_array().unwrap();
+        assert_eq!(levels.len(), 4);
+        assert_eq!(levels[0]["effort"], "none");
+        assert_eq!(levels[0]["description"], "Disables reasoning");
+        assert_eq!(levels[1]["effort"], "low");
+        assert_eq!(levels[2]["effort"], "high");
+        assert_eq!(levels[3]["effort"], "max");
     }
 }
