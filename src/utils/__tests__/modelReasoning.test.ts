@@ -2,11 +2,26 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_REASONING_SPEC,
   getReasoningEffortOptions,
+  normalizeModelSlug,
   resolveModelReasoningSpec,
 } from '../modelReasoning';
 import { REASONING_EFFORT_OPTIONS } from '../../types/config';
 
 describe('modelReasoning utility', () => {
+  describe('normalizeModelSlug', () => {
+    it('空值或纯空白应返回空字符串', () => {
+      expect(normalizeModelSlug('')).toBe('');
+      expect(normalizeModelSlug(null)).toBe('');
+      expect(normalizeModelSlug('   ')).toBe('');
+    });
+
+    it('去除 namespace 前缀与 tag 后缀并将空格/下划线转为短横线', () => {
+      expect(normalizeModelSlug('openai/gpt-5.6-sol:latest')).toBe('gpt-5.6-sol');
+      expect(normalizeModelSlug('GPT-5.6 Sol')).toBe('gpt-5.6-sol');
+      expect(normalizeModelSlug('glm_5.3_flash:v1')).toBe('glm-5.3-flash');
+    });
+  });
+
   describe('resolveModelReasoningSpec', () => {
     it('空值或未匹配模型应返回默认兜底配置', () => {
       expect(resolveModelReasoningSpec('')).toEqual(DEFAULT_REASONING_SPEC);

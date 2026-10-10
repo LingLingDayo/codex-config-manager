@@ -179,11 +179,75 @@ pub struct ModelReasoningSpec {
     pub supported_levels: &'static [&'static str],
 }
 
+/// 模型匹配规则定义（声明式表驱动）
+#[derive(Debug, Clone, Copy)]
+pub struct ModelReasoningRule {
+    /// 匹配的模型标识模式（如 "gpt-5.6-sol"）
+    pub patterns: &'static [&'static str],
+    /// 该规则适用的默认思考强度
+    pub default_level: &'static str,
+    /// 该规则支持的思考强度档位列表
+    pub supported_levels: &'static [&'static str],
+}
+
 /// 默认兜底思考强度规格（未在已知数据中的模型沿用完整列表）
 pub const DEFAULT_REASONING_SPEC: ModelReasoningSpec = ModelReasoningSpec {
     default_level: "medium",
     supported_levels: &["low", "medium", "high", "xhigh", "max", "ultra"],
 };
+
+/// 已知模型思考强度规则表（按特定性优先排序）
+pub const KNOWN_MODEL_RULES: &[ModelReasoningRule] = &[
+    // GPT-5.6 Sol (支持 ultra 模式)
+    ModelReasoningRule {
+        patterns: &["gpt-5.6-sol"],
+        default_level: "medium",
+        supported_levels: &["none", "low", "medium", "high", "xhigh", "max", "ultra"],
+    },
+    // GPT-5.6 / GPT-6 支持 none 到 max（无 ultra）
+    ModelReasoningRule {
+        patterns: &[
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+            "gpt-6-sol",
+            "gpt-6-luna",
+        ],
+        default_level: "medium",
+        supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
+    },
+    // GPT-6 Astra / GPT-6.1 Sol（不可关闭思考，无 ultra）
+    ModelReasoningRule {
+        patterns: &["gpt-6.1-sol", "gpt-6-astra"],
+        default_level: "medium",
+        supported_levels: &["low", "medium", "high", "xhigh", "max"],
+    },
+    // 智谱 GLM-5.3 系列与月之暗面 Kimi K3（默认 max，强制思考）
+    ModelReasoningRule {
+        patterns: &["glm-5.3-flash", "glm-5.3", "kimi-k3"],
+        default_level: "max",
+        supported_levels: &["low", "high", "max"],
+    },
+    // DeepSeek 系列（默认 high，可关闭思考）
+    ModelReasoningRule {
+        patterns: &["deepseek-v4.1-flash", "deepseek-v4-pro"],
+        default_level: "high",
+        supported_levels: &["none", "low", "high", "max"],
+    },
+    // xAI Grok 系列（默认 high，不可关闭思考）
+    ModelReasoningRule {
+        patterns: &["grok-4.6", "grok-4.7"],
+        default_level: "high",
+        supported_levels: &["low", "medium", "high", "xhigh"],
+    },
+];
+
+/// 规范化模型 slug（去除大小写、前缀命名空间与 tag）
+pub fn normalize_model_slug(raw: &str) -> String {
+    let s = raw.to_ascii_lowercase();
+    let name = s.split('/').last().unwrap_or(&s).trim();
+    let name = name.split(':').next().unwrap_or(name);
+    name.replace(['_', ' '], "-")
+}
 
 /// 获取思考强度档位对应的标准英文描述
 pub fn reasoning_level_description(effort: &str) -> &'static str {
@@ -200,86 +264,25 @@ pub fn reasoning_level_description(effort: &str) -> &'static str {
     }
 }
 
-/// 根据模型 slug 解析其支持的思考强度列表与默认值
+/// 根据模型 slug 解析其支持的思考强度列表与默认值（表驱动匹配）
 pub fn resolve_model_reasoning_spec(slug: &str) -> ModelReasoningSpec {
-    let s = slug.to_ascii_lowercase();
-    let name = s.split('/').last().unwrap_or(&s).trim();
-    let name = name.split(':').next().unwrap_or(name);
-    let clean = name.replace(['_', ' '], "-");
-
-    if clean == "gpt-5.6-sol" || clean.starts_with("gpt-5.6-sol-") {
-        ModelReasoningSpec {
-            default_level: "medium",
-            supported_levels: &["none", "low", "medium", "high", "xhigh", "max", "ultra"],
-        }
-    } else if clean == "gpt-5.6-terra" || clean.starts_with("gpt-5.6-terra-") {
-        ModelReasoningSpec {
-            default_level: "medium",
-            supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
-        }
-    } else if clean == "gpt-5.6-luna" || clean.starts_with("gpt-5.6-luna-") {
-        ModelReasoningSpec {
-            default_level: "medium",
-            supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
-        }
-    } else if clean == "gpt-6.1-sol" || clean.starts_with("gpt-6.1-sol-") {
-        ModelReasoningSpec {
-            default_level: "medium",
-            supported_levels: &["low", "medium", "high", "xhigh", "max"],
-        }
-    } else if clean == "gpt-6-astra" || clean.starts_with("gpt-6-astra-") {
-        ModelReasoningSpec {
-            default_level: "medium",
-            supported_levels: &["low", "medium", "high", "xhigh", "max"],
-        }
-    } else if clean == "gpt-6-sol" || clean.starts_with("gpt-6-sol-") {
-        ModelReasoningSpec {
-            default_level: "medium",
-            supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
-        }
-    } else if clean == "gpt-6-luna" || clean.starts_with("gpt-6-luna-") {
-        ModelReasoningSpec {
-            default_level: "medium",
-            supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
-        }
-    } else if clean == "glm-5.3-flash" || clean.starts_with("glm-5.3-flash-") {
-        ModelReasoningSpec {
-            default_level: "max",
-            supported_levels: &["low", "high", "max"],
-        }
-    } else if clean == "glm-5.3" || clean.starts_with("glm-5.3-") {
-        ModelReasoningSpec {
-            default_level: "max",
-            supported_levels: &["low", "high", "max"],
-        }
-    } else if clean == "kimi-k3" || clean.starts_with("kimi-k3-") {
-        ModelReasoningSpec {
-            default_level: "max",
-            supported_levels: &["low", "high", "max"],
-        }
-    } else if clean == "deepseek-v4.1-flash" || clean.starts_with("deepseek-v4.1-flash-") {
-        ModelReasoningSpec {
-            default_level: "high",
-            supported_levels: &["none", "low", "high", "max"],
-        }
-    } else if clean == "deepseek-v4-pro" || clean.starts_with("deepseek-v4-pro-") {
-        ModelReasoningSpec {
-            default_level: "high",
-            supported_levels: &["none", "low", "high", "max"],
-        }
-    } else if clean == "grok-4.6" || clean.starts_with("grok-4.6-") {
-        ModelReasoningSpec {
-            default_level: "high",
-            supported_levels: &["low", "medium", "high", "xhigh"],
-        }
-    } else if clean == "grok-4.7" || clean.starts_with("grok-4.7-") {
-        ModelReasoningSpec {
-            default_level: "high",
-            supported_levels: &["low", "medium", "high", "xhigh"],
-        }
-    } else {
-        DEFAULT_REASONING_SPEC
+    let clean = normalize_model_slug(slug);
+    if clean.is_empty() {
+        return DEFAULT_REASONING_SPEC;
     }
+
+    for rule in KNOWN_MODEL_RULES {
+        for &pattern in rule.patterns {
+            if clean == pattern || clean.starts_with(&format!("{}-", pattern)) {
+                return ModelReasoningSpec {
+                    default_level: rule.default_level,
+                    supported_levels: rule.supported_levels,
+                };
+            }
+        }
+    }
+
+    DEFAULT_REASONING_SPEC
 }
 
 /// 为指定 slug 创建一个结构完整且符合 Codex ModelInfo 规范的模型条目
