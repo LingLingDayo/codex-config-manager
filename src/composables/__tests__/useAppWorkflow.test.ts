@@ -109,8 +109,9 @@ describe('useAppWorkflow', () => {
     expect(workflow.isModalVisible.value).toBe(false);
   });
 
-  it('收藏已存在的配置应打开编辑弹窗并回填预设', async () => {
+  it('当前配置已保存过时，点击更新配置应直接更新预设而不打开编辑弹窗', async () => {
     const { presets } = usePresets();
+    const { message } = useToast();
     presets.value = [
       {
         id: 'preset_exist',
@@ -122,19 +123,16 @@ describe('useAppWorkflow', () => {
     ];
 
     const workflow = useAppWorkflow();
-    workflow.handleSaveAsPreset({
+    await workflow.handleSaveAsPreset({
       key: 'sk-exist',
       providerUrl: 'https://api.test.com/v1',
       model: 'new-model',
     });
 
-    expect(workflow.isModalVisible.value).toBe(true);
-    expect(workflow.modalTitle.value).toBe('编辑配置');
-    expect(workflow.modalInitialData.value).toMatchObject({
-      id: 'preset_exist',
-      name: '已有配置',
-      model: 'new-model',
-    });
+    expect(workflow.isModalVisible.value).toBe(false);
+    const updated = presets.value.find((p) => p.id === 'preset_exist');
+    expect(updated?.model).toBe('new-model');
+    expect(message.value).toContain('配置「已有配置」已更新！');
   });
 
   it('handleReorderPresets 应成功委托调用 reorderPresets 并更新预设顺序', async () => {

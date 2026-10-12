@@ -118,7 +118,7 @@ export function useAppWorkflow() {
     await launchApp();
   };
 
-  const handleSaveAsPreset = (data: ConfigFormPayload) => {
+  const handleSaveAsPreset = async (data: ConfigFormPayload) => {
     if (!data.key.trim()) {
       showToast('请先在上方输入 API Key', 'error');
       return;
@@ -129,14 +129,13 @@ export function useAppWorkflow() {
     );
 
     if (matched) {
-      modalTitle.value = '编辑配置';
-      modalInitialData.value = {
+      await saveOrUpdatePreset({
         id: matched.id,
         name: matched.name,
         provider_url: isDefaultStation(matched.provider_url)
           ? DEFAULT_STATION_URL
           : matched.provider_url,
-        key: matched.key,
+        key: data.key,
         model: data.model !== undefined ? data.model : matched.model,
         model_reasoning_effort:
           data.modelReasoningEffort !== undefined
@@ -150,23 +149,24 @@ export function useAppWorkflow() {
                 matched.model,
                 matched.model_display_name
               ),
-      };
-    } else {
-      const isDefault = isDefaultStation(data.providerUrl);
-      modalTitle.value = '新增中转站配置';
-      modalInitialData.value = {
-        name: isDefault
-          ? `${DEFAULT_STATION_NAME} 常用配置`
-          : data.providerUrl
-            ? '中转站配置'
-            : '',
-        provider_url: isDefault ? DEFAULT_STATION_URL : data.providerUrl || '',
-        key: data.key,
-        model: data.model || '',
-        model_reasoning_effort: data.modelReasoningEffort || '',
-        model_aliases: cloneModelAliases(data.modelAliases),
-      };
+      });
+      return;
     }
+
+    const isDefault = isDefaultStation(data.providerUrl);
+    modalTitle.value = '新增中转站配置';
+    modalInitialData.value = {
+      name: isDefault
+        ? `${DEFAULT_STATION_NAME} 常用配置`
+        : data.providerUrl
+          ? '中转站配置'
+          : '',
+      provider_url: isDefault ? DEFAULT_STATION_URL : data.providerUrl || '',
+      key: data.key,
+      model: data.model || '',
+      model_reasoning_effort: data.modelReasoningEffort || '',
+      model_aliases: cloneModelAliases(data.modelAliases),
+    };
     isModalVisible.value = true;
   };
 
