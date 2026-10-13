@@ -92,13 +92,13 @@ describe('modelFetcher utility', () => {
 
     it('未设置 key 或 url 时给出明确错误提示', async () => {
       await expect(fetchProviderModels('', '')).rejects.toThrow(
-        '请先配置 API Key 和中转站地址'
+        '请先配置 API Key 和地址'
       );
       await expect(fetchProviderModels('https://api.test.com/v1', '')).rejects.toThrow(
         '请先配置 API Key'
       );
       await expect(fetchProviderModels('', 'sk-test')).rejects.toThrow(
-        '请先配置中转站地址'
+        '请先配置地址'
       );
     });
 
@@ -144,7 +144,15 @@ describe('modelFetcher utility', () => {
 
       await expect(
         fetchProviderModels('https://api.openai.com/v1', 'sk-valid')
-      ).rejects.toThrow('请求中转站超时，请检查网络或中转站地址');
+      ).rejects.toThrow('获取模型列表超时，请检查网络或地址');
+    });
+
+    it('网络连接失败抛出获取模型列表失败提示，不包含中转站字样', async () => {
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error('Failed to fetch'));
+
+      await expect(
+        fetchProviderModels('https://api.openai.com/v1', 'sk-valid')
+      ).rejects.toThrow('获取模型列表失败: Failed to fetch');
     });
   });
 });

@@ -66,7 +66,7 @@ describe('ModelSelect.vue component', () => {
     await dropdownBtn.trigger('click');
 
     const { message, type } = useToast();
-    expect(message.value).toBe('请先配置 API Key 和中转站地址');
+    expect(message.value).toBe('请先配置 API Key 和地址');
     expect(type.value).toBe('warning');
     expect(wrapper.find('.model-dropdown-menu').exists()).toBe(false);
   });
@@ -87,7 +87,7 @@ describe('ModelSelect.vue component', () => {
     expect(type.value).toBe('warning');
   });
 
-  it('仅缺失 url 时给出填写中转站地址的提示', async () => {
+  it('仅缺失 url 时给出填写地址的提示', async () => {
     const wrapper = mount(ModelSelect, {
       props: {
         modelValue: '',
@@ -99,7 +99,7 @@ describe('ModelSelect.vue component', () => {
     await wrapper.find('.btn-dropdown').trigger('click');
 
     const { message, type } = useToast();
-    expect(message.value).toBe('请先配置中转站地址');
+    expect(message.value).toBe('请先配置地址');
     expect(type.value).toBe('warning');
   });
 

@@ -133,4 +133,45 @@ describe('ModelAliasList.vue component', () => {
       ],
     ]);
   });
+
+  it('获取模型列表失败时正确展示错误信息且不包含中转站字样', async () => {
+    vi.spyOn(modelFetcher, 'fetchProviderModels').mockRejectedValue(
+      new Error('获取模型列表失败: Failed to fetch')
+    );
+
+    const wrapper = mount(ModelAliasList, {
+      props: {
+        modelValue: [],
+        apiKey: 'sk-test',
+        providerUrl: 'https://api.example.com/v1',
+        autoFetch: true,
+      },
+    });
+
+    await flushPromises();
+
+    const statusEl = wrapper.find('.list-status');
+    expect(statusEl.classes()).toContain('error');
+    expect(statusEl.text()).toBe('获取模型列表失败: Failed to fetch');
+    expect(statusEl.text()).not.toContain('中转站');
+  });
+
+  it('获取到空模型列表时提示未获取到可用模型且不包含中转站字样', async () => {
+    vi.spyOn(modelFetcher, 'fetchProviderModels').mockResolvedValue([]);
+
+    const wrapper = mount(ModelAliasList, {
+      props: {
+        modelValue: [],
+        apiKey: 'sk-test',
+        providerUrl: 'https://api.example.com/v1',
+        autoFetch: true,
+      },
+    });
+
+    await flushPromises();
+
+    const statusEl = wrapper.find('.list-status');
+    expect(statusEl.text()).toBe('未获取到可用模型');
+    expect(statusEl.text()).not.toContain('中转站');
+  });
 });

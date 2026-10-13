@@ -79,13 +79,13 @@ export async function fetchProviderModels(
   const trimmedKey = apiKey?.trim() || '';
 
   if (!trimmedKey && !trimmedUrl) {
-    throw new Error('请先配置 API Key 和中转站地址');
+    throw new Error('请先配置 API Key 和地址');
   }
   if (!trimmedKey) {
     throw new Error('请先配置 API Key');
   }
   if (!trimmedUrl) {
-    throw new Error('请先配置中转站地址');
+    throw new Error('请先配置地址');
   }
 
   if (
@@ -111,12 +111,12 @@ export async function fetchProviderModels(
     });
   } catch (err: any) {
     if (err?.name === 'TimeoutError' || err?.message?.includes('timeout')) {
-      throw new Error('请求中转站超时，请检查网络或中转站地址');
+      throw new Error('获取模型列表超时，请检查网络或地址');
     }
-    throw new Error(`连接中转站失败: ${err?.message || '网络异常'}`);
+    throw new Error(`获取模型列表失败: ${err?.message || '网络异常'}`);
   }
 
-  // 针对某些特殊中转站降级重试：如果 /v1/models 404，尝试 /models
+  // 针对某些特殊接口降级重试：如果 /v1/models 404，尝试 /models
   if (response.status === 404 && endpoint.endsWith('/v1/models')) {
     const baseWithoutV1 = endpoint.replace(/\/v1\/models$/, '');
     try {
@@ -141,7 +141,7 @@ export async function fetchProviderModels(
       throw new Error('API Key 无效或未授权');
     }
     if (response.status === 404) {
-      throw new Error('中转站未找到模型接口 (/v1/models)');
+      throw new Error('未找到模型接口 (/v1/models)');
     }
 
     let errorDetail = '';
@@ -154,8 +154,8 @@ export async function fetchProviderModels(
 
     throw new Error(
       errorDetail
-        ? `获取模型失败: ${errorDetail}`
-        : `中转站响应异常 (HTTP ${response.status})`
+        ? `获取模型列表失败: ${errorDetail}`
+        : `获取模型列表失败 (HTTP ${response.status})`
     );
   }
 

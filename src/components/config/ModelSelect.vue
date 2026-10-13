@@ -89,7 +89,7 @@ const performFetch = async (url: string, key: string, isManualRefresh = false) =
     filterText.value = '';
 
     if (models.length === 0) {
-      showToast('未从中转站获取到任何可用模型', 'warning');
+      showToast('未获取到可用模型', 'warning');
     } else {
       isOpen.value = true;
       showToast(
@@ -122,7 +122,7 @@ const handleDropdownClick = async () => {
 
   // 严格校验前置必填项
   if (!key && !url) {
-    showToast('请先配置 API Key 和中转站地址', 'warning');
+    showToast('请先配置 API Key 和地址', 'warning');
     return;
   }
   if (!key) {
@@ -130,7 +130,7 @@ const handleDropdownClick = async () => {
     return;
   }
   if (!url) {
-    showToast('请先配置中转站地址', 'warning');
+    showToast('请先配置地址', 'warning');
     return;
   }
 

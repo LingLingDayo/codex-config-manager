@@ -59,10 +59,10 @@ const statusText = computed(() => {
   if (hasFetched.value) {
     return fetchedModels.value.length
       ? `已获取 ${fetchedModels.value.length} 个模型`
-      : '未从中转站获取到可用模型';
+      : '未获取到可用模型';
   }
   if (!props.apiKey.trim() || !props.providerUrl.trim()) {
-    return '配置 Key 与中转站地址后将自动获取模型';
+    return '配置 Key 与地址后将自动获取模型';
   }
   return '展开后将自动获取模型列表';
 });
