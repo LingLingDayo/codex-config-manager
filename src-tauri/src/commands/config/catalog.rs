@@ -198,11 +198,11 @@ pub const DEFAULT_REASONING_SPEC: ModelReasoningSpec = ModelReasoningSpec {
 
 /// 已知模型思考强度规则表（按特定性优先排序）
 pub const KNOWN_MODEL_RULES: &[ModelReasoningRule] = &[
-    // GPT-5.6 Sol (支持 ultra 模式)
+    // GPT-5.6 Sol
     ModelReasoningRule {
         patterns: &["gpt-5.6-sol"],
         default_level: "medium",
-        supported_levels: &["none", "low", "medium", "high", "xhigh", "max", "ultra"],
+        supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
     },
     // GPT-5.6 / GPT-6 支持 none 到 max（无 ultra）
     ModelReasoningRule {
@@ -805,7 +805,7 @@ mod tests {
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
             spec.supported_levels,
-            &["none", "low", "medium", "high", "xhigh", "max", "ultra"]
+            &["none", "low", "medium", "high", "xhigh", "max"]
         );
 
         // GPT-5.6 Terra
@@ -915,7 +915,7 @@ mod tests {
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
             spec.supported_levels,
-            &["none", "low", "medium", "high", "xhigh", "max", "ultra"]
+            &["none", "low", "medium", "high", "xhigh", "max"]
         );
     }
 
