@@ -77,6 +77,20 @@ describe('PresetListItem.vue component', () => {
     expect(wrapper.emitted('apply')).toBeFalsy();
   });
 
+  it('处于全局拖拽中 (isAnyDragging 为 true) 点击整行不应触发 apply 事件', async () => {
+    const wrapper = mount(PresetListItem, {
+      props: {
+        preset: mockPreset,
+        isActive: false,
+        isDragging: false,
+        isAnyDragging: true,
+      },
+    });
+
+    await wrapper.trigger('click');
+    expect(wrapper.emitted('apply')).toBeFalsy();
+  });
+
   it('点击编辑按钮应触发 edit 事件', async () => {
     const wrapper = mount(PresetListItem, {
       props: {

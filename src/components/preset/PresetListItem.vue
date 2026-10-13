@@ -10,11 +10,13 @@ const props = withDefaults(
     draggable?: boolean;
     isDragging?: boolean;
     isDragOver?: boolean;
+    isAnyDragging?: boolean;
   }>(),
   {
     draggable: false,
     isDragging: false,
     isDragOver: false,
+    isAnyDragging: false,
   }
 );
 
@@ -25,7 +27,7 @@ const emit = defineEmits<{
 }>();
 
 const handleRowClick = () => {
-  if (props.isDragging) {
+  if (props.isDragging || props.isAnyDragging) {
     return;
   }
   if (!props.isActive) {
@@ -146,6 +148,7 @@ const handleRowClick = () => {
   cursor: pointer;
   position: relative;
   transition: all 0.18s ease;
+  user-select: none;
 
   &:hover {
     background: rgba($bg-secondary, 0.95);
@@ -210,6 +213,10 @@ const handleRowClick = () => {
   flex-shrink: 0;
   transition: all 0.18s ease;
   user-select: none;
+
+  .drag-handle-icon {
+    pointer-events: none;
+  }
 
   &:hover {
     color: $accent-blue;

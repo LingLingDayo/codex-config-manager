@@ -94,6 +94,10 @@ describe('PresetListModal.vue component', () => {
 
     expect(wrapper.emitted('reorder-presets')).toBeTruthy();
     expect(wrapper.emitted('reorder-presets')?.[0]).toEqual([0, 1]);
+
+    // 拖拽放置后立即点击目标项，绝不应误触发 apply-preset 事件
+    await items[1].trigger('click');
+    expect(wrapper.emitted('apply-preset')).toBeFalsy();
   });
 
   it('仅有 1 个预设时不显示拖拽手柄且不可拖拽', () => {

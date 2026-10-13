@@ -108,8 +108,8 @@ describe('usePresetDragReorder composable', () => {
     expect(draggedIndex.value).toBeNull();
     expect(dragOverIndex.value).toBeNull();
 
-    // 经过 100ms 延迟后 isDragging 变为 false
-    vi.advanceTimersByTime(100);
+    // 经过 250ms 延迟后 isDragging 变为 false
+    vi.advanceTimersByTime(250);
     expect(isDragging.value).toBe(false);
   });
 
@@ -126,9 +126,57 @@ describe('usePresetDragReorder composable', () => {
     const listDropEvent = {
       target: containerEl,
       currentTarget: containerEl,
+      preventDefault: vi.fn(),
     } as unknown as DragEvent;
 
     onListDrop(listDropEvent);
     expect(onReorder).toHaveBeenCalledWith(1, 3);
+  });
+
+  it('在拖拽中或拖拽刚结束时 onListClickCapture 应拦截点击事件', () => {
+    const onReorder = vi.fn();
+    const { isDragging, isClickSuppressed, onDragStart, onDrop, onListClickCapture } = usePresetDragReorder({
+      getPresetsCount: () => 3,
+      onReorder,
+    });
+
+    const clickEvent = {
+      stopPropagation: vi.fn(),
+      preventDefault: vi.fn(),
+    } as unknown as MouseEvent;
+
+    // 初始状态下不拦截
+    onListClickCapture(clickEvent);
+    expect(clickEvent.stopPropagation).not.toHaveBeenCalled();
+
+    // 拖拽开始后拦截
+    onDragStart({ dataTransfer: createMockDataTransfer() } as unknown as DragEvent, 0);
+    expect(isDragging.value).toBe(true);
+    onListClickCapture(clickEvent);
+    expect(clickEvent.stopPropagation).toHaveBeenCalled();
+    expect(clickEvent.preventDefault).toHaveBeenCalled();
+
+    // 放置后处于 isClickSuppressed 缓冲期依然拦截
+    const dropEvent = { preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as DragEvent;
+    onDrop(dropEvent, 1);
+    expect(isClickSuppressed.value).toBe(true);
+
+    const postDropClickEvent = {
+      stopPropagation: vi.fn(),
+      preventDefault: vi.fn(),
+    } as unknown as MouseEvent;
+    onListClickCapture(postDropClickEvent);
+    expect(postDropClickEvent.stopPropagation).toHaveBeenCalled();
+
+    // 250ms 后缓冲期结束，不再拦截
+    vi.advanceTimersByTime(250);
+    expect(isClickSuppressed.value).toBe(false);
+
+    const normalClickEvent = {
+      stopPropagation: vi.fn(),
+      preventDefault: vi.fn(),
+    } as unknown as MouseEvent;
+    onListClickCapture(normalClickEvent);
+    expect(normalClickEvent.stopPropagation).not.toHaveBeenCalled();
   });
 });

@@ -25,6 +25,7 @@ const emit = defineEmits<{
 const {
   draggedIndex,
   dragOverIndex,
+  isDragging,
   onDragStart,
   onDragOver,
   onDragEnter,
@@ -32,6 +33,7 @@ const {
   onDrop,
   onDragEnd,
   onListDrop,
+  onListClickCapture,
   clearTimer,
 } = usePresetDragReorder({
   getPresetsCount: () => props.presets.length,
@@ -134,6 +136,8 @@ onUnmounted(() => {
       <div
         v-if="presets.length > 0"
         class="preset-list"
+        :class="{ 'is-reordering': isDragging }"
+        @click.capture="onListClickCapture"
         @dragover.prevent
         @drop="onListDrop"
       >
@@ -145,6 +149,7 @@ onUnmounted(() => {
           :draggable="presets.length > 1"
           :is-dragging="draggedIndex === index"
           :is-drag-over="dragOverIndex === index"
+          :is-any-dragging="isDragging"
           @apply="emit('apply-preset', $event)"
           @edit="emit('edit-preset', $event)"
           @delete="emit('delete-preset', $event)"
@@ -304,6 +309,12 @@ onUnmounted(() => {
   overflow-y: auto;
   padding: 10px 16px;
   @include custom-scrollbar;
+
+  &.is-reordering {
+    :deep(.preset-item *) {
+      pointer-events: none;
+    }
+  }
 }
 
 .modal-footer {
