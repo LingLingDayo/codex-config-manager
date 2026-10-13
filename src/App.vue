@@ -9,7 +9,8 @@ import ConfirmModal from './components/ConfirmModal.vue';
 import SettingsModal from './components/settings/SettingsModal.vue';
 
 import { useAppWorkflow } from './composables/useAppWorkflow';
-import { APP_VERSION } from './constants/version';
+import { APP_VERSION, GITHUB_REPO_URL } from './constants/version';
+import { openExternalUrl } from './utils/browser';
 
 const {
   currentConfig,
@@ -34,6 +35,10 @@ const {
   deletePreset,
   bootstrap,
 } = useAppWorkflow();
+
+function handleOpenGithub(): void {
+  void openExternalUrl(GITHUB_REPO_URL);
+}
 
 onMounted(bootstrap);
 </script>
@@ -65,7 +70,14 @@ onMounted(bootstrap);
     </main>
 
     <!-- 右下角版本号展示 -->
-    <span class="app-version" :title="`当前版本: ${APP_VERSION}`">{{ APP_VERSION }}</span>
+    <span
+      class="app-version"
+      :title="`当前版本: ${APP_VERSION} (点击前往 GitHub)`"
+      role="button"
+      tabindex="0"
+      @click="handleOpenGithub"
+      @keydown.enter="handleOpenGithub"
+    >{{ APP_VERSION }}</span>
 
     <!-- 顶部 Toast 提示 -->
     <ToastMessage />
@@ -135,13 +147,14 @@ onMounted(bootstrap);
   font-family: $font-family-mono;
   color: rgba(255, 255, 255, 0.22);
   user-select: none;
-  cursor: default;
+  cursor: pointer;
   letter-spacing: 0.4px;
   z-index: 10;
   transition: color 0.2s ease;
 
   &:hover {
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.55);
   }
 }
 </style>
+
