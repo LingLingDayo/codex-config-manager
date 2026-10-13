@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { GripVertical } from '@lucide/vue';
 import type { PresetConfig } from '../../types/config';
 import { normalizeUrl } from '../../utils/format';
 
@@ -48,16 +47,6 @@ const handleRowClick = () => {
     :draggable="draggable"
     @click="handleRowClick"
   >
-    <!-- 拖拽把手 (多于1个配置时支持拖拽排序) -->
-    <div
-      v-if="draggable"
-      class="drag-handle"
-      title="按住拖拽以调整顺序"
-      @click.stop
-    >
-      <GripVertical :size="13" class="drag-handle-icon" />
-    </div>
-
     <!-- 左侧基本信息 -->
     <div class="preset-info">
       <div class="preset-title-row">
@@ -157,10 +146,6 @@ const handleRowClick = () => {
     .preset-name {
       color: #fff;
     }
-
-    .drag-handle {
-      color: rgba(255, 255, 255, 0.55);
-    }
   }
 
   &.is-dragging {
@@ -199,32 +184,6 @@ const handleRowClick = () => {
       border-top-left-radius: $border-radius-md;
       border-bottom-left-radius: $border-radius-md;
     }
-  }
-}
-
-.drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.26);
-  cursor: grab;
-  padding: 4px 1px;
-  border-radius: $border-radius-xs;
-  flex-shrink: 0;
-  transition: all 0.18s ease;
-  user-select: none;
-
-  .drag-handle-icon {
-    pointer-events: none;
-  }
-
-  &:hover {
-    color: $accent-blue;
-    background: rgba($accent-blue, 0.12);
-  }
-
-  &:active {
-    cursor: grabbing;
   }
 }
 

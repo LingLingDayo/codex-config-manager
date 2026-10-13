@@ -123,7 +123,7 @@ describe('PresetListItem.vue component', () => {
     expect(wrapper.emitted('delete')?.[0]).toEqual([mockPreset]);
   });
 
-  it('draggable 为 true 时渲染拖拽手柄', () => {
+  it('draggable 为 true 时卡片元素属性 draggable 应为 true', () => {
     const wrapper = mount(PresetListItem, {
       props: {
         preset: mockPreset,
@@ -132,6 +132,6 @@ describe('PresetListItem.vue component', () => {
       },
     });
 
-    expect(wrapper.find('.drag-handle').exists()).toBe(true);
+    expect(wrapper.attributes('draggable')).toBe('true');
   });
 });
