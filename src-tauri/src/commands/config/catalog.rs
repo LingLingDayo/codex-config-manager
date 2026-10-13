@@ -229,7 +229,11 @@ pub const KNOWN_MODEL_RULES: &[ModelReasoningRule] = &[
     },
     // DeepSeek 系列（默认 high，可关闭思考）
     ModelReasoningRule {
-        patterns: &["deepseek-v4.1-flash", "deepseek-v4-pro"],
+        patterns: &[
+            "deepseek-flash",
+            "deepseek-v4.1-flash",
+            "deepseek-v4-pro",
+        ],
         default_level: "high",
         supported_levels: &["none", "low", "high", "max"],
     },
@@ -866,12 +870,20 @@ mod tests {
         assert_eq!(spec.default_level, "max");
         assert_eq!(spec.supported_levels, &["low", "high", "max"]);
 
-        // DeepSeek DeepSeek-V4-Pro & DeepSeek-V4.1-Flash
+        // DeepSeek DeepSeek-V4-Pro & DeepSeek-V4.1-Flash & deepseek-flash
         let spec = resolve_model_reasoning_spec("deepseek-v4-pro");
         assert_eq!(spec.default_level, "high");
         assert_eq!(spec.supported_levels, &["none", "low", "high", "max"]);
 
         let spec = resolve_model_reasoning_spec("deepseek-v4.1-flash");
+        assert_eq!(spec.default_level, "high");
+        assert_eq!(spec.supported_levels, &["none", "low", "high", "max"]);
+
+        let spec = resolve_model_reasoning_spec("deepseek-flash");
+        assert_eq!(spec.default_level, "high");
+        assert_eq!(spec.supported_levels, &["none", "low", "high", "max"]);
+
+        let spec = resolve_model_reasoning_spec("DeepSeek-Flash");
         assert_eq!(spec.default_level, "high");
         assert_eq!(spec.supported_levels, &["none", "low", "high", "max"]);
 
