@@ -54,17 +54,19 @@ export function copyReleaseArtifacts(options = {}) {
   const rootDir = options.rootDir || process.cwd();
   const targetDir = options.targetDir || path.resolve(rootDir, 'release');
 
-  // 读取项目版本号
+  // 读取项目版本号与英文包名（安装包归档命名用）
   let version = options.version;
-  if (!version) {
+  let pkgName = options.pkgName || '';
+  if (!version || !pkgName) {
     try {
       const pkgPath = path.resolve(rootDir, 'package.json');
       if (fs.existsSync(pkgPath)) {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-        version = pkg.version;
+        version = version || pkg.version;
+        pkgName = pkgName || pkg.name;
       }
     } catch {
-      version = '';
+      version = version || '';
     }
   }
 
@@ -106,13 +108,15 @@ export function copyReleaseArtifacts(options = {}) {
 
       if (validExtensions.has(ext)) {
         // 如果能获取到版本号，则严格筛选包含当前版本号的安装包，避免复制旧版本残留
-        if (version) {
-          if (filename.includes(version)) {
-            candidateFileMap.set(filename, filePath);
-          }
-        } else {
-          candidateFileMap.set(filename, filePath);
+        if (version && !filename.includes(version)) {
+          continue;
         }
+        // 安装包统一以英文包名归档；纯中文名称仅保留给一键运行的便携版
+        const destName =
+          productName && pkgName && filename.startsWith(productName)
+            ? pkgName + filename.slice(productName.length)
+            : filename;
+        candidateFileMap.set(destName, filePath);
       }
     }
   }

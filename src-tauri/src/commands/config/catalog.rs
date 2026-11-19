@@ -179,15 +179,32 @@ pub struct ModelReasoningSpec {
     pub supported_levels: &'static [&'static str],
 }
 
-/// 模型匹配规则定义（声明式表驱动）
+/// 系列级思考强度规则（归一化系列标识前缀匹配，同系列新增模型自动命中）
 #[derive(Debug, Clone, Copy)]
-pub struct ModelReasoningRule {
-    /// 匹配的模型标识模式（如 "gpt-5.6-sol"）
+pub struct SeriesReasoningRule {
+    /// 归一化系列标识（如 "gpt-6.1"）
+    pub series: &'static str,
+    /// 显式匹配标识（为空时按系列名匹配；用于 deepseek-flash 等官方别名）
     pub patterns: &'static [&'static str],
-    /// 该规则适用的默认思考强度
+    /// 该系列默认思考强度
     pub default_level: &'static str,
-    /// 该规则支持的思考强度档位列表
+    /// 该系列支持的思考强度档位列表
     pub supported_levels: &'static [&'static str],
+}
+
+/// 单模型覆盖规则（继承所属系列配置，仅覆盖差异项；优先于系列规则）
+#[derive(Debug, Clone, Copy)]
+pub struct ModelReasoningOverride {
+    /// 所属系列（对应 SeriesReasoningRule.series）
+    pub series: &'static str,
+    /// 归一化模型标识（如 "gpt-6-astra"）
+    pub model: &'static str,
+    /// 显式匹配标识（为空时按模型名匹配）
+    pub patterns: &'static [&'static str],
+    /// 覆盖默认思考强度（None 继承系列）
+    pub default_level: Option<&'static str>,
+    /// 覆盖支持的思考强度档位列表（None 继承系列）
+    pub supported_levels: Option<&'static [&'static str]>,
 }
 
 /// 默认兜底思考强度规格（未在已知数据中的模型沿用完整列表）
@@ -196,52 +213,106 @@ pub const DEFAULT_REASONING_SPEC: ModelReasoningSpec = ModelReasoningSpec {
     supported_levels: &["low", "medium", "high", "xhigh", "max", "ultra"],
 };
 
-/// 已知模型思考强度规则表（按特定性优先排序）
-pub const KNOWN_MODEL_RULES: &[ModelReasoningRule] = &[
-    // GPT-5.6 Sol
-    ModelReasoningRule {
-        patterns: &["gpt-5.6-sol"],
+/// 第一层：系列思考强度规则表（系列基线不含 ultra，由单模型覆盖按需声明）
+pub const SERIES_REASONING_RULES: &[SeriesReasoningRule] = &[
+    // OpenAI GPT 系列
+    SeriesReasoningRule {
+        series: "gpt-5.6",
+        patterns: &[],
         default_level: "medium",
         supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
     },
-    // GPT-5.6 / GPT-6 支持 none 到 max（无 ultra）
-    ModelReasoningRule {
-        patterns: &[
-            "gpt-5.6-terra",
-            "gpt-5.6-luna",
-            "gpt-6-sol",
-            "gpt-6-luna",
-        ],
+    SeriesReasoningRule {
+        series: "gpt-6",
+        patterns: &[],
         default_level: "medium",
         supported_levels: &["none", "low", "medium", "high", "xhigh", "max"],
     },
-    // GPT-6 Astra / GPT-6.1 Sol（不可关闭思考，无 ultra）
-    ModelReasoningRule {
-        patterns: &["gpt-6.1-sol", "gpt-6-astra"],
+    SeriesReasoningRule {
+        series: "gpt-6.1",
+        patterns: &[],
         default_level: "medium",
         supported_levels: &["low", "medium", "high", "xhigh", "max"],
     },
-    // 智谱 GLM-5.3 系列与月之暗面 Kimi K3（默认 max，强制思考）
-    ModelReasoningRule {
-        patterns: &["glm-5.3-flash", "glm-5.3", "kimi-k3"],
+    SeriesReasoningRule {
+        series: "gpt-6.2",
+        patterns: &[],
+        default_level: "medium",
+        supported_levels: &["low", "medium", "high", "xhigh", "max"],
+    },
+    // 智谱 GLM-5.3 系列（默认 max，强制思考）
+    SeriesReasoningRule {
+        series: "glm-5.3",
+        patterns: &[],
         default_level: "max",
         supported_levels: &["low", "high", "max"],
     },
-    // DeepSeek 系列（默认 high，可关闭思考）
-    ModelReasoningRule {
-        patterns: &[
-            "deepseek-flash",
-            "deepseek-v4.1-flash",
-            "deepseek-v4-pro",
-        ],
+    // 月之暗面 Kimi K3（默认 max，强制思考）
+    SeriesReasoningRule {
+        series: "kimi-k3",
+        patterns: &[],
+        default_level: "max",
+        supported_levels: &["low", "high", "max"],
+    },
+    // DeepSeek 系列（默认 high，可关闭思考；deepseek-flash 为 V4.1 官方别名）
+    SeriesReasoningRule {
+        series: "deepseek-v4",
+        patterns: &[],
+        default_level: "high",
+        supported_levels: &["none", "low", "high", "max"],
+    },
+    SeriesReasoningRule {
+        series: "deepseek-v4.1",
+        patterns: &["deepseek-v4.1", "deepseek-flash"],
         default_level: "high",
         supported_levels: &["none", "low", "high", "max"],
     },
     // xAI Grok 系列（默认 high，不可关闭思考）
-    ModelReasoningRule {
-        patterns: &["grok-4.6", "grok-4.7"],
+    SeriesReasoningRule {
+        series: "grok-4.6",
+        patterns: &[],
         default_level: "high",
         supported_levels: &["low", "medium", "high", "xhigh"],
+    },
+    SeriesReasoningRule {
+        series: "grok-4.7",
+        patterns: &[],
+        default_level: "high",
+        supported_levels: &["low", "medium", "high", "xhigh"],
+    },
+];
+
+/// 第二层：单模型覆盖表
+/// ultra 为 Codex 客户端专属档位，客户端仅按目录条目的 supported_reasoning_levels 展示；
+/// 参照 cockpit 社区目录规格（第三方维护，非官方），仅部分型号（sol/astra）声明 ultra，故在此按模型单独覆盖。
+pub const MODEL_REASONING_OVERRIDES: &[ModelReasoningOverride] = &[
+    ModelReasoningOverride {
+        series: "gpt-5.6",
+        model: "gpt-5.6-sol",
+        patterns: &[],
+        default_level: None,
+        supported_levels: Some(&["none", "low", "medium", "high", "xhigh", "max", "ultra"]),
+    },
+    ModelReasoningOverride {
+        series: "gpt-6",
+        model: "gpt-6-sol",
+        patterns: &[],
+        default_level: None,
+        supported_levels: Some(&["none", "low", "medium", "high", "xhigh", "max", "ultra"]),
+    },
+    ModelReasoningOverride {
+        series: "gpt-6",
+        model: "gpt-6-astra",
+        patterns: &[],
+        default_level: None,
+        supported_levels: Some(&["low", "medium", "high", "xhigh", "max", "ultra"]),
+    },
+    ModelReasoningOverride {
+        series: "gpt-6.1",
+        model: "gpt-6.1-sol",
+        patterns: &[],
+        default_level: None,
+        supported_levels: Some(&["low", "medium", "high", "xhigh", "max", "ultra"]),
     },
 ];
 
@@ -268,47 +339,113 @@ pub fn reasoning_level_description(effort: &str) -> &'static str {
     }
 }
 
-/// 根据模型 slug 解析其支持的思考强度列表与默认值（表驱动匹配）
+/// 归一化标识的精确或带边界前缀匹配（如 gpt-6.1 命中 gpt-6.1-sol，但不命中 gpt-6.10）
+fn matches_pattern(clean: &str, pattern: &str) -> bool {
+    clean == pattern || clean.starts_with(&format!("{}-", pattern))
+}
+
+/// 显式 patterns 优先；未提供时按系列名/模型名匹配
+fn matches_rule(clean: &str, target: &str, patterns: &[&str]) -> bool {
+    if patterns.is_empty() {
+        return matches_pattern(clean, target);
+    }
+    patterns.iter().any(|p| matches_pattern(clean, p))
+}
+
+/// 特异性取标识与显式 patterns 中最长者，保证更具体的规则优先
+fn rule_specificity(target: &str, patterns: &[&str]) -> usize {
+    patterns
+        .iter()
+        .map(|p| p.len())
+        .chain(std::iter::once(target.len()))
+        .max()
+        .unwrap_or(0)
+}
+
+/// 根据模型 slug 解析其支持的思考强度列表与默认值
+/// 匹配优先级：单模型覆盖 > 系列规则；同层内特异性高者优先
 pub fn resolve_model_reasoning_spec(slug: &str) -> ModelReasoningSpec {
     let clean = normalize_model_slug(slug);
     if clean.is_empty() {
         return DEFAULT_REASONING_SPEC;
     }
 
-    for rule in KNOWN_MODEL_RULES {
-        for &pattern in rule.patterns {
-            if clean == pattern || clean.starts_with(&format!("{}-", pattern)) {
-                return ModelReasoningSpec {
-                    default_level: rule.default_level,
-                    supported_levels: rule.supported_levels,
-                };
+    let mut best_override: Option<&ModelReasoningOverride> = None;
+    let mut best_score = 0;
+    for rule in MODEL_REASONING_OVERRIDES {
+        if matches_rule(&clean, rule.model, rule.patterns) {
+            let score = rule_specificity(rule.model, rule.patterns);
+            if best_override.is_none() || score > best_score {
+                best_override = Some(rule);
+                best_score = score;
             }
         }
+    }
+    if let Some(override_rule) = best_override {
+        if let Some(series) = SERIES_REASONING_RULES
+            .iter()
+            .find(|r| r.series == override_rule.series)
+        {
+            let supported_levels = override_rule
+                .supported_levels
+                .unwrap_or(series.supported_levels);
+            let default_level = override_rule.default_level.unwrap_or(series.default_level);
+            let default_level = if supported_levels.contains(&default_level) {
+                default_level
+            } else {
+                supported_levels[0]
+            };
+            return ModelReasoningSpec {
+                default_level,
+                supported_levels,
+            };
+        }
+    }
+
+    let mut best_series: Option<&SeriesReasoningRule> = None;
+    let mut best_score = 0;
+    for rule in SERIES_REASONING_RULES {
+        if matches_rule(&clean, rule.series, rule.patterns) {
+            let score = rule_specificity(rule.series, rule.patterns);
+            if best_series.is_none() || score > best_score {
+                best_series = Some(rule);
+                best_score = score;
+            }
+        }
+    }
+    if let Some(series) = best_series {
+        return ModelReasoningSpec {
+            default_level: series.default_level,
+            supported_levels: series.supported_levels,
+        };
     }
 
     DEFAULT_REASONING_SPEC
 }
 
+/// 将规则表解析的思考强度规格写入条目（目录思考字段的单一事实来源）
+fn apply_reasoning_spec_to_entry(entry: &mut serde_json::Value, slug: &str) {
+    let spec = resolve_model_reasoning_spec(slug);
+    entry["default_reasoning_level"] = serde_json::json!(spec.default_level);
+    entry["supported_reasoning_levels"] = serde_json::Value::Array(
+        spec.supported_levels
+            .iter()
+            .map(|&effort| {
+                serde_json::json!({
+                    "effort": effort,
+                    "description": reasoning_level_description(effort),
+                })
+            })
+            .collect(),
+    );
+}
+
 /// 为指定 slug 创建一个结构完整且符合 Codex ModelInfo 规范的模型条目
 pub fn create_model_entry(slug: &str, display_name: &str) -> serde_json::Value {
-    let spec = resolve_model_reasoning_spec(slug);
-    let supported_levels: Vec<serde_json::Value> = spec
-        .supported_levels
-        .iter()
-        .map(|&effort| {
-            serde_json::json!({
-                "effort": effort,
-                "description": reasoning_level_description(effort),
-            })
-        })
-        .collect();
-
-    serde_json::json!({
+    let mut entry = serde_json::json!({
         "slug": slug,
         "display_name": display_name,
         "description": display_name,
-        "default_reasoning_level": spec.default_level,
-        "supported_reasoning_levels": supported_levels,
         "default_reasoning_summary": "none",
         "default_service_tier": null,
         "default_verbosity": "low",
@@ -355,7 +492,9 @@ pub fn create_model_entry(slug: &str, display_name: &str) -> serde_json::Value {
         "use_responses_lite": true,
         "visibility": "list",
         "web_search_tool_type": "text_and_image"
-    })
+    });
+    apply_reasoning_spec_to_entry(&mut entry, slug);
+    entry
 }
 
 /// 在专属模型目录 JSON 中为指定 slug 写入/更新/清除显示别名（display_name）
@@ -421,17 +560,15 @@ pub fn apply_display_name_to_catalog(
         if !entry.is_object() {
             return Err("模型目录条目结构异常，已拒绝覆盖".to_string());
         }
-        let needs_fix = entry.get("base_instructions").is_none()
-            && entry
-                .get("model_messages")
-                .and_then(|m| m.get("instructions_template"))
-                .is_none();
-        ensure_model_entry_validity(entry);
-        if !needs_fix && entry.get("display_name").and_then(|s| s.as_str()) == Some(trimmed_dn) {
+        let mut updated = entry.clone();
+        ensure_model_entry_validity(&mut updated);
+        apply_reasoning_spec_to_entry(&mut updated, slug);
+        updated["display_name"] = serde_json::Value::String(trimmed_dn.to_string());
+        updated["description"] = serde_json::Value::String(trimmed_dn.to_string());
+        if updated == *entry {
             return Ok(None);
         }
-        entry["display_name"] = serde_json::Value::String(trimmed_dn.to_string());
-        entry["description"] = serde_json::Value::String(trimmed_dn.to_string());
+        *entry = updated;
     } else {
         let new_entry = create_model_entry(slug, trimmed_dn);
         models.push(new_entry);
@@ -497,6 +634,7 @@ pub fn apply_model_aliases_to_catalog(
                 return Err("模型目录条目结构异常，已拒绝覆盖".to_string());
             }
             ensure_model_entry_validity(&mut entry);
+            apply_reasoning_spec_to_entry(&mut entry, &alias.slug);
             entry["display_name"] = serde_json::Value::String(alias.display_name.clone());
             entry["description"] = serde_json::Value::String(alias.display_name.clone());
             new_models.push(entry);
@@ -800,15 +938,15 @@ mod tests {
 
     #[test]
     fn test_resolve_model_reasoning_spec_all_models() {
-        // GPT-5.6 Sol
+        // GPT-5.6 Sol（单模型覆盖声明 ultra）
         let spec = resolve_model_reasoning_spec("gpt-5.6-sol");
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
             spec.supported_levels,
-            &["none", "low", "medium", "high", "xhigh", "max"]
+            &["none", "low", "medium", "high", "xhigh", "max", "ultra"]
         );
 
-        // GPT-5.6 Terra
+        // GPT-5.6 Terra / Luna（系列基线，无 ultra）
         let spec = resolve_model_reasoning_spec("GPT-5.6 Terra");
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
@@ -816,7 +954,6 @@ mod tests {
             &["none", "low", "medium", "high", "xhigh", "max"]
         );
 
-        // GPT-5.6 Luna
         let spec = resolve_model_reasoning_spec("gpt-5.6_luna");
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
@@ -824,23 +961,23 @@ mod tests {
             &["none", "low", "medium", "high", "xhigh", "max"]
         );
 
-        // GPT-6 Astra
+        // GPT-6 Astra（覆盖：不可关闭思考，含 ultra）
         let spec = resolve_model_reasoning_spec("gpt-6-astra");
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
             spec.supported_levels,
-            &["low", "medium", "high", "xhigh", "max"]
+            &["low", "medium", "high", "xhigh", "max", "ultra"]
         );
 
-        // GPT-6 Sol
+        // GPT-6 Sol（单模型覆盖声明 ultra）
         let spec = resolve_model_reasoning_spec("gpt-6-sol");
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
             spec.supported_levels,
-            &["none", "low", "medium", "high", "xhigh", "max"]
+            &["none", "low", "medium", "high", "xhigh", "max", "ultra"]
         );
 
-        // GPT-6 Luna
+        // GPT-6 Luna（系列基线，无 ultra）
         let spec = resolve_model_reasoning_spec("gpt-6-luna");
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
@@ -848,8 +985,23 @@ mod tests {
             &["none", "low", "medium", "high", "xhigh", "max"]
         );
 
-        // GPT-6.1 Sol
+        // GPT-6.1 Sol（单模型覆盖声明 ultra）
         let spec = resolve_model_reasoning_spec("gpt-6.1-sol");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["low", "medium", "high", "xhigh", "max", "ultra"]
+        );
+
+        // GPT-6.2 系列（同系列新增模型自动命中系列规则）
+        let spec = resolve_model_reasoning_spec("gpt-6.2-sol");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["low", "medium", "high", "xhigh", "max"]
+        );
+
+        let spec = resolve_model_reasoning_spec("gpt-6.2-luna-2026-11");
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
             spec.supported_levels,
@@ -915,8 +1067,64 @@ mod tests {
         assert_eq!(spec.default_level, "medium");
         assert_eq!(
             spec.supported_levels,
-            &["none", "low", "medium", "high", "xhigh", "max"]
+            &["none", "low", "medium", "high", "xhigh", "max", "ultra"]
         );
+    }
+
+    #[test]
+    fn test_resolve_model_reasoning_spec_override_precedence() {
+        // 后缀变体命中单模型覆盖（ultra 随覆盖继承）
+        let spec = resolve_model_reasoning_spec("gpt-6-sol-2026-11");
+        assert_eq!(spec.default_level, "medium");
+        assert_eq!(
+            spec.supported_levels,
+            &["none", "low", "medium", "high", "xhigh", "max", "ultra"]
+        );
+
+        // 系列前缀带边界：gpt-6 不越界命中 gpt-6.1 / gpt-6.2
+        let spec = resolve_model_reasoning_spec("gpt-6.1-luna");
+        assert_eq!(
+            spec.supported_levels,
+            &["low", "medium", "high", "xhigh", "max"]
+        );
+
+        // 显式 patterns 别名命中 V4.1 系列而非 V4
+        let spec = resolve_model_reasoning_spec("deepseek-flash");
+        assert_eq!(spec.default_level, "high");
+        assert_eq!(spec.supported_levels, &["none", "low", "high", "max"]);
+    }
+
+    #[test]
+    fn test_apply_model_aliases_to_catalog_refreshes_reasoning_fields() {
+        // 旧目录条目缺失/过时思考字段时，同步应按规则表刷新（恢复 ultra），并保留扩展字段
+        let catalog = r#"{
+  "models": [
+    {
+      "slug": "gpt-6-sol",
+      "display_name": "Sol",
+      "context_window": 272000,
+      "supported_reasoning_levels": [ { "effort": "low", "description": "" } ]
+    }
+  ]
+}"#;
+        let result =
+            apply_model_aliases_to_catalog(Some(catalog), &[alias("gpt-6-sol", "Sol")]).unwrap();
+        let content = result.expect("应刷新思考强度字段");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        let entry = &v["models"][0];
+        let efforts: Vec<&str> = entry["supported_reasoning_levels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e["effort"].as_str().unwrap())
+            .collect();
+        assert!(efforts.contains(&"ultra"));
+        assert_eq!(entry["default_reasoning_level"], "medium");
+        assert_eq!(entry["context_window"], 272000);
+
+        let no_change =
+            apply_model_aliases_to_catalog(Some(&content), &[alias("gpt-6-sol", "Sol")]).unwrap();
+        assert!(no_change.is_none());
     }
 
     #[test]

@@ -69,16 +69,30 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist-release | Out-Null
 
+          # 安装包统一以英文包名发布；纯中文名称仅保留给一键运行的便携版
+          $conf = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
+          $pkg = Get-Content "package.json" -Raw | ConvertFrom-Json
+          $productName = $conf.productName
+          $binBase = $pkg.name
+          function Get-ReleaseName([string]$name) {
+            if ($productName -and $name.StartsWith($productName)) {
+              return $binBase + $name.Substring($productName.Length)
+            }
+            return $name
+          }
+
           # 1. 收集 NSIS 安装程序 (*-setup.exe)
           Get-ChildItem -Path "src-tauri/target/release/bundle/nsis/*.exe" -ErrorAction SilentlyContinue | ForEach-Object {
-            Copy-Item -Path $_.FullName -Destination "dist-release/$($_.Name)"
-            Write-Host "Collected NSIS Installer: $($_.Name)"
+            $destName = Get-ReleaseName $_.Name
+            Copy-Item -Path $_.FullName -Destination "dist-release/$destName"
+            Write-Host "Collected NSIS Installer: $destName"
           }
 
           # 2. 收集 MSI 安装程序 (*.msi)
           Get-ChildItem -Path "src-tauri/target/release/bundle/msi/*.msi" -ErrorAction SilentlyContinue | ForEach-Object {
-            Copy-Item -Path $_.FullName -Destination "dist-release/$($_.Name)"
-            Write-Host "Collected MSI Installer: $($_.Name)"
+            $destName = Get-ReleaseName $_.Name
+            Copy-Item -Path $_.FullName -Destination "dist-release/$destName"
+            Write-Host "Collected MSI Installer: $destName"
           }
 
           # 3. 收集编译生成的独立可执行文件

@@ -358,7 +358,7 @@ mod tests {
         assert_eq!(res.default_level, "medium");
         assert_eq!(
             res.supported_levels,
-            vec!["none", "low", "medium", "high", "xhigh", "max"]
+            vec!["none", "low", "medium", "high", "xhigh", "max", "ultra"]
         );
 
         let res_fallback = get_model_reasoning_spec(None).unwrap();
