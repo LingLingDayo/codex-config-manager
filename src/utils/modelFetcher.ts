@@ -1,8 +1,20 @@
 import { normalizeUrl } from './format';
+import { invokeCommand, isTauriEnv } from './hybridStorage';
 
 const MODEL_FETCH_CACHE_TTL_MS = 60_000;
 let modelFetchCache: { key: string; url: string; models: string[]; expireAt: number } | null =
   null;
+
+interface ModelFetchTransport {
+  status: number;
+  body: string;
+}
+
+interface ModelFetchResponse {
+  ok: boolean;
+  status: number;
+  body: string;
+}
 
 export function clearModelFetchCache() {
   modelFetchCache = null;
@@ -67,6 +79,63 @@ export function parseModelList(json: any): string[] {
   return Array.from(new Set(result)).sort((a, b) => a.localeCompare(b));
 }
 
+function normalizeTransportError(err: any): Error {
+  const raw = (err?.message || String(err) || '').trim();
+  if (raw.startsWith('获取模型列表')) {
+    return new Error(raw);
+  }
+  if (/timeout|超时/i.test(raw)) {
+    return new Error('获取模型列表超时，请检查网络或地址');
+  }
+  return new Error(`获取模型列表失败: ${raw || '网络异常'}`);
+}
+
+/**
+ * 优先经 Rust 原生 HTTP 传输层发起 GET，避免 WebView 的 CORS 预检拦截；
+ * 纯浏览器预览（无 Tauri 运行时）时降级为原生 fetch。
+ */
+async function requestModels(
+  endpoint: string,
+  apiKey: string,
+  timeoutMs: number
+): Promise<ModelFetchResponse> {
+  if (isTauriEnv()) {
+    const result = await invokeCommand<ModelFetchTransport>('fetch_provider_models', {
+      endpoint,
+      apiKey,
+      timeoutMs,
+    });
+    return {
+      ok: result.status >= 200 && result.status < 300,
+      status: result.status,
+      body: result.body ?? '',
+    };
+  }
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+    },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  return {
+    ok: response.ok,
+    status: response.status,
+    body: await response.text(),
+  };
+}
+
+function parseJsonBody(body: string): any {
+  if (!body) return null;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 请求中转站获取当前 Key 支持的可用模型列表
  */
@@ -98,38 +167,25 @@ export async function fetchProviderModels(
   }
 
   const endpoint = buildModelsUrl(trimmedUrl);
-  let response: Response;
+  let response: ModelFetchResponse;
 
   try {
-    response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${trimmedKey}`,
-        Accept: 'application/json',
-      },
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    response = await requestModels(endpoint, trimmedKey, timeoutMs);
   } catch (err: any) {
-    if (err?.name === 'TimeoutError' || err?.message?.includes('timeout')) {
-      throw new Error('获取模型列表超时，请检查网络或地址');
-    }
-    throw new Error(`获取模型列表失败: ${err?.message || '网络异常'}`);
+    throw normalizeTransportError(err);
   }
 
   // 针对某些特殊接口降级重试：如果 /v1/models 404，尝试 /models
   if (response.status === 404 && endpoint.endsWith('/v1/models')) {
     const baseWithoutV1 = endpoint.replace(/\/v1\/models$/, '');
     try {
-      const fallbackResp = await fetch(`${baseWithoutV1}/models`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${trimmedKey}`,
-          Accept: 'application/json',
-        },
-        signal: AbortSignal.timeout(Math.min(timeoutMs, 5000)),
-      });
-      if (fallbackResp.ok) {
-        response = fallbackResp;
+      const fallback = await requestModels(
+        `${baseWithoutV1}/models`,
+        trimmedKey,
+        Math.min(timeoutMs, 5000)
+      );
+      if (fallback.ok) {
+        response = fallback;
       }
     } catch {
       // 忽略 fallback 错误，让下方的错误处理统一处理
@@ -144,13 +200,8 @@ export async function fetchProviderModels(
       throw new Error('未找到模型接口 (/v1/models)');
     }
 
-    let errorDetail = '';
-    try {
-      const errJson = await response.json();
-      errorDetail = errJson?.error?.message || errJson?.message || '';
-    } catch {
-      // 忽略 JSON 解析失败
-    }
+    const errJson = parseJsonBody(response.body);
+    const errorDetail = errJson?.error?.message || errJson?.message || '';
 
     throw new Error(
       errorDetail
@@ -159,7 +210,11 @@ export async function fetchProviderModels(
     );
   }
 
-  const json = await response.json();
+  const json = parseJsonBody(response.body);
+  if (json === null) {
+    throw new Error('获取模型列表失败: 响应不是有效的 JSON');
+  }
+
   const models = parseModelList(json);
 
   if (models.length === 0 && json?.error?.message) {
