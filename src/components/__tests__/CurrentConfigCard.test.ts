@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import CurrentConfigCard from '../CurrentConfigCard.vue';
 import type { CodexConfig } from '../../types/config';
+import { copyToClipboard } from '../../utils/clipboard';
+
+vi.mock('../../utils/clipboard', () => ({
+  copyToClipboard: vi.fn(),
+}));
 
 const mockConfig: CodexConfig = {
   key: 'sk-test-key-123456',
@@ -14,6 +19,39 @@ const mockConfig: CodexConfig = {
 };
 
 describe('CurrentConfigCard.vue component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(copyToClipboard).mockResolvedValue(true);
+  });
+
+  it('API Key 右侧提供复制按钮并复制当前 Key', async () => {
+    const wrapper = mount(CurrentConfigCard, {
+      props: {
+        config: mockConfig,
+        isLoading: false,
+      },
+    });
+
+    const copyBtn = wrapper.find('.btn-copy-key');
+    expect(copyBtn.exists()).toBe(true);
+    expect(copyBtn.attributes('title')).toBe('复制 API Key');
+
+    await copyBtn.trigger('click');
+    expect(copyToClipboard).toHaveBeenCalledWith(mockConfig.key);
+  });
+
+  it('Key 为空时点击复制不调用剪贴板', async () => {
+    const wrapper = mount(CurrentConfigCard, {
+      props: {
+        config: { ...mockConfig, key: '' },
+        isLoading: false,
+      },
+    });
+
+    await wrapper.find('.btn-copy-key').trigger('click');
+    expect(copyToClipboard).not.toHaveBeenCalled();
+  });
+
   it('正确渲染保存配置按钮及其文案', () => {
     const wrapper = mount(CurrentConfigCard, {
       props: {

@@ -12,6 +12,8 @@ import {
   isDefaultStation,
 } from '../utils/format';
 import { isPresetContentEqual, matchesPresetIdentity } from '../utils/preset';
+import { copyToClipboard } from '../utils/clipboard';
+import { useToast } from '../composables/useToast';
 
 const props = withDefaults(
   defineProps<{
@@ -36,6 +38,8 @@ const emit = defineEmits<{
   (e: 'open-presets'): void;
   (e: 'launch-app', data?: ConfigFormPayload): void;
 }>();
+
+const { showToast } = useToast();
 
 const apiKey = ref<string>('');
 const providerUrl = ref<string>('');
@@ -74,6 +78,20 @@ watch(
 
 const handleProviderInput = () => {
   providerUrl.value = applyStationAlias(providerUrl.value);
+};
+
+const handleCopyKey = async () => {
+  const key = apiKey.value.trim();
+  if (!key) {
+    showToast('请先填写 API Key', 'warning');
+    return;
+  }
+
+  const copied = await copyToClipboard(key);
+  showToast(
+    copied ? 'API Key 已复制到剪贴板' : '复制失败，请手动复制',
+    copied ? 'success' : 'error'
+  );
 };
 
 const handleSave = () => {
@@ -177,28 +195,51 @@ const isPresetModified = computed(() => {
             required
             autocomplete="off"
           />
-          <button
-            type="button"
-            class="icon-button"
-            :class="{ active: showKey }"
-            title="显示/隐藏 Key"
-            @click="showKey = !showKey"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+          <div class="key-actions">
+            <button
+              type="button"
+              class="icon-button btn-copy-key"
+              title="复制 API Key"
+              @click="handleCopyKey"
             >
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="icon-button"
+              :class="{ active: showKey }"
+              title="显示/隐藏 Key"
+              @click="showKey = !showKey"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -276,15 +317,21 @@ const isPresetModified = computed(() => {
 
   input {
     @include input-base;
-    padding: 8px 36px 8px 12px;
+    padding: 8px 62px 8px 12px;
   }
 }
 
-.icon-button {
+.key-actions {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.icon-button {
   background: transparent;
   border: none;
   color: $text-muted;
@@ -294,6 +341,7 @@ const isPresetModified = computed(() => {
   justify-content: center;
   padding: 4px;
   border-radius: $border-radius-sm;
+  flex-shrink: 0;
   transition: all 0.2s ease;
 
   &:hover {
