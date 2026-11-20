@@ -1147,4 +1147,20 @@ mod tests {
         assert_eq!(levels[2]["effort"], "high");
         assert_eq!(levels[3]["effort"], "max");
     }
+
+    #[test]
+    fn test_create_model_entry_default_reasoning_summary_is_auto() {
+        // 必须为 auto：none 会让部分中转站的 responses 流式请求间歇超时，表现为发送后无响应
+        let entry = create_model_entry("gpt-6.2-sol", "GPT-6.2 Sol");
+        assert_eq!(entry["default_reasoning_summary"], "auto");
+        assert_eq!(entry["supports_reasoning_summaries"], true);
+
+        // 经别名流程落盘的条目也必须保持 auto
+        let aliases = vec![alias("gpt-6.2-sol", "6.2 Sol")];
+        let content = apply_model_aliases_to_catalog(None, &aliases)
+            .unwrap()
+            .expect("应生成新目录内容");
+        let v: serde_json::Value = serde_json::from_str(&content).unwrap();
+        assert_eq!(v["models"][0]["default_reasoning_summary"], "auto");
+    }
 }
