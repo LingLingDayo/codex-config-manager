@@ -5,9 +5,10 @@ pub mod utils;
 pub use models::*;
 
 use commands::{
-    detect_codex_path, get_app_settings, get_codex_config, get_model_reasoning_spec, get_presets,
-    launch_codex_app, pick_codex_path, restore_codex_default, save_app_settings, save_codex_config,
-    save_codex_model, save_codex_reasoning_effort, save_presets,
+    detect_codex_path, fetch_provider_models, get_app_settings, get_codex_config,
+    get_model_reasoning_spec, get_presets, launch_codex_app, pick_codex_path,
+    restore_codex_default, save_app_settings, save_codex_config, save_codex_model,
+    save_codex_reasoning_effort, save_presets,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -27,7 +28,8 @@ pub fn run() {
             save_app_settings,
             pick_codex_path,
             detect_codex_path,
-            launch_codex_app
+            launch_codex_app,
+            fetch_provider_models
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
