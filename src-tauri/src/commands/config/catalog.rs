@@ -170,6 +170,44 @@ pub fn ensure_model_entry_validity(entry: &mut serde_json::Value) {
             });
         }
     }
+
+    // 支持推理的模型不应将思考摘要写死为 none：部分网关收到 summary=none 会挂起，
+    // 导致 Codex 发送后长期无响应。统一纠正为 auto（官方对推理模型的标准值）。
+    if entry.get("default_reasoning_summary").and_then(|v| v.as_str()) == Some("none") {
+        entry["default_reasoning_summary"] = serde_json::Value::String("auto".to_string());
+    }
+}
+
+/// 自愈整个模型目录文件：把每个条目的 default_reasoning_summary=none 纠正为 auto。
+/// 返回 Some(新内容) 表示内容发生变化、需要写回；None 表示无需改动。
+/// 用于启动时主动修正历史遗留目录文件，避免用户必须手动重新保存配置才生效。
+pub fn heal_catalog_reasoning_summary(catalog_content: &str) -> Result<Option<String>, String> {
+    if catalog_content.trim().is_empty() {
+        return Ok(None);
+    }
+    let mut v: serde_json::Value = serde_json::from_str(catalog_content)
+        .map_err(|e| format!("模型目录文件解析失败，已跳过自愈: {}", e))?;
+    if !v.is_object() {
+        return Ok(None);
+    }
+    let Some(models) = v.get_mut("models").and_then(|m| m.as_array_mut()) else {
+        return Ok(None);
+    };
+    let mut changed = false;
+    for entry in models.iter_mut() {
+        if entry.is_object()
+            && entry.get("default_reasoning_summary").and_then(|x| x.as_str()) == Some("none")
+        {
+            entry["default_reasoning_summary"] = serde_json::Value::String("auto".to_string());
+            changed = true;
+        }
+    }
+    if !changed {
+        return Ok(None);
+    }
+    serde_json::to_string_pretty(&v)
+        .map(Some)
+        .map_err(|e| format!("序列化模型目录失败: {}", e))
 }
 
 /// 单个模型所支持的思考强度配置规格
@@ -909,6 +947,39 @@ mod tests {
             apply_model_aliases_to_catalog(Some(r#"{ "models": {} }"#), &[alias("a", "A")])
                 .is_err()
         );
+    }
+
+    #[test]
+    fn test_heal_catalog_reasoning_summary_none_to_auto() {
+        let catalog = r#"{
+            "models": [
+                { "slug": "gpt-6-luna", "default_reasoning_summary": "none" },
+                { "slug": "gpt-6.2-sol", "default_reasoning_summary": "auto" },
+                { "slug": "no-summary-field" }
+            ]
+        }"#;
+        let healed = heal_catalog_reasoning_summary(catalog).unwrap().unwrap();
+        let v: serde_json::Value = serde_json::from_str(&healed).unwrap();
+        assert_eq!(v["models"][0]["default_reasoning_summary"], "auto");
+        assert_eq!(v["models"][1]["default_reasoning_summary"], "auto");
+        assert!(v["models"][2].get("default_reasoning_summary").is_none());
+    }
+
+    #[test]
+    fn test_heal_catalog_reasoning_summary_no_change_when_all_auto() {
+        let catalog = r#"{ "models": [ { "slug": "a", "default_reasoning_summary": "auto" } ] }"#;
+        assert!(heal_catalog_reasoning_summary(catalog).unwrap().is_none());
+    }
+
+    #[test]
+    fn test_ensure_model_entry_validity_repairs_summary_none() {
+        let mut entry = serde_json::json!({
+            "slug": "gpt-6-luna",
+            "base_instructions": "",
+            "default_reasoning_summary": "none"
+        });
+        ensure_model_entry_validity(&mut entry);
+        assert_eq!(entry["default_reasoning_summary"], "auto");
     }
 
     #[test]

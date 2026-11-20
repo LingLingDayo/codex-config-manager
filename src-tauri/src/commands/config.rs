@@ -16,8 +16,9 @@ pub mod toml_utils;
 // 公开重导出以保持与现有调用及测试的 100% 向后兼容性
 pub use catalog::{
     apply_display_name_to_catalog, apply_model_aliases_to_catalog, apply_model_catalog_json_to_lines,
-    parse_active_catalog_file_from_lines, parse_display_name_from_catalog,
-    parse_model_aliases_from_catalog, resolve_catalog_path, resolve_model_reasoning_spec,
+    heal_catalog_reasoning_summary, parse_active_catalog_file_from_lines,
+    parse_display_name_from_catalog, parse_model_aliases_from_catalog, resolve_catalog_path,
+    resolve_model_reasoning_spec,
 };
 pub use parser::parse_codex_config_from_content;
 pub use patcher::{apply_model_reasoning_effort_to_lines, apply_model_to_lines};
@@ -61,7 +62,15 @@ pub fn get_codex_config() -> Result<CodexConfig, String> {
         }
         let catalog_path = catalog::resolve_catalog_path(&codex_dir, &catalog_file);
         if catalog_path.exists() {
-            fs::read_to_string(&catalog_path).ok()
+            let raw = fs::read_to_string(&catalog_path).ok()?;
+            // 启动时自愈：历史目录文件里 summary=none 会让部分网关卡死，主动纠正并写回，
+            // 这样用户升级后无需手动重新保存配置即可生效。
+            if let Ok(Some(healed)) = heal_catalog_reasoning_summary(&raw) {
+                if fs::write(&catalog_path, &healed).is_ok() {
+                    return Some(healed);
+                }
+            }
+            Some(raw)
         } else {
             None
         }
