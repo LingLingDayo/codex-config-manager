@@ -254,6 +254,9 @@ pub fn save_codex_config(
     // 规范化 model_provider 行并安全合并/创建 [model_providers.custom] 节
     patcher::apply_custom_provider_to_lines(&mut lines, &key, &real_url);
 
+    // 清理 Codex 已废弃的顶层配置，避免每次启动产生 ignored 警告
+    patcher::remove_deprecated_top_level_keys(&mut lines);
+
     // 写回 config.toml
     let new_content = lines.join("\r\n");
     fs::write(&config_path, new_content).map_err(|e| format!("写入 config.toml 失败: {}", e))?;

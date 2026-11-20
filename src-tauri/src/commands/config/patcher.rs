@@ -1,5 +1,40 @@
 use super::field_patcher::apply_top_level_string_field;
 
+/// Codex 已废弃或不再识别的顶层配置键，保留它们只会产生 ignored 警告。
+/// windows_ws1 是历史上误拼写的键，windows_wsl 为旧版 WSL 确认标记，均已无对应配置项。
+const DEPRECATED_TOP_LEVEL_KEYS: &[&str] = &[
+    "disable_response_storage",
+    "windows_ws1_setup_acknowledged",
+    "windows_wsl_setup_acknowledged",
+];
+
+/// 删除顶层区域中已废弃的配置行。注释行与 section 内部的同名键保持不变。
+pub fn remove_deprecated_top_level_keys(lines: &mut Vec<String>) {
+    let mut remove_indices = Vec::new();
+    let mut in_section = false;
+
+    for (i, line) in lines.iter().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            in_section = true;
+            continue;
+        }
+        if in_section || trimmed.starts_with('#') {
+            continue;
+        }
+        let Some((key, _)) = trimmed.split_once('=') else {
+            continue;
+        };
+        if DEPRECATED_TOP_LEVEL_KEYS.contains(&key.trim()) {
+            remove_indices.push(i);
+        }
+    }
+
+    for i in remove_indices.into_iter().rev() {
+        lines.remove(i);
+    }
+}
+
 pub fn apply_model_to_lines(lines: &mut Vec<String>, model: &str) {
     apply_top_level_string_field(lines, "model", model, &[], &["model_provider"]);
 }
@@ -81,8 +116,9 @@ pub fn apply_custom_provider_to_lines(lines: &mut Vec<String>, key: &str, real_u
                     } else if k == "base_url" {
                         *line = format!("base_url = \"{}\"", real_url);
                         has_base_url = true;
-                    } else if k == "api" {
-                        *line = "api = \"responses\"".to_string();
+                    } else if k == "api" || k == "wire_api" {
+                        // 旧配置写的是 api（Codex 不识别），保存时统一迁移为 wire_api
+                        *line = "wire_api = \"responses\"".to_string();
                         has_api = true;
                     } else if k == "requires_openai_auth" {
                         *line = "requires_openai_auth = true".to_string();
@@ -106,7 +142,7 @@ pub fn apply_custom_provider_to_lines(lines: &mut Vec<String>, key: &str, real_u
             added_lines.push(format!("base_url = \"{}\"", real_url));
         }
         if !has_api {
-            added_lines.push("api = \"responses\"".to_string());
+            added_lines.push("wire_api = \"responses\"".to_string());
         }
         if !has_requires_auth {
             added_lines.push("requires_openai_auth = true".to_string());
@@ -127,7 +163,7 @@ pub fn apply_custom_provider_to_lines(lines: &mut Vec<String>, key: &str, real_u
         lines.push("[model_providers.custom]".to_string());
         lines.push("name = \"custom\"".to_string());
         lines.push(format!("base_url = \"{}\"", real_url));
-        lines.push("api = \"responses\"".to_string());
+        lines.push("wire_api = \"responses\"".to_string());
         lines.push("requires_openai_auth = true".to_string());
         lines.push("supports_websockets = false".to_string());
         lines.push(format!("experimental_bearer_token = \"{}\"", key));
@@ -292,6 +328,50 @@ mod tests {
         assert!(lines.contains(&"[model_providers.custom]".to_string()));
         assert!(lines.contains(&"experimental_bearer_token = \"sk-12345\"".to_string()));
         assert!(lines.contains(&"base_url = \"https://api.openai.com/v1\"".to_string()));
+    }
+
+    #[test]
+    fn test_remove_deprecated_top_level_keys() {
+        let mut lines = vec![
+            "model = \"gpt-6.2-sol\"".to_string(),
+            "disable_response_storage = true".to_string(),
+            "windows_ws1_setup_acknowledged = true".to_string(),
+            "windows_wsl_setup_acknowledged = true".to_string(),
+            "# disable_response_storage = true".to_string(),
+            "[notice]".to_string(),
+            "disable_response_storage = false".to_string(),
+        ];
+        remove_deprecated_top_level_keys(&mut lines);
+        assert_eq!(
+            lines,
+            vec![
+                "model = \"gpt-6.2-sol\"".to_string(),
+                "# disable_response_storage = true".to_string(),
+                "[notice]".to_string(),
+                "disable_response_storage = false".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_apply_custom_provider_migrates_legacy_api_to_wire_api() {
+        let mut lines = vec![
+            "model_provider = \"custom\"".to_string(),
+            "[model_providers.custom]".to_string(),
+            "name = \"custom\"".to_string(),
+            "api = \"responses\"".to_string(),
+        ];
+        apply_custom_provider_to_lines(&mut lines, "sk-12345", "https://api.openai.com/v1");
+        assert!(lines.contains(&"wire_api = \"responses\"".to_string()));
+        assert!(!lines.iter().any(|line| line.trim_start_matches('#').trim() == "api = \"responses\""));
+    }
+
+    #[test]
+    fn test_apply_custom_provider_new_uses_wire_api() {
+        let mut lines = Vec::new();
+        apply_custom_provider_to_lines(&mut lines, "sk-12345", "https://api.openai.com/v1");
+        assert!(lines.contains(&"wire_api = \"responses\"".to_string()));
+        assert!(!lines.iter().any(|line| line == &"api = \"responses\"".to_string()));
     }
 
     #[test]
