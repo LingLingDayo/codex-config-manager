@@ -446,7 +446,7 @@ pub fn create_model_entry(slug: &str, display_name: &str) -> serde_json::Value {
         "slug": slug,
         "display_name": display_name,
         "description": display_name,
-        "default_reasoning_summary": "none",
+        "default_reasoning_summary": "auto",
         "default_service_tier": null,
         "default_verbosity": "low",
         "experimental_supported_tools": [],
