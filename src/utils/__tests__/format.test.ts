@@ -54,10 +54,37 @@ describe('format utils', () => {
       expect(normalizeUrl(`${DEFAULT_STATION_URL}///`)).toBe(DEFAULT_STATION_URL);
     });
 
-    it('若为第三方地址，应仅去除尾随斜杠并保留原始主机与路径', () => {
+    it('第三方地址缺少版本段时应自动补齐 /v1，确保写入 config.toml 后可正常请求', () => {
+      expect(normalizeUrl('https://api.fluxapi.vip')).toBe('https://api.fluxapi.vip/v1');
+      expect(normalizeUrl('https://api.deepseek.com///')).toBe('https://api.deepseek.com/v1');
+      expect(normalizeUrl('  https://api.anthropic.com  ')).toBe('https://api.anthropic.com/v1');
+    });
+
+    it('已带版本段的地址应保持原样，避免重复拼接 /v1', () => {
       expect(normalizeUrl('https://api.openai.com/v1/')).toBe('https://api.openai.com/v1');
-      expect(normalizeUrl('https://api.deepseek.com///')).toBe('https://api.deepseek.com');
-      expect(normalizeUrl('  https://api.anthropic.com  ')).toBe('https://api.anthropic.com');
+      expect(normalizeUrl('https://api.fluxapi.vip/v1')).toBe('https://api.fluxapi.vip/v1');
+      expect(normalizeUrl('https://open.bigmodel.cn/api/paas/v4')).toBe(
+        'https://open.bigmodel.cn/api/paas/v4'
+      );
+      expect(normalizeUrl('https://api.example.com/v1beta')).toBe(
+        'https://api.example.com/v1beta'
+      );
+    });
+
+    it('从文档复制的完整端点应回落到基准地址', () => {
+      expect(normalizeUrl('https://api.fluxapi.vip/v1/models')).toBe(
+        'https://api.fluxapi.vip/v1'
+      );
+      expect(normalizeUrl('https://api.fluxapi.vip/models')).toBe('https://api.fluxapi.vip/v1');
+      expect(normalizeUrl('https://api.fluxapi.vip/v1/chat/completions')).toBe(
+        'https://api.fluxapi.vip/v1'
+      );
+    });
+
+    it('规范化结果应幂等', () => {
+      const once = normalizeUrl('https://api.fluxapi.vip');
+      expect(normalizeUrl(once)).toBe(once);
+      expect(normalizeUrl(DEFAULT_STATION_URL)).toBe(DEFAULT_STATION_URL);
     });
   });
 

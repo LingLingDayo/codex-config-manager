@@ -56,7 +56,7 @@ describe('useCodexConfig composable', () => {
 
       expect(mockedInvoke).toHaveBeenCalledWith('get_codex_config');
       expect(currentConfig.key).toBe('sk-tauri-key');
-      expect(currentConfig.provider_url).toBe('https://api.deepseek.com');
+      expect(currentConfig.provider_url).toBe('https://api.deepseek.com/v1');
       expect(currentConfig.model).toBe('deepseek-chat');
     });
 
@@ -116,6 +116,24 @@ describe('useCodexConfig composable', () => {
       expect(currentConfig.is_enabled).toBe(true);
       expect(currentConfig.model).toBe('gpt-4o');
       expect(localStorage.getItem('codex_current_config')).toBeTruthy();
+    });
+
+    it('保存时自动补齐缺失的 /v1，保证 Codex 启动后请求路径正确', async () => {
+      (window as any).__TAURI_INTERNALS__ = {};
+      mockedInvoke.mockResolvedValueOnce(undefined);
+
+      const { currentConfig, saveConfig } = useCodexConfig();
+      const success = await saveConfig('sk-key', 'https://api.fluxapi.vip');
+
+      expect(success).toBe(true);
+      expect(mockedInvoke).toHaveBeenCalledWith(
+        'save_codex_config',
+        expect.objectContaining({
+          key: 'sk-key',
+          providerUrl: 'https://api.fluxapi.vip/v1',
+        })
+      );
+      expect(currentConfig.provider_url).toBe('https://api.fluxapi.vip/v1');
     });
 
     it('payload 携带模型别名列表时应透传至后端并同步本地状态', async () => {

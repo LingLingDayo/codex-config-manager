@@ -51,6 +51,17 @@ describe('modelFetcher utility', () => {
       );
     });
 
+    it('缺失 /v1 或误粘完整端点时应与写入 config.toml 的规范地址保持一致', () => {
+      expect(buildModelsUrl('https://api.fluxapi.vip')).toBe(
+        'https://api.fluxapi.vip/v1/models'
+      );
+      expect(buildModelsUrl('https://api.fluxapi.vip/models')).toBe(
+        'https://api.fluxapi.vip/v1/models'
+      );
+      expect(buildModelsUrl('https://api.fluxapi.vip/v1/chat/completions')).toBe(
+        'https://api.fluxapi.vip/v1/models'
+      );
+    });
   });
 
   describe('parseModelList', () => {

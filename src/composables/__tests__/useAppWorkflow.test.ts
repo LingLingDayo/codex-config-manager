@@ -95,6 +95,43 @@ describe('useAppWorkflow', () => {
     delete (window as any).__TAURI_INTERNALS__;
   });
 
+  it('启动 Codex 前的静默保存应同样补齐 /v1', async () => {
+    mockedInvoke.mockImplementation(async (cmd) => {
+      if (cmd === 'get_app_settings') {
+        return {
+          codex_path: 'C:\\Program Files\\ChatGPT\\ChatGPT.exe',
+          launch_kill_previous: true,
+          show_provider_presets: true,
+        };
+      }
+      if (cmd === 'launch_codex_app') {
+        return {
+          success: true,
+          killed_previous: false,
+          message: '已成功启动 ChatGPT',
+          target: 'ChatGPT.exe',
+        };
+      }
+      return undefined;
+    });
+
+    (window as any).__TAURI_INTERNALS__ = {};
+    const workflow = useAppWorkflow();
+    await workflow.bootstrap();
+
+    await workflow.handleLaunchApp({
+      key: 'sk-test',
+      providerUrl: 'https://api.fluxapi.vip',
+    });
+
+    expect(mockedInvoke).toHaveBeenCalledWith(
+      'save_codex_config',
+      expect.objectContaining({ providerUrl: 'https://api.fluxapi.vip/v1' })
+    );
+    expect(mockedInvoke).toHaveBeenCalledWith('launch_codex_app');
+    delete (window as any).__TAURI_INTERNALS__;
+  });
+
   it('收藏配置缺少 Key 时应拒绝并提示', async () => {
     const workflow = useAppWorkflow();
     const { message, type } = useToast();

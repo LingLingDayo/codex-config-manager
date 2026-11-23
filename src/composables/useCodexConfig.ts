@@ -97,6 +97,9 @@ export function useCodexConfig() {
       return false;
     }
 
+    // 统一规范化为可写入 config.toml 的 base_url，保存与启动 Codex 共用同一份值
+    const normalizedUrl = normalizeUrl(trimmedUrl);
+
     const model = payload?.model;
     const modelReasoningEffort = payload?.modelReasoningEffort;
     const modelDisplayName = payload?.modelDisplayName;
@@ -107,7 +110,7 @@ export function useCodexConfig() {
       if (isTauriEnv()) {
         await invokeCommand('save_codex_config', {
           key: trimmedKey,
-          providerUrl: trimmedUrl,
+          providerUrl: normalizedUrl,
           model: model !== undefined ? model.trim() : undefined,
           modelReasoningEffort:
             modelReasoningEffort !== undefined ? modelReasoningEffort.trim() : undefined,
@@ -117,7 +120,7 @@ export function useCodexConfig() {
       }
 
       currentConfig.key = trimmedKey;
-      currentConfig.provider_url = normalizeUrl(trimmedUrl);
+      currentConfig.provider_url = normalizedUrl;
       currentConfig.is_enabled = true;
       if (model !== undefined) {
         currentConfig.model = model.trim();
