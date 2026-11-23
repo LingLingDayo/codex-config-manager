@@ -78,6 +78,59 @@ pub fn is_default_station(url: &str) -> bool {
         || trimmed.eq_ignore_ascii_case("https://lingai.linglingdayo.top/v1")
 }
 
+/// 判断末段是否为 API 版本段，例如 v1 / v4 / v1beta / v2-alpha
+fn has_api_version_segment(url: &str) -> bool {
+    let segment = url.rsplit('/').next().unwrap_or("");
+    let bytes = segment.as_bytes();
+    if bytes.is_empty() || (bytes[0] != b'v' && bytes[0] != b'V') {
+        return false;
+    }
+    let rest = &segment[1..];
+    if !matches!(rest.chars().next(), Some(c) if c.is_ascii_digit()) {
+        return false;
+    }
+    rest.chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+}
+
+/// 剥离误粘入输入框的完整端点，回落到基准地址
+fn strip_trailing_endpoint(url: &str) -> String {
+    for endpoint in [
+        "/chat/completions",
+        "/models",
+        "/responses",
+        "/completions",
+    ] {
+        if let Some(base) = url.strip_suffix(endpoint) {
+            return base.to_string();
+        }
+    }
+    url.to_string()
+}
+
+/// 将用户输入的 Base URL 规范化为可直接写入 config.toml 的 base_url。
+/// 与前端 format.ts 的 normalizeUrl 规则保持一致，修改时需同步两端。
+pub fn normalize_provider_base_url(url: &str) -> String {
+    let trimmed = url.trim().trim_end_matches('/');
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    // 默认站网关已兼容根路径，保持历史行为不变
+    if is_default_station(trimmed) {
+        return get_default_station_url();
+    }
+
+    let base = strip_trailing_endpoint(trimmed);
+    if is_default_station(&base) {
+        return get_default_station_url();
+    }
+    if has_api_version_segment(&base) {
+        return base;
+    }
+    format!("{}/v1", base)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -91,6 +144,71 @@ mod tests {
         assert!(is_default_station("https://lingai.linglingdayo.top/v1"));
         assert!(is_default_station("https://lingai.linglingdayo.top/v1/"));
         assert!(!is_default_station("https://api.openai.com/v1"));
+    }
+
+    #[test]
+    fn test_normalize_provider_base_url_appends_v1() {
+        assert_eq!(normalize_provider_base_url(""), "");
+        assert_eq!(normalize_provider_base_url("   "), "");
+        assert_eq!(
+            normalize_provider_base_url("https://api.fluxapi.vip"),
+            "https://api.fluxapi.vip/v1"
+        );
+        assert_eq!(
+            normalize_provider_base_url("  https://api.fluxapi.vip///  "),
+            "https://api.fluxapi.vip/v1"
+        );
+    }
+
+    #[test]
+    fn test_normalize_provider_base_url_keeps_version_segment() {
+        assert_eq!(
+            normalize_provider_base_url("https://api.fluxapi.vip/v1"),
+            "https://api.fluxapi.vip/v1"
+        );
+        assert_eq!(
+            normalize_provider_base_url("https://open.bigmodel.cn/api/paas/v4"),
+            "https://open.bigmodel.cn/api/paas/v4"
+        );
+        assert_eq!(
+            normalize_provider_base_url("https://api.example.com/v1beta"),
+            "https://api.example.com/v1beta"
+        );
+    }
+
+    #[test]
+    fn test_normalize_provider_base_url_strips_endpoint() {
+        assert_eq!(
+            normalize_provider_base_url("https://api.fluxapi.vip/v1/models"),
+            "https://api.fluxapi.vip/v1"
+        );
+        assert_eq!(
+            normalize_provider_base_url("https://api.fluxapi.vip/models"),
+            "https://api.fluxapi.vip/v1"
+        );
+        assert_eq!(
+            normalize_provider_base_url("https://api.fluxapi.vip/v1/chat/completions"),
+            "https://api.fluxapi.vip/v1"
+        );
+    }
+
+    #[test]
+    fn test_normalize_provider_base_url_keeps_default_station() {
+        assert_eq!(normalize_provider_base_url("lingai"), get_default_station_url());
+        assert_eq!(
+            normalize_provider_base_url("https://lingai.linglingdayo.top/v1"),
+            get_default_station_url()
+        );
+        assert_eq!(
+            normalize_provider_base_url("https://lingai.linglingdayo.top/v1/models"),
+            get_default_station_url()
+        );
+    }
+
+    #[test]
+    fn test_normalize_provider_base_url_is_idempotent() {
+        let once = normalize_provider_base_url("https://api.fluxapi.vip");
+        assert_eq!(normalize_provider_base_url(&once), once);
     }
 
     #[test]

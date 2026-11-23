@@ -386,4 +386,12 @@ mod tests {
         assert_eq!(lines[1], "# model_reasoning_effort = \"high\"");
         assert_eq!(lines[2], "# model_provider = \"custom\"");
     }
+
+    #[test]
+    fn test_apply_custom_provider_writes_normalized_base_url() {
+        let mut lines = vec!["model_provider = \"custom\"".to_string()];
+        let real_url = crate::utils::normalize_provider_base_url("https://api.fluxapi.vip");
+        apply_custom_provider_to_lines(&mut lines, "sk-12345", &real_url);
+        assert!(lines.contains(&"base_url = \"https://api.fluxapi.vip/v1\"".to_string()));
+    }
 }

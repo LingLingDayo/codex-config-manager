@@ -2,8 +2,7 @@ use std::fs;
 
 use crate::models::{CodexConfig, ModelAlias, ModelReasoningSpecDto};
 use crate::utils::{
-    config_file_names, default_catalog_file_name, get_codex_dir, get_default_station_url,
-    is_default_station,
+    config_file_names, default_catalog_file_name, get_codex_dir, normalize_provider_base_url,
 };
 
 pub mod auth;
@@ -156,12 +155,8 @@ pub fn save_codex_config(
         fs::write(&config_path, "").map_err(|e| format!("创建 config.toml 失败: {}", e))?;
     }
 
-    let trimmed_url = provider_url.trim().trim_end_matches('/');
-    let real_url = if is_default_station(trimmed_url) {
-        get_default_station_url()
-    } else {
-        trimmed_url.to_string()
-    };
+    // Codex 会在 base_url 后自行拼接 /responses，缺失版本段会导致请求落到站点根路径而报错
+    let real_url = normalize_provider_base_url(&provider_url);
 
     // 1. 读取并修改 config.toml
     let config_content =
