@@ -80,7 +80,14 @@ export function parseModelList(json: any): string[] {
 }
 
 function normalizeTransportError(err: any): Error {
-  const raw = (err?.message || String(err) || '').trim();
+  // Tauri command 的 Err(String) 以字符串 reject，fetch 失败则是 Error 实例
+  let raw = '';
+  if (typeof err === 'string') {
+    raw = err.trim();
+  } else if (typeof err?.message === 'string') {
+    raw = err.message.trim();
+  }
+
   if (raw.startsWith('获取模型列表')) {
     return new Error(raw);
   }
@@ -105,10 +112,13 @@ async function requestModels(
       apiKey,
       timeoutMs,
     });
+    if (!result || typeof result.status !== 'number' || typeof result.body !== 'string') {
+      throw new Error('获取模型列表失败: 后端响应异常，请重试');
+    }
     return {
       ok: result.status >= 200 && result.status < 300,
       status: result.status,
-      body: result.body ?? '',
+      body: result.body,
     };
   }
 
@@ -127,12 +137,12 @@ async function requestModels(
   };
 }
 
+// 用 undefined 区分「解析失败」与合法 JSON null
 function parseJsonBody(body: string): any {
-  if (!body) return null;
   try {
     return JSON.parse(body);
   } catch {
-    return null;
+    return undefined;
   }
 }
 
@@ -211,7 +221,7 @@ export async function fetchProviderModels(
   }
 
   const json = parseJsonBody(response.body);
-  if (json === null) {
+  if (json === undefined) {
     throw new Error('获取模型列表失败: 响应不是有效的 JSON');
   }
 

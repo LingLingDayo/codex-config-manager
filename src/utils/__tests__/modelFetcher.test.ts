@@ -50,6 +50,7 @@ describe('modelFetcher utility', () => {
         'https://custom.api/v1/models'
       );
     });
+
   });
 
   describe('parseModelList', () => {
@@ -190,22 +191,50 @@ describe('modelFetcher utility', () => {
       ).rejects.toThrow('获取模型列表失败: 响应不是有效的 JSON');
     });
 
-    it('Rust 传输层上报超时时直接沿用中文提示，不重复拼接前缀', async () => {
-      invokeMock.mockRejectedValue(new Error('获取模型列表超时，请检查网络或地址'));
+    it('合法 JSON null 响应不误报为解析失败', async () => {
+      invokeMock.mockResolvedValue({ status: 200, body: 'null' });
+
+      const models = await fetchProviderModels('https://custom.api', 'sk-valid');
+      expect(models).toEqual([]);
+    });
+
+    // Tauri command 的 Err(String) 是以字符串 reject，而非 Error 实例
+    it('Rust 命令以字符串上报超时时沿用中文提示，不重复拼接前缀', async () => {
+      invokeMock.mockRejectedValue('获取模型列表超时，请检查网络或地址');
 
       await expect(
         fetchProviderModels('https://custom.api', 'sk-valid')
       ).rejects.toThrow('获取模型列表超时，请检查网络或地址');
     });
 
-    it('Rust 传输层上报连接失败时展示可读提示', async () => {
+    it('Rust 命令上报连接失败时展示可读提示', async () => {
       invokeMock.mockRejectedValue(
-        new Error('获取模型列表失败: 无法连接到地址，请检查网络或地址是否正确')
+        '获取模型列表失败: 无法连接到地址，请检查网络或地址是否正确'
       );
 
       await expect(
         fetchProviderModels('https://custom.api', 'sk-valid')
       ).rejects.toThrow('获取模型列表失败: 无法连接到地址，请检查网络或地址是否正确');
+    });
+
+    it('传输层抛出非预期载荷时不向界面暴露底层黑话', async () => {
+      invokeMock.mockRejectedValue(undefined);
+      await expect(
+        fetchProviderModels('https://custom.api', 'sk-valid')
+      ).rejects.toThrow('获取模型列表失败: 网络异常');
+
+      invokeMock.mockRejectedValue({ weird: 'payload' });
+      await expect(
+        fetchProviderModels('https://custom.api', 'sk-valid')
+      ).rejects.toThrow('获取模型列表失败: 网络异常');
+    });
+
+    it('后端返回空载荷时给出中文提示，不抛 TypeError 黑话', async () => {
+      invokeMock.mockResolvedValue(null);
+
+      await expect(
+        fetchProviderModels('https://custom.api', 'sk-valid')
+      ).rejects.toThrow('获取模型列表失败: 后端响应异常，请重试');
     });
 
     it('纯浏览器预览降级为原生 fetch 并解析模型列表', async () => {
