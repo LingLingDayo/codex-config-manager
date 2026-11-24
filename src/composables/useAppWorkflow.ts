@@ -58,6 +58,7 @@ export function useAppWorkflow() {
       ),
     });
     if (success) {
+      isPresetListModalVisible.value = false;
       showToast(`已快捷切换至「${preset.name}」并生效，请重新打开 Codex`);
     }
   };

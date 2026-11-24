@@ -52,7 +52,7 @@ describe('PresetListItem.vue component', () => {
     expect(wrapper.emitted('apply')?.[0]).toEqual([mockPreset]);
   });
 
-  it('点击整行在未激活状态下应触发 apply 事件', async () => {
+  it('单击整行在未激活状态下不应触发 apply 事件，双击整行应触发 apply 事件', async () => {
     const wrapper = mount(PresetListItem, {
       props: {
         preset: mockPreset,
@@ -61,10 +61,14 @@ describe('PresetListItem.vue component', () => {
     });
 
     await wrapper.trigger('click');
+    expect(wrapper.emitted('apply')).toBeFalsy();
+
+    await wrapper.trigger('dblclick');
     expect(wrapper.emitted('apply')).toBeTruthy();
+    expect(wrapper.emitted('apply')?.[0]).toEqual([mockPreset]);
   });
 
-  it('拖拽中点击整行不应触发 apply 事件', async () => {
+  it('拖拽中双击整行不应触发 apply 事件', async () => {
     const wrapper = mount(PresetListItem, {
       props: {
         preset: mockPreset,
@@ -73,11 +77,11 @@ describe('PresetListItem.vue component', () => {
       },
     });
 
-    await wrapper.trigger('click');
+    await wrapper.trigger('dblclick');
     expect(wrapper.emitted('apply')).toBeFalsy();
   });
 
-  it('处于全局拖拽中 (isAnyDragging 为 true) 点击整行不应触发 apply 事件', async () => {
+  it('处于全局拖拽中 (isAnyDragging 为 true) 双击整行不应触发 apply 事件', async () => {
     const wrapper = mount(PresetListItem, {
       props: {
         preset: mockPreset,
@@ -87,7 +91,7 @@ describe('PresetListItem.vue component', () => {
       },
     });
 
-    await wrapper.trigger('click');
+    await wrapper.trigger('dblclick');
     expect(wrapper.emitted('apply')).toBeFalsy();
   });
 

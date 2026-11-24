@@ -1,6 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import { Lightbulb } from '@lucide/vue';
 import PresetListModal from '../PresetListModal.vue';
 import type { CodexConfig } from '../../types/config';
 
@@ -48,7 +47,7 @@ describe('PresetListModal.vue component', () => {
     expect(title.text()).toBe('配置列表');
   });
 
-  it('点击关闭按钮或按 ESC 键触发 close 事件', async () => {
+  it('点击头部关闭按钮或按 ESC 键触发 close 事件', async () => {
     const wrapper = mount(PresetListModal, {
       props: {
         visible: true,
@@ -58,7 +57,7 @@ describe('PresetListModal.vue component', () => {
     });
     wrappers.push(wrapper);
 
-    const closeBtn = wrapper.find('.btn-close');
+    const closeBtn = wrapper.find('.modal-close-btn');
     expect(closeBtn.exists()).toBe(true);
     await closeBtn.trigger('click');
 
@@ -67,21 +66,44 @@ describe('PresetListModal.vue component', () => {
     expect(wrapper.emitted('close')).toHaveLength(2);
   });
 
-  it('底部提示栏应正确渲染说明文案与提示图标', () => {
+  it('不应渲染底部 footer 区域', () => {
     const wrapper = mount(PresetListModal, {
       props: {
         visible: true,
-        presets: [],
+        presets: [
+          { id: 'p1', name: '预设 1', provider_url: 'https://p1.com', key: 'k1' },
+        ],
         currentConfig: mockCurrentConfig,
       },
     });
     wrappers.push(wrapper);
 
-    const footerTip = wrapper.find('.footer-tip');
-    expect(footerTip.exists()).toBe(true);
-    expect(footerTip.text()).toContain('点击任意配置项即可立即切换并生效');
-    expect(footerTip.find('.tip-icon').exists()).toBe(true);
-    expect(wrapper.findComponent(Lightbulb).exists()).toBe(true);
+    expect(wrapper.find('.modal-footer').exists()).toBe(false);
+    expect(wrapper.find('.footer-tip').exists()).toBe(false);
+    expect(wrapper.find('.btn-close').exists()).toBe(false);
+  });
+
+  it('单击非激活项不触发切换，双击非激活项应触发 apply-preset 事件', async () => {
+    const mockPresets = [
+      { id: 'p1', name: '预设 1', provider_url: 'https://p1.com', key: 'k1' },
+    ];
+
+    const wrapper = mount(PresetListModal, {
+      props: {
+        visible: true,
+        presets: mockPresets,
+        currentConfig: mockCurrentConfig,
+      },
+    });
+    wrappers.push(wrapper);
+
+    const item = wrapper.find('.preset-item');
+    await item.trigger('click');
+    expect(wrapper.emitted('apply-preset')).toBeFalsy();
+
+    await item.trigger('dblclick');
+    expect(wrapper.emitted('apply-preset')).toBeTruthy();
+    expect(wrapper.emitted('apply-preset')?.[0]).toEqual([mockPresets[0]]);
   });
 
   it('存在多个预设时整项卡片支持指针拖拽重排且松手后不误触切换', async () => {
@@ -144,8 +166,9 @@ describe('PresetListModal.vue component', () => {
     expect(wrapper.emitted('reorder-presets')).toBeTruthy();
     expect(wrapper.emitted('reorder-presets')?.[0]).toEqual([0, 1]);
 
-    // 拖拽放置后立即点击目标项，绝不应误触发 apply-preset 事件
+    // 拖拽放置后立即点击或双击目标项，绝不应误触发 apply-preset 事件
     await items[1].trigger('click');
+    await items[1].trigger('dblclick');
     expect(wrapper.emitted('apply-preset')).toBeFalsy();
   });
 

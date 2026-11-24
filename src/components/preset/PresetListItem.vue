@@ -25,7 +25,7 @@ const emit = defineEmits<{
   (e: 'delete', preset: PresetConfig): void;
 }>();
 
-const handleRowClick = () => {
+const handleRowDblClick = () => {
   if (props.isDragging || props.isAnyDragging) {
     return;
   }
@@ -44,10 +44,10 @@ const handleRowClick = () => {
       'is-dragging': isDragging,
       'is-drag-over': isDragOver,
     }"
-    :title="isActive ? '当前正在生效' : '点击立即切换至此配置'"
+    :title="isActive ? '当前正在生效' : '双击立即切换至此配置'"
     draggable="false"
     :data-draggable="draggable ? 'true' : 'false'"
-    @click="handleRowClick"
+    @dblclick="handleRowDblClick"
   >
     <!-- 左侧基本信息 -->
     <div class="preset-info">
@@ -61,7 +61,7 @@ const handleRowClick = () => {
     </div>
 
     <!-- 右侧操作与状态 -->
-    <div class="preset-actions" @click.stop @mousedown.stop @pointerdown.stop>
+    <div class="preset-actions" @click.stop @dblclick.stop @mousedown.stop @pointerdown.stop>
       <span v-if="isActive" class="active-pill">
         <span class="pill-dot"></span>生效中
       </span>

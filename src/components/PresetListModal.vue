@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue';
-import { Lightbulb } from '@lucide/vue';
 import type { CodexConfig, PresetConfig } from '../types/config';
 import { isPresetActive as matchPresetActive } from '../utils/preset';
 import { usePresetDragReorder } from '../composables/usePresetDragReorder';
@@ -150,6 +149,7 @@ onUnmounted(() => {
         class="preset-list"
         :class="{ 'is-reordering': isDragging }"
         @click.capture="onListClickCapture"
+        @dblclick.capture="onListClickCapture"
       >
         <PresetListItem
           v-for="(preset, index) in presets"
@@ -169,17 +169,6 @@ onUnmounted(() => {
 
       <!-- 空状态 -->
       <PresetListEmpty v-else @add-preset="emit('add-preset')" />
-
-      <!-- 底部操作与提示 -->
-      <div class="modal-footer">
-        <span class="footer-tip">
-          <Lightbulb :size="13" class="tip-icon" />
-          <span>点击任意配置项即可立即切换并生效{{ presets.length > 1 ? '，按住可拖拽调整排序' : '' }}</span>
-        </span>
-        <button type="button" class="btn-close" @click="emit('close')">
-          完成
-        </button>
-      </div>
     </div>
   </div>
 </template>
@@ -322,48 +311,6 @@ onUnmounted(() => {
     :deep(.preset-item *) {
       pointer-events: none;
     }
-  }
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid $border-color;
-  padding: 10px 16px 12px;
-  background: $bg-tertiary;
-  flex-shrink: 0;
-}
-
-.footer-tip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.7rem;
-  color: $text-dim;
-
-  .tip-icon {
-    flex-shrink: 0;
-    color: $warning;
-    opacity: 0.85;
-  }
-}
-
-.btn-close {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid $border-color;
-  color: $text-muted;
-  padding: 5px 14px;
-  font-size: 0.76rem;
-  font-weight: 500;
-  border-radius: $border-radius-sm;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: $text-main;
-    border-color: rgba(255, 255, 255, 0.2);
   }
 }
 </style>
