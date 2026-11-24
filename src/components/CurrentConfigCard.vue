@@ -305,7 +305,7 @@ const isPresetModified = computed(() => {
     }
   }
 
-  input[type='text'] {
+  > input[type='text'] {
     @include input-base;
     padding: 8px 12px;
   }

@@ -405,7 +405,7 @@ onUnmounted(() => {
     font-weight: bold;
   }
 
-  input[type='text'] {
+  > input[type='text'] {
     @include input-base;
     font-size: 0.82rem;
   }
