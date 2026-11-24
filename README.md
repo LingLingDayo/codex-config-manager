@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-1.0.0-blue" alt="Version 1.0.0" />
+  <img src="https://img.shields.io/badge/Version-1.3.0-blue" alt="Version 1.3.0" />
   <img src="https://img.shields.io/badge/Tauri-2.0-blue?logo=tauri" alt="Tauri 2" />
   <img src="https://img.shields.io/badge/Vue-3.5-brightgreen?logo=vuedotjs" alt="Vue 3" />
   <img src="https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript" alt="TypeScript" />
@@ -29,14 +29,14 @@
 
 ## ✨ 核心特性
 
-- ⚡ **当前生效配置管理 (Live Config)**：直观查看与修改当前生效的 Base URL、API Key，支持一键热更保存及敏感内容快速复制。
-- 🚀 **进程调度与一键拉起 (Process Lifecycle)**：支持在工具内一键拉起或重启 Codex 客户端；启动前自动保存配置，内置进程销毁与互斥锁释放探测（1.5s 轮询），杜绝单实例锁竞态与控制台黑框残留。
-- 📑 **多中转站配置库 (Preset Library)**：支持管理多套中转服务商预设，内置 LingAI、智谱 GLM 等默认方案，支持一键切换并覆写当前生效配置。
-- 🎛️ **次级扩展配置抽屉 (80% Drawer)**：采用底部滑出式抽屉，按需配置模型名称（`model`）等扩展参数，保持主界面高频操作极致纯粹。
-- ⚙️ **系统级偏好设置 (System Settings)**：提供全屏沉浸式设置弹窗，具备真实的物理可执行文件路径检测能力（支持动态探测运行中进程及 Windows Store 真实安装位置）。
-- 🛡️ **非破坏性 TOML 修补 (Safe TOML Patching)**：读写 `config.toml` 时仅针对目标字段增量修改，完整保留原文件中的用户自定义注释、结构排列与未纳管字段。
-- 🔄 **一键安全重置 (Safe Reset)**：配备多样式通用确认弹窗防误触，一键重置为官方默认设置并清除自定义 API 鉴权。
-- 🧪 **环境与数据严格隔离 (Dev/Prod Isolation)**：非 Release 调试环境下自动读写带有 `_dev` 后缀的配置文件，开发调试完全不污染用户生产环境。
+- ⚡ **当前生效配置管理**：查看与修改 Base URL 和 API Key，支持一键复制密钥、自动规范化地址及智能识别配置变更。
+- 🚀 **进程调度与一键拉起**：一键启动或重启 Codex 客户端，启动前自动保存配置并检测进程退出状态。
+- 📑 **多中转站配置库**：内置多套默认中转方案，支持拖拽排序、一键切换及编辑高级模型参数。
+- 🎛️ **次级扩展配置抽屉**：按需配置模型名称、思考强度动态档位及模型显示别名，保持主界面简洁。
+- ⚙️ **系统级偏好设置**：全屏沉浸式设置弹窗，支持中转站快捷标签开关与客户端真实安装路径检测。
+- 🛡️ **非破坏性 TOML 修补**：写入 `config.toml` 时仅增量修改目标字段，完整保留原有注释与结构。
+- 🔄 **一键安全重置**：配备二次确认弹窗，一键恢复为官方默认配置并清除自定义鉴权。
+- 🧪 **环境与数据严格隔离**：非 Release 环境下自动读写 `_dev` 配置文件，避免污染生产数据。
 
 ---
 
@@ -138,7 +138,7 @@ npm run tauri build
 npm run build:app
 ```
 
-构建完成后，自动化脚本会自动将对应版本的安装包（NSIS `.exe`、MSI `.msi` 等）及可执行程序复制至根目录的 `release/` 目录中（若已存在同名文件将自动覆盖）。
+构建完成后，自动化脚本会自动将对应版本的安装包（`.exe`、`.msi`，采用英文包名）及便携版程序复制至根目录的 `release/` 目录（同名文件自动覆盖）。
 
 如需单独手动执行归档复制：
 ```bash
