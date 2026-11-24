@@ -123,7 +123,7 @@ describe('PresetListItem.vue component', () => {
     expect(wrapper.emitted('delete')?.[0]).toEqual([mockPreset]);
   });
 
-  it('draggable 为 true 时卡片元素属性 draggable 应为 true', () => {
+  it('draggable 为 true 时应标记 data-draggable="true" 与 is-draggable 类且禁用原生 draggable', () => {
     const wrapper = mount(PresetListItem, {
       props: {
         preset: mockPreset,
@@ -132,6 +132,8 @@ describe('PresetListItem.vue component', () => {
       },
     });
 
-    expect(wrapper.attributes('draggable')).toBe('true');
+    expect(wrapper.attributes('data-draggable')).toBe('true');
+    expect(wrapper.classes()).toContain('is-draggable');
+    expect(wrapper.attributes('draggable')).toBe('false');
   });
 });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { Lightbulb } from '@lucide/vue';
 import type { CodexConfig, PresetConfig } from '../types/config';
 import { isPresetActive as matchPresetActive } from '../utils/preset';
@@ -22,21 +22,19 @@ const emit = defineEmits<{
   (e: 'reorder-presets', fromIndex: number, toIndex: number): void;
 }>();
 
+const presetListRef = ref<HTMLElement | null>(null);
+
 const {
   draggedIndex,
   dragOverIndex,
   isDragging,
-  onDragStart,
-  onDragOver,
-  onDragEnter,
-  onDragLeave,
-  onDrop,
-  onDragEnd,
-  onListDrop,
+  onPointerDown,
   onListClickCapture,
-  clearTimer,
+  cancelDrag,
+  cleanup,
 } = usePresetDragReorder({
   getPresetsCount: () => props.presets.length,
+  getListElement: () => presetListRef.value,
   onReorder: (from, to) => emit('reorder-presets', from, to),
 });
 
@@ -46,9 +44,22 @@ const isPresetActive = (preset: PresetConfig): boolean => {
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && props.visible) {
+    if (isDragging.value) {
+      cancelDrag();
+      return;
+    }
     emit('close');
   }
 };
+
+watch(
+  () => props.visible,
+  (visible) => {
+    if (!visible) {
+      cleanup();
+    }
+  }
+);
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
@@ -56,7 +67,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
-  clearTimer();
+  cleanup();
 });
 </script>
 
@@ -135,11 +146,10 @@ onUnmounted(() => {
       <!-- 预设列表 -->
       <div
         v-if="presets.length > 0"
+        ref="presetListRef"
         class="preset-list"
         :class="{ 'is-reordering': isDragging }"
         @click.capture="onListClickCapture"
-        @dragover.prevent
-        @drop="onListDrop"
       >
         <PresetListItem
           v-for="(preset, index) in presets"
@@ -153,12 +163,7 @@ onUnmounted(() => {
           @apply="emit('apply-preset', $event)"
           @edit="emit('edit-preset', $event)"
           @delete="emit('delete-preset', $event)"
-          @dragstart="onDragStart($event, index)"
-          @dragover="onDragOver($event, index)"
-          @dragenter="onDragEnter($event, index)"
-          @dragleave="onDragLeave($event, index)"
-          @drop="onDrop($event, index)"
-          @dragend="onDragEnd"
+          @pointerdown="onPointerDown($event, index)"
         />
       </div>
 
@@ -311,6 +316,9 @@ onUnmounted(() => {
   @include custom-scrollbar;
 
   &.is-reordering {
+    cursor: grabbing;
+    user-select: none;
+
     :deep(.preset-item *) {
       pointer-events: none;
     }

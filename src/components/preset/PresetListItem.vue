@@ -40,11 +40,13 @@ const handleRowClick = () => {
     class="preset-item"
     :class="{
       'is-active': isActive,
+      'is-draggable': draggable,
       'is-dragging': isDragging,
       'is-drag-over': isDragOver,
     }"
     :title="isActive ? '当前正在生效' : '点击立即切换至此配置'"
-    :draggable="draggable"
+    draggable="false"
+    :data-draggable="draggable ? 'true' : 'false'"
     @click="handleRowClick"
   >
     <!-- 左侧基本信息 -->
@@ -59,7 +61,7 @@ const handleRowClick = () => {
     </div>
 
     <!-- 右侧操作与状态 -->
-    <div class="preset-actions" @click.stop @mousedown.stop>
+    <div class="preset-actions" @click.stop @mousedown.stop @pointerdown.stop>
       <span v-if="isActive" class="active-pill">
         <span class="pill-dot"></span>生效中
       </span>
@@ -146,6 +148,10 @@ const handleRowClick = () => {
     .preset-name {
       color: #fff;
     }
+  }
+
+  &.is-draggable {
+    touch-action: none;
   }
 
   &.is-dragging {
