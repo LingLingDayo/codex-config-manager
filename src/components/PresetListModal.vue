@@ -14,6 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void;
+  (e: 'select-preset', preset: PresetConfig): void;
   (e: 'apply-preset', preset: PresetConfig): void;
   (e: 'edit-preset', preset: PresetConfig): void;
   (e: 'delete-preset', preset: PresetConfig): void;
@@ -160,6 +161,7 @@ onUnmounted(() => {
           :is-dragging="draggedIndex === index"
           :is-drag-over="dragOverIndex === index"
           :is-any-dragging="isDragging"
+          @select="emit('select-preset', $event)"
           @apply="emit('apply-preset', $event)"
           @edit="emit('edit-preset', $event)"
           @delete="emit('delete-preset', $event)"

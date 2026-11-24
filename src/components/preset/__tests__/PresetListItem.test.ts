@@ -23,7 +23,7 @@ describe('PresetListItem.vue component', () => {
     expect(wrapper.find('.preset-url').text()).toBe('https://api.example.com/v1');
   });
 
-  it('当处于激活状态时，显示生效中标签且不显示切换按钮', () => {
+  it('当处于激活状态时，包含 is-active 类但不渲染生效中标签和切换按钮', () => {
     const wrapper = mount(PresetListItem, {
       props: {
         preset: mockPreset,
@@ -32,11 +32,11 @@ describe('PresetListItem.vue component', () => {
     });
 
     expect(wrapper.classes()).toContain('is-active');
-    expect(wrapper.find('.active-pill').exists()).toBe(true);
+    expect(wrapper.find('.active-pill').exists()).toBe(false);
     expect(wrapper.find('.btn-use').exists()).toBe(false);
   });
 
-  it('当处于非激活状态时，显示切换按钮，点击触发 apply 事件', async () => {
+  it('当处于非激活状态时，同样不渲染切换按钮', () => {
     const wrapper = mount(PresetListItem, {
       props: {
         preset: mockPreset,
@@ -44,15 +44,11 @@ describe('PresetListItem.vue component', () => {
       },
     });
 
-    const useBtn = wrapper.find('.btn-use');
-    expect(useBtn.exists()).toBe(true);
-    await useBtn.trigger('click');
-
-    expect(wrapper.emitted('apply')).toBeTruthy();
-    expect(wrapper.emitted('apply')?.[0]).toEqual([mockPreset]);
+    expect(wrapper.find('.btn-use').exists()).toBe(false);
+    expect(wrapper.find('.active-pill').exists()).toBe(false);
   });
 
-  it('单击整行在未激活状态下不应触发 apply 事件，双击整行应触发 apply 事件', async () => {
+  it('单击整行应触发 select 事件，双击整行应触发 apply 事件', async () => {
     const wrapper = mount(PresetListItem, {
       props: {
         preset: mockPreset,
@@ -61,7 +57,22 @@ describe('PresetListItem.vue component', () => {
     });
 
     await wrapper.trigger('click');
+    expect(wrapper.emitted('select')).toBeTruthy();
+    expect(wrapper.emitted('select')?.[0]).toEqual([mockPreset]);
     expect(wrapper.emitted('apply')).toBeFalsy();
+
+    await wrapper.trigger('dblclick');
+    expect(wrapper.emitted('apply')).toBeTruthy();
+    expect(wrapper.emitted('apply')?.[0]).toEqual([mockPreset]);
+  });
+
+  it('当处于激活状态时，双击整行同样应触发 apply 事件', async () => {
+    const wrapper = mount(PresetListItem, {
+      props: {
+        preset: mockPreset,
+        isActive: true,
+      },
+    });
 
     await wrapper.trigger('dblclick');
     expect(wrapper.emitted('apply')).toBeTruthy();

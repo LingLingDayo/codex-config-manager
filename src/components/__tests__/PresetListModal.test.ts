@@ -83,9 +83,15 @@ describe('PresetListModal.vue component', () => {
     expect(wrapper.find('.btn-close').exists()).toBe(false);
   });
 
-  it('单击非激活项不触发切换，双击非激活项应触发 apply-preset 事件', async () => {
+  it('单击任意项应触发 select-preset 事件，双击任意项均应触发 apply-preset 事件', async () => {
     const mockPresets = [
       { id: 'p1', name: '预设 1', provider_url: 'https://p1.com', key: 'k1' },
+      {
+        id: 'p2',
+        name: '已激活预设',
+        provider_url: mockCurrentConfig.provider_url,
+        key: mockCurrentConfig.key,
+      },
     ];
 
     const wrapper = mount(PresetListModal, {
@@ -97,13 +103,17 @@ describe('PresetListModal.vue component', () => {
     });
     wrappers.push(wrapper);
 
-    const item = wrapper.find('.preset-item');
-    await item.trigger('click');
+    const items = wrapper.findAll('.preset-item');
+    await items[0].trigger('click');
+    expect(wrapper.emitted('select-preset')).toHaveLength(1);
+    expect(wrapper.emitted('select-preset')?.[0]).toEqual([mockPresets[0]]);
     expect(wrapper.emitted('apply-preset')).toBeFalsy();
 
-    await item.trigger('dblclick');
-    expect(wrapper.emitted('apply-preset')).toBeTruthy();
+    await items[0].trigger('dblclick');
+    await items[1].trigger('dblclick');
+    expect(wrapper.emitted('apply-preset')).toHaveLength(2);
     expect(wrapper.emitted('apply-preset')?.[0]).toEqual([mockPresets[0]]);
+    expect(wrapper.emitted('apply-preset')?.[1]).toEqual([mockPresets[1]]);
   });
 
   it('存在多个预设时整项卡片支持指针拖拽重排且松手后不误触切换', async () => {

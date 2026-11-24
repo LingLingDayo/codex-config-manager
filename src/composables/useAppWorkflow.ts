@@ -42,7 +42,7 @@ export function useAppWorkflow() {
     return saveConfig(data.key, data.providerUrl, toSavePayload(data));
   };
 
-  const handleApplyPreset = async (preset: PresetConfig) => {
+  const applyPreset = async (preset: PresetConfig, closeModal: boolean) => {
     if (!preset.key.trim()) {
       showToast(`「${preset.name}」尚未填写 Key，请先编辑填写`, 'warning');
       handleEditPreset(preset);
@@ -58,10 +58,16 @@ export function useAppWorkflow() {
       ),
     });
     if (success) {
-      isPresetListModalVisible.value = false;
+      if (closeModal) {
+        isPresetListModalVisible.value = false;
+      }
       showToast(`已快捷切换至「${preset.name}」并生效，请重新打开 Codex`);
     }
   };
+
+  const handleSelectPreset = (preset: PresetConfig) => applyPreset(preset, false);
+
+  const handleApplyPreset = (preset: PresetConfig) => applyPreset(preset, true);
 
   const handleRestoreDefault = async () => {
     const confirmed = await showConfirm({
@@ -224,6 +230,7 @@ export function useAppWorkflow() {
     modalTitle,
     modalInitialData,
     handleSaveCurrentConfig,
+    handleSelectPreset,
     handleApplyPreset,
     handleRestoreDefault,
     handleLaunchApp,

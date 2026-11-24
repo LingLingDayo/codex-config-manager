@@ -186,6 +186,23 @@ describe('useAppWorkflow', () => {
     expect(workflow.presets.value.map((p) => p.id)).toEqual(['p2', 'p1']);
   });
 
+  it('handleSelectPreset 切换生效成功后应保持配置列表弹窗开启', async () => {
+    mockedInvoke.mockResolvedValue(undefined);
+    const { message } = useToast();
+    const workflow = useAppWorkflow();
+    workflow.isPresetListModalVisible.value = true;
+
+    await workflow.handleSelectPreset({
+      id: 'p1',
+      name: '配置一',
+      provider_url: 'https://p1.com/v1',
+      key: 'sk-valid-key',
+    });
+
+    expect(workflow.isPresetListModalVisible.value).toBe(true);
+    expect(message.value).toContain('已快捷切换至「配置一」并生效');
+  });
+
   it('handleApplyPreset 切换生效成功后应自动关闭配置列表弹窗', async () => {
     mockedInvoke.mockResolvedValue(undefined);
     const { message } = useToast();

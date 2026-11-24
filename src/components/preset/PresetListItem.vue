@@ -20,18 +20,24 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
+  (e: 'select', preset: PresetConfig): void;
   (e: 'apply', preset: PresetConfig): void;
   (e: 'edit', preset: PresetConfig): void;
   (e: 'delete', preset: PresetConfig): void;
 }>();
 
+const handleRowClick = () => {
+  if (props.isDragging || props.isAnyDragging) {
+    return;
+  }
+  emit('select', props.preset);
+};
+
 const handleRowDblClick = () => {
   if (props.isDragging || props.isAnyDragging) {
     return;
   }
-  if (!props.isActive) {
-    emit('apply', props.preset);
-  }
+  emit('apply', props.preset);
 };
 </script>
 
@@ -44,9 +50,10 @@ const handleRowDblClick = () => {
       'is-dragging': isDragging,
       'is-drag-over': isDragOver,
     }"
-    :title="isActive ? '当前正在生效' : '双击立即切换至此配置'"
+    :title="isActive ? '当前正在生效，双击重新应用并关闭' : '单击切换配置，双击应用并关闭'"
     draggable="false"
     :data-draggable="draggable ? 'true' : 'false'"
+    @click="handleRowClick"
     @dblclick="handleRowDblClick"
   >
     <!-- 左侧基本信息 -->
@@ -60,20 +67,8 @@ const handleRowDblClick = () => {
       </span>
     </div>
 
-    <!-- 右侧操作与状态 -->
+    <!-- 右侧操作按钮 -->
     <div class="preset-actions" @click.stop @dblclick.stop @mousedown.stop @pointerdown.stop>
-      <span v-if="isActive" class="active-pill">
-        <span class="pill-dot"></span>生效中
-      </span>
-      <button
-        v-else
-        type="button"
-        class="btn-use"
-        title="切换并生效"
-        @click.stop="emit('apply', preset)"
-      >
-        切换
-      </button>
 
       <button
         type="button"
@@ -178,18 +173,6 @@ const handleRowDblClick = () => {
     background: linear-gradient(135deg, rgba($accent-blue, 0.08), rgba($accent-purple, 0.06)),
       $bg-secondary;
     box-shadow: 0 0 10px rgba($accent-blue, 0.12);
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: $accent-gradient;
-      border-top-left-radius: $border-radius-md;
-      border-bottom-left-radius: $border-radius-md;
-    }
   }
 }
 
@@ -247,47 +230,6 @@ const handleRowDblClick = () => {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-}
-
-.active-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba($success, 0.15);
-  border: 1px solid rgba($success, 0.3);
-  color: $success;
-  font-size: 0.68rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
-
-  .pill-dot {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: $success;
-  }
-}
-
-.btn-use {
-  background: rgba($accent-blue, 0.1);
-  border: none;
-  outline: none;
-  box-shadow: inset 0 0 0 1px rgba($accent-blue, 0.25);
-  color: $accent-blue;
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 4px 11px;
-  border-radius: $border-radius-sm;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: $accent-gradient;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 4px rgba($accent-blue, 0.2);
-    filter: brightness(1.08);
-  }
 }
 
 .btn-action-icon {

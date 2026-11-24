@@ -24,6 +24,7 @@ const {
   modalTitle,
   modalInitialData,
   handleSaveCurrentConfig,
+  handleSelectPreset,
   handleApplyPreset,
   handleRestoreDefault,
   handleLaunchApp,
@@ -100,6 +101,7 @@ onMounted(bootstrap);
       @add-preset="handleAddPreset"
       @edit-preset="handleEditPreset"
       @delete-preset="deletePreset"
+      @select-preset="handleSelectPreset"
       @apply-preset="handleApplyPreset"
       @reorder-presets="handleReorderPresets"
     />
