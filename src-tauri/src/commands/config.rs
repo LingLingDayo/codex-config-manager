@@ -20,7 +20,11 @@ pub use catalog::{
     resolve_model_reasoning_spec,
 };
 pub use parser::parse_codex_config_from_content;
-pub use patcher::{apply_model_reasoning_effort_to_lines, apply_model_to_lines};
+pub use patcher::{
+    apply_model_auto_compact_token_limit_to_lines, apply_model_context_window_to_lines,
+    apply_model_reasoning_effort_to_lines, apply_model_to_lines,
+    remove_context_limit_fields_from_lines,
+};
 
 #[tauri::command]
 pub fn get_model_reasoning_spec(slug: Option<String>) -> Result<ModelReasoningSpecDto, String> {
@@ -134,6 +138,20 @@ pub fn save_codex_reasoning_effort(reasoning_effort: String) -> Result<(), Strin
     Ok(())
 }
 
+fn parse_optional_positive_u64(raw: &str, field_label: &str) -> Result<Option<u64>, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    let val = trimmed
+        .parse::<u64>()
+        .map_err(|_| format!("{}必须是大于 0 的整数", field_label))?;
+    if val == 0 {
+        return Err(format!("{}必须是大于 0 的整数", field_label));
+    }
+    Ok(Some(val))
+}
+
 #[tauri::command]
 pub fn save_codex_config(
     key: String,
@@ -142,7 +160,18 @@ pub fn save_codex_config(
     model_reasoning_effort: Option<String>,
     model_display_name: Option<String>,
     model_aliases: Option<Vec<ModelAlias>>,
+    model_context_window: Option<String>,
+    model_auto_compact_token_limit: Option<String>,
 ) -> Result<(), String> {
+    let parsed_context_window = model_context_window
+        .as_deref()
+        .map(|raw| parse_optional_positive_u64(raw, "上下文窗口"))
+        .transpose()?;
+    let parsed_auto_compact_limit = model_auto_compact_token_limit
+        .as_deref()
+        .map(|raw| parse_optional_positive_u64(raw, "自动压缩阈值"))
+        .transpose()?;
+
     let codex_dir = get_codex_dir()?;
     if !codex_dir.exists() {
         fs::create_dir_all(&codex_dir).map_err(|e| format!("创建 .codex 目录失败: {}", e))?;
@@ -258,6 +287,14 @@ pub fn save_codex_config(
     // 规范化 model_provider 行并安全合并/创建 [model_providers.custom] 节
     patcher::apply_custom_provider_to_lines(&mut lines, &key, &real_url);
 
+    // 写入或移除顶层上下文窗口与自动压缩阈值（置于顶层区域末尾）
+    if let Some(val) = parsed_context_window {
+        patcher::apply_model_context_window_to_lines(&mut lines, val);
+    }
+    if let Some(val) = parsed_auto_compact_limit {
+        patcher::apply_model_auto_compact_token_limit_to_lines(&mut lines, val);
+    }
+
     // 清理 Codex 已废弃的顶层配置，避免每次启动产生 ignored 警告
     patcher::remove_deprecated_top_level_keys(&mut lines);
 
@@ -345,6 +382,7 @@ pub fn restore_codex_default() -> Result<(), String> {
 
     patcher::comment_out_custom_provider_to_lines(&mut lines);
     catalog::comment_out_model_catalog_json_in_lines(&mut lines);
+    patcher::remove_context_limit_fields_from_lines(&mut lines);
 
     let new_content = lines.join("\r\n");
     fs::write(&config_path, new_content).map_err(|e| format!("写入 config.toml 失败: {}", e))?;
@@ -374,6 +412,19 @@ mod tests {
             res_fallback.supported_levels,
             vec!["low", "medium", "high", "xhigh", "max", "ultra"]
         );
+    }
+
+    #[test]
+    fn test_parse_optional_positive_u64() {
+        assert_eq!(parse_optional_positive_u64("", "上下文窗口").unwrap(), None);
+        assert_eq!(parse_optional_positive_u64("   ", "上下文窗口").unwrap(), None);
+        assert_eq!(
+            parse_optional_positive_u64("272000", "上下文窗口").unwrap(),
+            Some(272000)
+        );
+        assert!(parse_optional_positive_u64("0", "上下文窗口").is_err());
+        assert!(parse_optional_positive_u64("-100", "上下文窗口").is_err());
+        assert!(parse_optional_positive_u64("abc", "上下文窗口").is_err());
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::models::CodexConfig;
 use super::catalog::{parse_display_name_from_catalog, parse_model_aliases_from_catalog};
-use super::toml_utils::{is_line_exact_key, parse_toml_string_value};
+use super::toml_utils::{is_line_exact_key, parse_toml_string_value, parse_toml_u64_value};
 
 pub fn parse_codex_config_from_content(
     config_content: Option<&str>,
@@ -12,15 +12,21 @@ pub fn parse_codex_config_from_content(
     let mut is_enabled = false;
     let mut model = String::new();
     let mut model_reasoning_effort = String::new();
+    let mut model_context_window: Option<u64> = None;
+    let mut model_auto_compact_token_limit: Option<u64> = None;
 
     if let Some(content) = config_content {
         let lines: Vec<&str> = content.lines().collect();
 
         let mut active_provider = None;
         let mut last_commented_provider = None;
+        let mut in_section = false;
 
         for line in &lines {
             let trimmed = line.trim();
+            if trimmed.starts_with('[') {
+                in_section = true;
+            }
 
             // 全局解析未注释的 model 与 model_reasoning_effort，避免受 section 截断影响
             if !trimmed.starts_with('#') && trimmed.contains('=') {
@@ -35,6 +41,14 @@ pub fn parse_codex_config_from_content(
                         let v = parse_toml_string_value(raw_val);
                         if !v.is_empty() {
                             model_reasoning_effort = v;
+                        }
+                    } else if !in_section && k == "model_context_window" {
+                        if let Some(v) = parse_toml_u64_value(raw_val) {
+                            model_context_window = Some(v);
+                        }
+                    } else if !in_section && k == "model_auto_compact_token_limit" {
+                        if let Some(v) = parse_toml_u64_value(raw_val) {
+                            model_auto_compact_token_limit = Some(v);
                         }
                     }
                 }
@@ -150,6 +164,8 @@ pub fn parse_codex_config_from_content(
         model_reasoning_effort,
         model_display_name,
         model_aliases,
+        model_context_window,
+        model_auto_compact_token_limit,
     }
 }
 
@@ -266,5 +282,35 @@ model_catalog_json = "ccm-model-catalog.json"
         // 未指定模型时即使有目录也不产生别名
         let config = parse_codex_config_from_content(Some("model_provider = \"custom\""), None, Some(catalog_content));
         assert_eq!(config.model_display_name, "");
+    }
+
+    #[test]
+    fn test_parse_codex_config_context_limits() {
+        let toml_content = r#"
+model_provider = "custom"
+model_context_window = 272_000 # 窗口长度
+model_auto_compact_token_limit = 244800
+
+[notice]
+model_context_window = 1000
+
+[profiles.custom]
+model_auto_compact_token_limit = 999
+"#;
+        let config = parse_codex_config_from_content(Some(toml_content), None, None);
+        assert_eq!(config.model_context_window, Some(272000));
+        assert_eq!(config.model_auto_compact_token_limit, Some(244800));
+
+        // 注释行与 section 内同名键不应被当成顶层生效配置
+        let commented_and_section_only = r#"
+# model_context_window = 272000
+# model_auto_compact_token_limit = 244800
+[profiles.custom]
+model_context_window = 128000
+model_auto_compact_token_limit = 100000
+"#;
+        let config2 = parse_codex_config_from_content(Some(commented_and_section_only), None, None);
+        assert_eq!(config2.model_context_window, None);
+        assert_eq!(config2.model_auto_compact_token_limit, None);
     }
 }

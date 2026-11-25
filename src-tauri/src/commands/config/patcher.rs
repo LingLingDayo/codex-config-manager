@@ -1,4 +1,4 @@
-use super::field_patcher::apply_top_level_string_field;
+use super::field_patcher::{apply_top_level_string_field, apply_top_level_u64_field};
 
 /// Codex 已废弃或不再识别的顶层配置键，保留它们只会产生 ignored 警告。
 /// windows_ws1 是历史上误拼写的键，windows_wsl 为旧版 WSL 确认标记，均已无对应配置项。
@@ -47,6 +47,19 @@ pub fn apply_model_reasoning_effort_to_lines(lines: &mut Vec<String>, effort: &s
         &["model"],
         &["model_provider"],
     );
+}
+
+pub fn apply_model_context_window_to_lines(lines: &mut Vec<String>, value: Option<u64>) {
+    apply_top_level_u64_field(lines, "model_context_window", value);
+}
+
+pub fn apply_model_auto_compact_token_limit_to_lines(lines: &mut Vec<String>, value: Option<u64>) {
+    apply_top_level_u64_field(lines, "model_auto_compact_token_limit", value);
+}
+
+pub fn remove_context_limit_fields_from_lines(lines: &mut Vec<String>) {
+    apply_model_context_window_to_lines(lines, None);
+    apply_model_auto_compact_token_limit_to_lines(lines, None);
 }
 
 /// 规范化 model_provider 行并安全合并/创建 [model_providers.custom] 节
@@ -393,5 +406,35 @@ mod tests {
         let real_url = crate::utils::normalize_provider_base_url("https://api.fluxapi.vip");
         apply_custom_provider_to_lines(&mut lines, "sk-12345", &real_url);
         assert!(lines.contains(&"base_url = \"https://api.fluxapi.vip/v1\"".to_string()));
+    }
+
+    #[test]
+    fn test_apply_and_remove_context_limit_fields() {
+        let mut lines = vec![
+            "model_provider = \"custom\"".to_string(),
+            "[notice]".to_string(),
+            "hide_gpt5_1_migration_prompt = true".to_string(),
+        ];
+
+        apply_model_context_window_to_lines(&mut lines, Some(272000));
+        apply_model_auto_compact_token_limit_to_lines(&mut lines, Some(244800));
+        assert_eq!(lines[1], "model_context_window = 272000");
+        assert_eq!(lines[2], "model_auto_compact_token_limit = 244800");
+        assert_eq!(lines[3], "[notice]");
+
+        // 原地更新
+        apply_model_context_window_to_lines(&mut lines, Some(128000));
+        assert_eq!(lines[1], "model_context_window = 128000");
+
+        // 重置移除
+        remove_context_limit_fields_from_lines(&mut lines);
+        assert_eq!(
+            lines,
+            vec![
+                "model_provider = \"custom\"".to_string(),
+                "[notice]".to_string(),
+                "hide_gpt5_1_migration_prompt = true".to_string(),
+            ]
+        );
     }
 }

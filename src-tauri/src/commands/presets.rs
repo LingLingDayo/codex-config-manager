@@ -18,6 +18,8 @@ pub fn default_presets() -> Vec<PresetConfig> {
         model_reasoning_effort: "".to_string(),
         model_display_name: "".to_string(),
         model_aliases: vec![],
+        model_context_window: None,
+        model_auto_compact_token_limit: None,
         updated_at: None,
     }]
 }
@@ -88,6 +90,8 @@ mod tests {
         assert_eq!(presets[0].model_reasoning_effort, "");
         assert_eq!(presets[0].model_display_name, "");
         assert!(presets[0].model_aliases.is_empty());
+        assert_eq!(presets[0].model_context_window, None);
+        assert_eq!(presets[0].model_auto_compact_token_limit, None);
     }
 
     #[test]
@@ -104,6 +108,8 @@ mod tests {
                 slug: "gpt-5.6-sol".to_string(),
                 display_name: "5.6 Sol".to_string(),
             }],
+            model_context_window: Some(272000),
+            model_auto_compact_token_limit: Some(244800),
             updated_at: Some(123456789),
         };
 
@@ -118,6 +124,8 @@ mod tests {
         assert_eq!(legacy_parsed.model_reasoning_effort, "");
         assert_eq!(legacy_parsed.model_display_name, "");
         assert!(legacy_parsed.model_aliases.is_empty());
+        assert_eq!(legacy_parsed.model_context_window, None);
+        assert_eq!(legacy_parsed.model_auto_compact_token_limit, None);
     }
 }
 

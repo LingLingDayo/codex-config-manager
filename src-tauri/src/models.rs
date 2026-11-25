@@ -22,6 +22,10 @@ pub struct CodexConfig {
     pub model_display_name: String,
     #[serde(default)]
     pub model_aliases: Vec<ModelAlias>,
+    #[serde(default)]
+    pub model_context_window: Option<u64>,
+    #[serde(default)]
+    pub model_auto_compact_token_limit: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -38,6 +42,10 @@ pub struct PresetConfig {
     pub model_display_name: String,
     #[serde(default)]
     pub model_aliases: Vec<ModelAlias>,
+    #[serde(default)]
+    pub model_context_window: Option<u64>,
+    #[serde(default)]
+    pub model_auto_compact_token_limit: Option<u64>,
     #[serde(default)]
     pub updated_at: Option<u64>,
 }

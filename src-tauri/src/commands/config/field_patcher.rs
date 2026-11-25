@@ -57,6 +57,26 @@ fn find_insert_pos(lines: &[String], insert_after: &[&str], insert_before: &[&st
     limit
 }
 
+fn find_top_level_append_pos(lines: &[String]) -> usize {
+    let mut pos = first_section_index(lines).unwrap_or(lines.len());
+    while pos > 0 && lines[pos - 1].trim().is_empty() {
+        pos -= 1;
+    }
+    pos
+}
+
+fn collect_active_root_key_indices(lines: &[String], key: &str) -> Vec<usize> {
+    let limit = first_section_index(lines).unwrap_or(lines.len());
+    let mut indices = Vec::new();
+    for (i, line) in lines[..limit].iter().enumerate() {
+        let trimmed = line.trim();
+        if !trimmed.starts_with('#') && is_line_exact_key(line, key) {
+            indices.push(i);
+        }
+    }
+    indices
+}
+
 /// 对 TOML 顶层字符串字段执行声明式补丁：
 /// - 空值：注释全部匹配行，保留顶层首行（无顶层则保留 section 首行），删除重复残留
 /// - 非空：更新顶层首个匹配行并清理重复/错位行；若顶层不存在则按锚点插入
@@ -102,6 +122,29 @@ pub fn apply_top_level_string_field(
 
     remove_sorted_desc(lines, section);
     let insert_pos = find_insert_pos(lines, insert_after, insert_before);
+    lines.insert(insert_pos, new_line);
+}
+
+/// 对 TOML 顶层无符号整数字段执行补丁：
+/// - `Some(val)`：若顶层已存在未注释同名键则原地更新并去重；否则新增到顶层区域末尾（保留分隔空行）
+/// - `None`：物理移除顶层全部未注释同名键，保留用户注释行与 section 内部同名键
+pub fn apply_top_level_u64_field(lines: &mut Vec<String>, key: &str, value: Option<u64>) {
+    let active_root = collect_active_root_key_indices(lines, key);
+
+    let Some(num) = value else {
+        remove_sorted_desc(lines, active_root);
+        return;
+    };
+
+    let new_line = format!("{} = {}", key, num);
+    if let Some(&first_idx) = active_root.first() {
+        lines[first_idx] = new_line;
+        let to_remove: Vec<usize> = active_root.into_iter().skip(1).collect();
+        remove_sorted_desc(lines, to_remove);
+        return;
+    }
+
+    let insert_pos = find_top_level_append_pos(lines);
     lines.insert(insert_pos, new_line);
 }
 
@@ -173,5 +216,95 @@ mod tests {
         assert_eq!(lines[1], "model_provider = \"custom\"");
         assert_eq!(lines[2], "[notice]");
         assert_eq!(lines.len(), 3);
+    }
+
+    #[test]
+    fn test_apply_top_level_u64_field_appends_at_top_level_end() {
+        // 紧贴 [notice] 的情况（与当前 config.toml 一致）
+        let mut lines = vec![
+            "model = \"gpt-6-sol\"".to_string(),
+            "notify = [\"a\"]".to_string(),
+            "[notice]".to_string(),
+            "hide_gpt5_1_migration_prompt = true".to_string(),
+        ];
+        apply_top_level_u64_field(&mut lines, "model_context_window", Some(272000));
+        apply_top_level_u64_field(&mut lines, "model_auto_compact_token_limit", Some(244800));
+        assert_eq!(
+            lines,
+            vec![
+                "model = \"gpt-6-sol\"".to_string(),
+                "notify = [\"a\"]".to_string(),
+                "model_context_window = 272000".to_string(),
+                "model_auto_compact_token_limit = 244800".to_string(),
+                "[notice]".to_string(),
+                "hide_gpt5_1_migration_prompt = true".to_string(),
+            ]
+        );
+
+        // 顶层与 [notice] 之间存在空行时，应插入在空行之前
+        let mut lines_with_blank = vec![
+            "model = \"gpt-6-sol\"".to_string(),
+            "".to_string(),
+            "[notice]".to_string(),
+        ];
+        apply_top_level_u64_field(&mut lines_with_blank, "model_context_window", Some(272000));
+        assert_eq!(
+            lines_with_blank,
+            vec![
+                "model = \"gpt-6-sol\"".to_string(),
+                "model_context_window = 272000".to_string(),
+                "".to_string(),
+                "[notice]".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_apply_top_level_u64_field_updates_dedups_and_removes() {
+        let mut lines = vec![
+            "model_provider = \"custom\"".to_string(),
+            "# model_context_window = 128000".to_string(),
+            "model_context_window = 200000".to_string(),
+            "model_context_window = 256000".to_string(),
+            "[profiles.custom]".to_string(),
+            "model_context_window = 999999".to_string(),
+        ];
+        apply_top_level_u64_field(&mut lines, "model_context_window", Some(272000));
+        assert_eq!(
+            lines,
+            vec![
+                "model_provider = \"custom\"".to_string(),
+                "# model_context_window = 128000".to_string(),
+                "model_context_window = 272000".to_string(),
+                "[profiles.custom]".to_string(),
+                "model_context_window = 999999".to_string(),
+            ]
+        );
+
+        // 传入 None 仅移除顶层活跃行，保留用户注释和 section 内同名键
+        apply_top_level_u64_field(&mut lines, "model_context_window", None);
+        assert_eq!(
+            lines,
+            vec![
+                "model_provider = \"custom\"".to_string(),
+                "# model_context_window = 128000".to_string(),
+                "[profiles.custom]".to_string(),
+                "model_context_window = 999999".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_apply_top_level_u64_field_empty_or_section_only() {
+        let mut empty_lines: Vec<String> = Vec::new();
+        apply_top_level_u64_field(&mut empty_lines, "model_context_window", Some(272000));
+        assert_eq!(empty_lines, vec!["model_context_window = 272000".to_string()]);
+
+        let mut section_only = vec!["[notice]".to_string()];
+        apply_top_level_u64_field(&mut section_only, "model_context_window", Some(272000));
+        assert_eq!(
+            section_only,
+            vec!["model_context_window = 272000".to_string(), "[notice]".to_string()]
+        );
     }
 }

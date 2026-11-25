@@ -16,6 +16,19 @@ pub fn parse_toml_string_value(raw_val: &str) -> String {
     }
 }
 
+/// 解析单行 TOML 无符号正整数字段，去除行尾注释并兼容下划线数字分隔符
+pub fn parse_toml_u64_value(raw_val: &str) -> Option<u64> {
+    let without_comment = raw_val.split('#').next().unwrap_or("").trim();
+    if without_comment.is_empty()
+        || without_comment.starts_with('"')
+        || without_comment.starts_with('\'')
+    {
+        return None;
+    }
+    let normalized = without_comment.replace('_', "");
+    normalized.parse::<u64>().ok().filter(|&v| v > 0)
+}
+
 /// 判断某行去除注释后的键名是否严格等于 target_key
 pub fn is_line_exact_key(line: &str, target_key: &str) -> bool {
     let trimmed = line.trim();
@@ -42,5 +55,16 @@ mod tests {
         assert!(!is_line_exact_key("review_model = \"deepseek\"", "model"));
         assert!(!is_line_exact_key("model_provider = \"custom\"", "model"));
         assert!(!is_line_exact_key("model_catalog_json = \"x.json\"", "model"));
+    }
+
+    #[test]
+    fn test_parse_toml_u64_value() {
+        assert_eq!(parse_toml_u64_value("272000"), Some(272000));
+        assert_eq!(parse_toml_u64_value("272_000"), Some(272000));
+        assert_eq!(parse_toml_u64_value("244800 # compact"), Some(244800));
+        assert_eq!(parse_toml_u64_value("0"), None);
+        assert_eq!(parse_toml_u64_value("-1"), None);
+        assert_eq!(parse_toml_u64_value("\"272000\""), None);
+        assert_eq!(parse_toml_u64_value("abc"), None);
     }
 }
