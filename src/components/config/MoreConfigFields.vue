@@ -4,31 +4,31 @@
  */
 export const MORE_CONFIG_META = {
   model: {
-    label: '默认模型 (Model)',
+    label: '默认模型',
     title:
       '对应 config.toml 中的 model 字段。用于指定兼容 OpenAI 格式的目标模型，留空则使用默认模型。',
     placeholder: '例如: gpt-5.6-sol',
   },
   reasoningEffort: {
-    label: '默认思考强度 (Reasoning Effort)',
+    label: '默认思考强度',
     title:
       '对应 config.toml 中的 model_reasoning_effort 字段。用于配置模型的深度思考与推理强度，请务必选择所选模型实际支持的思考强度档位（若模型不支持思考请设为 none 或留空）。',
     placeholder: '例如: low / medium / high',
   },
   contextWindow: {
-    label: '上下文窗口 (Context Window)',
+    label: '上下文窗口',
     title:
       '对应 config.toml 中的 model_context_window 字段。用于指定模型上下文窗口总长度（单位：tokens），留空则不写入该项。',
     placeholder: '例如: 272000',
   },
   autoCompactTokenLimit: {
-    label: '自动压缩阈值 (Auto Compact)',
+    label: '自动压缩阈值',
     title:
       '对应 config.toml 中的 model_auto_compact_token_limit 字段。当上下文 token 数达到该阈值时触发自动压缩，留空则不写入该项。',
     placeholder: '例如: 244800',
   },
   aliases: {
-    label: '模型列表 (Models)',
+    label: '模型列表',
     title:
       '将中转站可用模型同步到 Codex 选择器。左侧为模型 ID，右侧可附带自定义显示别名（默认与模型名相同）。保存后写入本工具自管的模型目录文件，重启 Codex 后即可选用这些模型。',
   },

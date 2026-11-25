@@ -198,7 +198,7 @@ onUnmounted(() => {
           <div class="input-group">
             <div class="input-label-row">
               <label for="modal-preset-url">
-                模型提供商 (Base URL) <span class="required">*</span>
+                模型提供商 <span class="required">*</span>
               </label>
             </div>
             <!-- 快捷标签 -->
