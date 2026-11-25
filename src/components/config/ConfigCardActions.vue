@@ -43,7 +43,6 @@ const emit = defineEmits<{
     <button
       type="button"
       class="btn btn-launch"
-      :class="{ launching: isLaunching }"
       :disabled="isLoading || isLaunching"
       title="保存当前配置并启动 Codex/ChatGPT"
       @click="emit('launch')"
@@ -90,7 +89,6 @@ const emit = defineEmits<{
 <style lang="scss" scoped>
 @use '../../styles/variables' as *;
 @use '../../styles/mixins' as *;
-@use '../../styles/animations' as *;
 
 .actions {
   display: flex;
@@ -167,10 +165,6 @@ const emit = defineEmits<{
     cursor: wait;
     filter: none;
     box-shadow: none;
-  }
-
-  &.launching .launch-icon {
-    animation: pulse 1s infinite;
   }
 }
 
