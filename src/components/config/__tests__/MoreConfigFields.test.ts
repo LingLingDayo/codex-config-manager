@@ -143,10 +143,51 @@ describe('MoreConfigFields.vue component', () => {
     await contextInput.setValue('272abc000');
     expect(contextInput.element.value).toBe('272000');
     expect(wrapper.emitted('update:modelContextWindow')?.[0]).toEqual(['272000']);
+    // 填完上下文窗口后自动联动填入 0.9 倍压缩阈值
+    expect(wrapper.emitted('update:modelAutoCompactTokenLimit')?.[0]).toEqual(['244800']);
 
     const compactInput = wrapper.find<HTMLInputElement>('#auto-compact-token-limit-input');
-    await compactInput.setValue('244800');
-    expect(wrapper.emitted('update:modelAutoCompactTokenLimit')?.[0]).toEqual(['244800']);
+    await compactInput.setValue('200000');
+    expect(wrapper.emitted('update:modelAutoCompactTokenLimit')?.[1]).toEqual(['200000']);
+  });
+
+  it('上下文窗口支持常用值下拉选择（272k/500k/1M）并自动联动 0.9 倍压缩阈值', async () => {
+    const wrapper = mount(MoreConfigFields, {
+      props: {
+        modelContextWindow: '',
+        modelAutoCompactTokenLimit: '',
+      },
+    });
+
+    const contextField = wrapper.find('.field-context-window');
+    await contextField.find('.btn-arrow').trigger('click');
+
+    const options = contextField.findAll('.dropdown-item');
+    const labels = options.map((opt) => opt.find('.item-label').text());
+    expect(labels).toContain('272k');
+    expect(labels).toContain('500k');
+    expect(labels).toContain('1M');
+
+    const opt500k = options.find((opt) => opt.find('.item-label').text() === '500k');
+    expect(opt500k).toBeDefined();
+    await opt500k!.trigger('click');
+
+    expect(wrapper.emitted('update:modelContextWindow')?.[0]).toEqual(['500000']);
+    expect(wrapper.emitted('update:modelAutoCompactTokenLimit')?.[0]).toEqual(['450000']);
+  });
+
+  it('手动调整压缩阈值时不能超过当前上下文窗口', async () => {
+    const wrapper = mount(MoreConfigFields, {
+      props: {
+        modelContextWindow: '272000',
+        modelAutoCompactTokenLimit: '244800',
+      },
+    });
+
+    const compactInput = wrapper.find<HTMLInputElement>('#auto-compact-token-limit-input');
+    await compactInput.setValue('300000');
+    expect(compactInput.element.value).toBe('272000');
+    expect(wrapper.emitted('update:modelAutoCompactTokenLimit')?.[0]).toEqual(['272000']);
   });
 
   it('模型别名列表始终占据两列宽度', () => {

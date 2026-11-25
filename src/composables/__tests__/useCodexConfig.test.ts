@@ -206,6 +206,15 @@ describe('useCodexConfig composable', () => {
       expect(currentConfig.model_auto_compact_token_limit).toBeNull();
     });
 
+    it('自动压缩阈值超过上下文窗口时应拦截保存并返回 false', async () => {
+      const { saveConfig } = useCodexConfig();
+      const ok = await saveConfig('sk-ctx', 'https://api.openai.com/v1', {
+        modelContextWindow: 272000,
+        modelAutoCompactTokenLimit: 300000,
+      });
+      expect(ok).toBe(false);
+    });
+
     it('payload 未提供的字段不应改动既有本地状态', async () => {
       (window as any).__TAURI_INTERNALS__ = {};
       mockedInvoke.mockResolvedValue(undefined);

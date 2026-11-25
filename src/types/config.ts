@@ -82,6 +82,15 @@ export const REASONING_EFFORT_OPTIONS = [
   { label: 'ultra', value: 'ultra', description: '极致思考强度 (自动委派)' },
 ];
 
+export const CONTEXT_WINDOW_OPTIONS = [
+  { label: '128k', value: '128000', description: '128,000 tokens' },
+  { label: '200k', value: '200000', description: '200,000 tokens' },
+  { label: '272k', value: '272000', description: '272,000 tokens' },
+  { label: '400k', value: '400000', description: '400,000 tokens' },
+  { label: '500k', value: '500000', description: '500,000 tokens' },
+  { label: '1M', value: '1000000', description: '1,000,000 tokens' },
+];
+
 export type ConfirmType = 'danger' | 'warning' | 'info' | 'success';
 
 export interface ConfirmOptions {

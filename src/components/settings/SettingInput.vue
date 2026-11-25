@@ -10,6 +10,7 @@ const props = withDefaults(
     title?: string;
     inputmode?: 'text' | 'numeric' | 'decimal';
     digitsOnly?: boolean;
+    max?: number | null;
   }>(),
   {
     placeholder: '',
@@ -17,6 +18,7 @@ const props = withDefaults(
     disabled: false,
     clearable: true,
     digitsOnly: false,
+    max: null,
   }
 );
 
@@ -29,8 +31,14 @@ const emit = defineEmits<{
 const handleInput = (event: Event) => {
   const inputEl = event.target as HTMLInputElement;
   const raw = inputEl.value;
-  const val = props.digitsOnly ? raw.replace(/\D+/g, '') : raw;
-  if (props.digitsOnly && inputEl.value !== val) {
+  let val = props.digitsOnly ? raw.replace(/\D+/g, '') : raw;
+  if (props.digitsOnly && props.max && props.max > 0 && val !== '') {
+    const parsed = Number(val);
+    if (Number.isSafeInteger(parsed) && parsed > props.max) {
+      val = String(props.max);
+    }
+  }
+  if (inputEl.value !== val) {
     inputEl.value = val;
   }
   emit('update:modelValue', val);

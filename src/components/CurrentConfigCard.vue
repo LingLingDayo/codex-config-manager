@@ -113,6 +113,14 @@ const buildConfigPayload = (): ConfigFormPayload | null => {
     showToast('自动压缩阈值必须为大于 0 的整数', 'error');
     return null;
   }
+  if (
+    parsedContextWindow.value !== null &&
+    parsedAutoCompactLimit.value !== null &&
+    parsedAutoCompactLimit.value > parsedContextWindow.value
+  ) {
+    showToast('自动压缩阈值不能超过上下文窗口', 'error');
+    return null;
+  }
   return {
     key: apiKey.value,
     providerUrl: providerUrl.value,

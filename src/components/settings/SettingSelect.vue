@@ -16,12 +16,16 @@ const props = withDefaults(
     clearable?: boolean;
     allowCustom?: boolean;
     title?: string;
+    id?: string;
+    inputmode?: 'text' | 'numeric' | 'decimal';
+    digitsOnly?: boolean;
   }>(),
   {
     placeholder: '请选择或输入',
     disabled: false,
     clearable: true,
     allowCustom: true,
+    digitsOnly: false,
   }
 );
 
@@ -71,7 +75,12 @@ const selectOption = (item: SelectOptionItem) => {
 
 // 输入框内容变动
 const handleInput = (event: Event) => {
-  const val = (event.target as HTMLInputElement).value;
+  const inputEl = event.target as HTMLInputElement;
+  const raw = inputEl.value;
+  const val = props.digitsOnly ? raw.replace(/\D+/g, '') : raw;
+  if (props.digitsOnly && inputEl.value !== val) {
+    inputEl.value = val;
+  }
   emit('update:modelValue', val);
   emit('change', val);
 };
@@ -125,6 +134,7 @@ onUnmounted(() => {
     <!-- 输入/触发框 -->
     <div class="select-trigger" :title="title" @click="handleTriggerClick">
       <input
+        :id="id"
         ref="inputRef"
         :value="modelValue"
         :type="'text'"
@@ -132,6 +142,7 @@ onUnmounted(() => {
         :disabled="disabled"
         :readonly="!allowCustom"
         :title="title"
+        :inputmode="inputmode"
         class="select-input"
         autocomplete="off"
         @input="handleInput"

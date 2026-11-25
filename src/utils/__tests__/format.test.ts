@@ -11,6 +11,7 @@ import {
   normalizePositiveInt,
   parseContextLimitInput,
   formatOptionalPositiveInt,
+  calcDefaultAutoCompactTokenLimit,
 } from '../format';
 
 describe('format utils', () => {
@@ -157,6 +158,13 @@ describe('format utils', () => {
       expect(formatOptionalPositiveInt(0)).toBe('');
       expect(formatOptionalPositiveInt(null)).toBe('');
       expect(formatOptionalPositiveInt(undefined)).toBe('');
+    });
+
+    it('calcDefaultAutoCompactTokenLimit 计算 0.9 倍阈值且至少为 1', () => {
+      expect(calcDefaultAutoCompactTokenLimit(272000)).toBe(244800);
+      expect(calcDefaultAutoCompactTokenLimit(500000)).toBe(450000);
+      expect(calcDefaultAutoCompactTokenLimit(1000000)).toBe(900000);
+      expect(calcDefaultAutoCompactTokenLimit(1)).toBe(1);
     });
   });
 });

@@ -138,6 +138,17 @@ export function useCodexConfig() {
         ? normalizePositiveInt(modelAutoCompactTokenLimit)
         : undefined;
 
+    if (
+      normalizedContextWindow !== undefined &&
+      normalizedContextWindow !== null &&
+      normalizedAutoCompactLimit !== undefined &&
+      normalizedAutoCompactLimit !== null &&
+      normalizedAutoCompactLimit > normalizedContextWindow
+    ) {
+      showToast('自动压缩阈值不能超过上下文窗口', 'error');
+      return false;
+    }
+
     try {
       if (isTauriEnv()) {
         await invokeCommand('save_codex_config', {

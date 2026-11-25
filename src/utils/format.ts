@@ -135,3 +135,10 @@ export function formatOptionalPositiveInt(value?: number | null): string {
   const normalized = normalizePositiveInt(value);
   return normalized !== null ? String(normalized) : '';
 }
+
+/**
+ * 根据上下文窗口长度计算默认的自动压缩阈值（0.9 倍，向下取整且至少为 1）
+ */
+export function calcDefaultAutoCompactTokenLimit(contextWindow: number): number {
+  return Math.max(1, Math.floor(contextWindow * 0.9));
+}

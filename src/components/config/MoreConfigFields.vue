@@ -46,7 +46,11 @@ import {
   fetchModelReasoningSpec,
   mapReasoningLevelsToOptions,
 } from '../../utils/modelReasoning';
-import { REASONING_EFFORT_OPTIONS } from '../../types/config';
+import {
+  calcDefaultAutoCompactTokenLimit,
+  normalizePositiveInt,
+} from '../../utils/format';
+import { CONTEXT_WINDOW_OPTIONS, REASONING_EFFORT_OPTIONS } from '../../types/config';
 import type { ModelAlias } from '../../types/config';
 
 const props = withDefaults(
@@ -123,6 +127,26 @@ const handleModelUpdate = (val: string) => {
   emit('update:model', val);
   emit('update:modelValue', val);
 };
+
+const parsedContextWindow = computed(() => normalizePositiveInt(props.modelContextWindow));
+
+const handleContextWindowUpdate = (val: string) => {
+  emit('update:modelContextWindow', val);
+  const parsed = normalizePositiveInt(val);
+  if (parsed !== null) {
+    emit('update:modelAutoCompactTokenLimit', String(calcDefaultAutoCompactTokenLimit(parsed)));
+  }
+};
+
+const handleAutoCompactUpdate = (val: string) => {
+  const maxVal = parsedContextWindow.value;
+  const parsed = normalizePositiveInt(val);
+  if (maxVal !== null && parsed !== null && parsed > maxVal) {
+    emit('update:modelAutoCompactTokenLimit', String(maxVal));
+    return;
+  }
+  emit('update:modelAutoCompactTokenLimit', val);
+};
 </script>
 
 <template>
@@ -176,14 +200,16 @@ const handleModelUpdate = (val: string) => {
       :span="1"
       :title="MORE_CONFIG_META.contextWindow.title"
     >
-      <SettingInput
+      <SettingSelect
         :id="contextWindowInputId"
         :model-value="modelContextWindow"
+        :options="CONTEXT_WINDOW_OPTIONS"
         :placeholder="MORE_CONFIG_META.contextWindow.placeholder"
+        :allow-custom="true"
         :title="MORE_CONFIG_META.contextWindow.title"
         inputmode="numeric"
         :digits-only="true"
-        @update:model-value="emit('update:modelContextWindow', $event)"
+        @update:model-value="handleContextWindowUpdate"
         @keydown.enter="emit('enter')"
       />
     </SettingItem>
@@ -203,7 +229,8 @@ const handleModelUpdate = (val: string) => {
         :title="MORE_CONFIG_META.autoCompactTokenLimit.title"
         inputmode="numeric"
         :digits-only="true"
-        @update:model-value="emit('update:modelAutoCompactTokenLimit', $event)"
+        :max="parsedContextWindow"
+        @update:model-value="handleAutoCompactUpdate"
         @keydown.enter="emit('enter')"
       />
     </SettingItem>

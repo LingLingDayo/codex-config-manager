@@ -172,6 +172,12 @@ pub fn save_codex_config(
         .map(|raw| parse_optional_positive_u64(raw, "自动压缩阈值"))
         .transpose()?;
 
+    if let (Some(Some(cw)), Some(Some(ac))) = (parsed_context_window, parsed_auto_compact_limit) {
+        if ac > cw {
+            return Err("自动压缩阈值不能超过上下文窗口".to_string());
+        }
+    }
+
     let codex_dir = get_codex_dir()?;
     if !codex_dir.exists() {
         fs::create_dir_all(&codex_dir).map_err(|e| format!("创建 .codex 目录失败: {}", e))?;

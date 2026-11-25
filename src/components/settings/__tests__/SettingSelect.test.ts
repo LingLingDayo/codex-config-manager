@@ -161,4 +161,24 @@ describe('SettingSelect.vue component', () => {
     expect(wrapper.find('.select-dropdown-menu').exists()).toBe(false);
     wrapper.unmount();
   });
+
+  it('支持将 id 绑定到 input 且在 digitsOnly 模式下过滤非数字字符', async () => {
+    const wrapper = mount(SettingSelect, {
+      props: {
+        id: 'context-window-input',
+        modelValue: '',
+        options: sampleOptions,
+        digitsOnly: true,
+        inputmode: 'numeric',
+      },
+    });
+
+    const input = wrapper.find<HTMLInputElement>('#context-window-input');
+    expect(input.exists()).toBe(true);
+    expect(input.attributes('inputmode')).toBe('numeric');
+
+    await input.setValue('272abc000');
+    expect(input.element.value).toBe('272000');
+    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['272000']);
+  });
 });

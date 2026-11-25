@@ -228,4 +228,42 @@ describe('PresetModal.vue component', () => {
     await wrapper.find('form.modal-form').trigger('submit.prevent');
     expect(wrapper.emitted('save')).toBeUndefined();
   });
+
+  it('预设弹窗中上下文窗口支持常用值选择、0.9 倍联动及上限钳制', async () => {
+    const wrapper = mount(PresetModal, {
+      props: {
+        visible: true,
+        title: '新增中转站配置',
+        initialData: null,
+      },
+    });
+
+    await wrapper.find('#modal-preset-name').setValue('百万上下文站');
+    await wrapper.find('#modal-preset-url').setValue('https://api.example.com/v1');
+    await wrapper.find('#modal-preset-key').setValue('sk-1m-key');
+    await wrapper.find('.more-config-toggle').trigger('click');
+
+    const contextField = wrapper.find('.field-context-window');
+    await contextField.find('.btn-arrow').trigger('click');
+    const opt1M = contextField
+      .findAll('.dropdown-item')
+      .find((opt) => opt.find('.item-label').text() === '1M');
+    expect(opt1M).toBeDefined();
+    await opt1M!.trigger('click');
+
+    const compactInput = wrapper.find<HTMLInputElement>('#modal-preset-auto-compact');
+    expect(compactInput.element.value).toBe('900000');
+
+    // 手动输入超过上下文窗口 1000000 的值，应被钳制为 1000000
+    await compactInput.setValue('1200000');
+    expect(compactInput.element.value).toBe('1000000');
+
+    await wrapper.find('form.modal-form').trigger('submit.prevent');
+    expect(wrapper.emitted('save')?.[0]?.[0]).toEqual(
+      expect.objectContaining({
+        model_context_window: 1000000,
+        model_auto_compact_token_limit: 1000000,
+      })
+    );
+  });
 });

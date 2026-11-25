@@ -124,6 +124,13 @@ export function usePresets() {
       return false;
     }
 
+    const cwLimit = normalizePositiveInt(data.model_context_window);
+    const acLimit = normalizePositiveInt(data.model_auto_compact_token_limit);
+    if (cwLimit !== null && acLimit !== null && acLimit > cwLimit) {
+      showToast('自动压缩阈值不能超过上下文窗口', 'error');
+      return false;
+    }
+
     const currentList = [...presets.value];
     if (data.id) {
       const index = currentList.findIndex((p) => p.id === data.id);

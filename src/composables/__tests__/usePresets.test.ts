@@ -181,6 +181,18 @@ describe('usePresets composable', () => {
       expect(presets.value[0].model_context_window).toBe(272000);
       expect(presets.value[0].model_auto_compact_token_limit).toBe(244800);
     });
+
+    it('自动压缩阈值超过上下文窗口时应拒绝保存预设并返回 false', async () => {
+      const { saveOrUpdatePreset } = usePresets();
+      const ok = await saveOrUpdatePreset({
+        name: '非法阈值预设',
+        provider_url: 'https://api.example.com/v1',
+        key: 'sk-123',
+        model_context_window: 272000,
+        model_auto_compact_token_limit: 280000,
+      });
+      expect(ok).toBe(false);
+    });
   });
 
   describe('deletePreset', () => {
