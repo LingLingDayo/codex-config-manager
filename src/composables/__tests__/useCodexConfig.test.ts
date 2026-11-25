@@ -72,6 +72,8 @@ describe('useCodexConfig composable', () => {
           { slug: 'gpt-5.6-sol', display_name: '5.6 Sol' },
           { slug: 'glm-5.3', display_name: 'GLM 5.3' },
         ],
+        model_context_window: 272000,
+        model_auto_compact_token_limit: 244800,
       };
       mockedInvoke.mockResolvedValueOnce(backendConfig);
 
@@ -84,6 +86,8 @@ describe('useCodexConfig composable', () => {
         { slug: 'gpt-5.6-sol', display_name: '5.6 Sol' },
         { slug: 'glm-5.3', display_name: 'GLM 5.3' },
       ]);
+      expect(currentConfig.model_context_window).toBe(272000);
+      expect(currentConfig.model_auto_compact_token_limit).toBe(244800);
     });
   });
 
@@ -166,6 +170,42 @@ describe('useCodexConfig composable', () => {
       expect(currentConfig.model_aliases).toEqual(aliases);
     });
 
+    it('payload 携带上下文长度配置时应透传字符串值并在清空时传空串移除', async () => {
+      (window as any).__TAURI_INTERNALS__ = {};
+      mockedInvoke.mockResolvedValue(undefined);
+
+      const { currentConfig, saveConfig } = useCodexConfig();
+      const ok1 = await saveConfig('sk-ctx', 'https://api.openai.com/v1', {
+        modelContextWindow: 272000,
+        modelAutoCompactTokenLimit: 244800,
+      });
+      expect(ok1).toBe(true);
+      expect(mockedInvoke).toHaveBeenLastCalledWith(
+        'save_codex_config',
+        expect.objectContaining({
+          modelContextWindow: '272000',
+          modelAutoCompactTokenLimit: '244800',
+        })
+      );
+      expect(currentConfig.model_context_window).toBe(272000);
+      expect(currentConfig.model_auto_compact_token_limit).toBe(244800);
+
+      const ok2 = await saveConfig('sk-ctx', 'https://api.openai.com/v1', {
+        modelContextWindow: null,
+        modelAutoCompactTokenLimit: null,
+      });
+      expect(ok2).toBe(true);
+      expect(mockedInvoke).toHaveBeenLastCalledWith(
+        'save_codex_config',
+        expect.objectContaining({
+          modelContextWindow: '',
+          modelAutoCompactTokenLimit: '',
+        })
+      );
+      expect(currentConfig.model_context_window).toBeNull();
+      expect(currentConfig.model_auto_compact_token_limit).toBeNull();
+    });
+
     it('payload 未提供的字段不应改动既有本地状态', async () => {
       (window as any).__TAURI_INTERNALS__ = {};
       mockedInvoke.mockResolvedValue(undefined);
@@ -241,6 +281,8 @@ describe('useCodexConfig composable', () => {
       currentConfig.model_reasoning_effort = 'high';
       currentConfig.model_display_name = 'Some Alias';
       currentConfig.model_aliases = [{ slug: 'gpt-5.6-sol', display_name: 'Some Alias' }];
+      currentConfig.model_context_window = 272000;
+      currentConfig.model_auto_compact_token_limit = 244800;
       localStorage.setItem('codex_current_config', 'something');
 
       const success = await restoreDefault();
@@ -252,6 +294,8 @@ describe('useCodexConfig composable', () => {
       expect(currentConfig.model_reasoning_effort).toBe('');
       expect(currentConfig.model_display_name).toBe('');
       expect(currentConfig.model_aliases).toEqual([]);
+      expect(currentConfig.model_context_window).toBeNull();
+      expect(currentConfig.model_auto_compact_token_limit).toBeNull();
       expect(localStorage.getItem('codex_current_config')).toBeNull();
     });
   });

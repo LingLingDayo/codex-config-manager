@@ -1,5 +1,5 @@
 import type { CodexConfig, ModelAlias, PresetConfig } from '../types/config';
-import { normalizeUrl } from './format';
+import { normalizePositiveInt, normalizeUrl } from './format';
 import {
   migrateLegacyDisplayName,
   modelAliasesEqual,
@@ -12,6 +12,8 @@ export interface PresetComparisonTarget {
   model?: string;
   modelReasoningEffort?: string;
   modelAliases?: ModelAlias[];
+  modelContextWindow?: number | null;
+  modelAutoCompactTokenLimit?: number | null;
 }
 
 export function matchesPresetIdentity(
@@ -64,5 +66,23 @@ export function isPresetContentEqual(
     preset.model_display_name
   );
 
-  return modelAliasesEqual(targetAliases, presetAliases);
+  if (!modelAliasesEqual(targetAliases, presetAliases)) {
+    return false;
+  }
+
+  if (
+    normalizePositiveInt(preset.model_context_window) !==
+    normalizePositiveInt(target.modelContextWindow)
+  ) {
+    return false;
+  }
+
+  if (
+    normalizePositiveInt(preset.model_auto_compact_token_limit) !==
+    normalizePositiveInt(target.modelAutoCompactTokenLimit)
+  ) {
+    return false;
+  }
+
+  return true;
 }

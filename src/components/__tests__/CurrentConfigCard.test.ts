@@ -102,6 +102,8 @@ describe('CurrentConfigCard.vue component', () => {
       model: mockConfig.model,
       modelReasoningEffort: mockConfig.model_reasoning_effort,
       modelAliases: mockConfig.model_aliases,
+      modelContextWindow: null,
+      modelAutoCompactTokenLimit: null,
     });
   });
 
@@ -218,5 +220,36 @@ describe('CurrentConfigCard.vue component', () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.find('.card-header .btn-text-action').exists()).toBe(false);
+
+    // 修改上下文窗口后，按钮应显示且提交时携带新值
+    drawer.vm.$emit('update:modelContextWindow', '272000');
+    drawer.vm.$emit('update:modelAutoCompactTokenLimit', '244800');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('.card-header .btn-text-action').text()).toContain('更新配置');
+
+    await wrapper.find('form.config-form').trigger('submit.prevent');
+    expect(wrapper.emitted('save-config')?.[0]?.[0]).toEqual(
+      expect.objectContaining({
+        modelContextWindow: 272000,
+        modelAutoCompactTokenLimit: 244800,
+      })
+    );
+  });
+
+  it('上下文窗口为 0 时应阻止提交', async () => {
+    const wrapper = mount(CurrentConfigCard, {
+      props: {
+        config: mockConfig,
+        isLoading: false,
+      },
+    });
+
+    const drawer = wrapper.findComponent({ name: 'ConfigDrawer' });
+    drawer.vm.$emit('update:modelContextWindow', '0');
+    await wrapper.vm.$nextTick();
+
+    await wrapper.find('form.config-form').trigger('submit.prevent');
+    expect(wrapper.emitted('save-config')).toBeUndefined();
   });
 });

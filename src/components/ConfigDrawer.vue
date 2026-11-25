@@ -9,12 +9,16 @@ const props = withDefaults(
     modelValue: string;
     reasoningEffort?: string;
     modelAliases?: ModelAlias[];
+    modelContextWindow?: string;
+    modelAutoCompactTokenLimit?: string;
     apiKey?: string;
     providerUrl?: string;
   }>(),
   {
     reasoningEffort: '',
     modelAliases: () => [],
+    modelContextWindow: '',
+    modelAutoCompactTokenLimit: '',
     apiKey: '',
     providerUrl: '',
   }
@@ -24,6 +28,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
   (e: 'update:reasoningEffort', value: string): void;
   (e: 'update:modelAliases', value: ModelAlias[]): void;
+  (e: 'update:modelContextWindow', value: string): void;
+  (e: 'update:modelAutoCompactTokenLimit', value: string): void;
   (e: 'close'): void;
 }>();
 
@@ -76,11 +82,15 @@ onUnmounted(() => {
               :model="modelValue"
               :reasoning-effort="reasoningEffort"
               :model-aliases="modelAliases"
+              :model-context-window="modelContextWindow"
+              :model-auto-compact-token-limit="modelAutoCompactTokenLimit"
               :api-key="apiKey"
               :provider-url="providerUrl"
               @update:model="emit('update:modelValue', $event)"
               @update:reasoning-effort="emit('update:reasoningEffort', $event)"
               @update:model-aliases="emit('update:modelAliases', $event)"
+              @update:model-context-window="emit('update:modelContextWindow', $event)"
+              @update:model-auto-compact-token-limit="emit('update:modelAutoCompactTokenLimit', $event)"
               @enter="emit('close')"
             />
           </div>

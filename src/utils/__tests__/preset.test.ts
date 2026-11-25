@@ -10,6 +10,8 @@ const samplePreset: PresetConfig = {
   model: 'gpt-4o',
   model_reasoning_effort: 'medium',
   model_aliases: [{ slug: 'gpt-4o', display_name: 'GPT-4o' }],
+  model_context_window: 272000,
+  model_auto_compact_token_limit: 244800,
 };
 
 describe('preset utils', () => {
@@ -57,8 +59,36 @@ describe('preset utils', () => {
           model: 'gpt-4o',
           modelReasoningEffort: 'medium',
           modelAliases: [{ slug: 'gpt-4o', display_name: 'GPT-4o' }],
+          modelContextWindow: 272000,
+          modelAutoCompactTokenLimit: 244800,
         })
       ).toBe(true);
+    });
+
+    it('上下文窗口或自动压缩阈值不一致时应返回 false', () => {
+      expect(
+        isPresetContentEqual(samplePreset, {
+          key: 'sk-secret-123',
+          providerUrl: 'https://api.example.com/v1',
+          model: 'gpt-4o',
+          modelReasoningEffort: 'medium',
+          modelAliases: [{ slug: 'gpt-4o', display_name: 'GPT-4o' }],
+          modelContextWindow: 128000,
+          modelAutoCompactTokenLimit: 244800,
+        })
+      ).toBe(false);
+
+      expect(
+        isPresetContentEqual(samplePreset, {
+          key: 'sk-secret-123',
+          providerUrl: 'https://api.example.com/v1',
+          model: 'gpt-4o',
+          modelReasoningEffort: 'medium',
+          modelAliases: [{ slug: 'gpt-4o', display_name: 'GPT-4o' }],
+          modelContextWindow: 272000,
+          modelAutoCompactTokenLimit: null,
+        })
+      ).toBe(false);
     });
 
     it('Key 不一致时应返回 false', () => {

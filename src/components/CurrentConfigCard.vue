@@ -9,7 +9,9 @@ import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
   applyStationAlias,
+  formatOptionalPositiveInt,
   isDefaultStation,
+  parseContextLimitInput,
 } from '../utils/format';
 import { isPresetContentEqual, matchesPresetIdentity } from '../utils/preset';
 import { copyToClipboard } from '../utils/clipboard';
@@ -46,6 +48,8 @@ const providerUrl = ref<string>('');
 const customModel = ref<string>('');
 const reasoningEffort = ref<string>('');
 const modelAliases = ref<ModelAlias[]>([]);
+const modelContextWindow = ref<string>('');
+const modelAutoCompactTokenLimit = ref<string>('');
 const showKey = ref<boolean>(false);
 const isConfigDrawerOpen = ref<boolean>(false);
 
@@ -72,6 +76,10 @@ watch(
       newVal.model,
       newVal.model_display_name
     );
+    modelContextWindow.value = formatOptionalPositiveInt(newVal.model_context_window);
+    modelAutoCompactTokenLimit.value = formatOptionalPositiveInt(
+      newVal.model_auto_compact_token_limit
+    );
   },
   { immediate: true, deep: true }
 );
@@ -94,14 +102,33 @@ const handleCopyKey = async () => {
   );
 };
 
-const handleSave = () => {
-  emit('save-config', {
+const buildConfigPayload = (): ConfigFormPayload | null => {
+  const parsedContextWindow = parseContextLimitInput(modelContextWindow.value);
+  if (!parsedContextWindow.valid) {
+    showToast('上下文窗口必须为大于 0 的整数', 'error');
+    return null;
+  }
+  const parsedAutoCompactLimit = parseContextLimitInput(modelAutoCompactTokenLimit.value);
+  if (!parsedAutoCompactLimit.valid) {
+    showToast('自动压缩阈值必须为大于 0 的整数', 'error');
+    return null;
+  }
+  return {
     key: apiKey.value,
     providerUrl: providerUrl.value,
     model: customModel.value,
     modelReasoningEffort: reasoningEffort.value,
     modelAliases: cloneModelAliases(modelAliases.value),
-  });
+    modelContextWindow: parsedContextWindow.value,
+    modelAutoCompactTokenLimit: parsedAutoCompactLimit.value,
+  };
+};
+
+const handleSave = () => {
+  const payload = buildConfigPayload();
+  if (payload) {
+    emit('save-config', payload);
+  }
 };
 
 const handleRestore = () => {
@@ -109,23 +136,17 @@ const handleRestore = () => {
 };
 
 const handleLaunch = () => {
-  emit('launch-app', {
-    key: apiKey.value,
-    providerUrl: providerUrl.value,
-    model: customModel.value,
-    modelReasoningEffort: reasoningEffort.value,
-    modelAliases: cloneModelAliases(modelAliases.value),
-  });
+  const payload = buildConfigPayload();
+  if (payload) {
+    emit('launch-app', payload);
+  }
 };
 
 const handleSaveAsPreset = () => {
-  emit('save-as-preset', {
-    key: apiKey.value,
-    providerUrl: providerUrl.value,
-    model: customModel.value,
-    modelReasoningEffort: reasoningEffort.value,
-    modelAliases: cloneModelAliases(modelAliases.value),
-  });
+  const payload = buildConfigPayload();
+  if (payload) {
+    emit('save-as-preset', payload);
+  }
 };
 
 const matchingPreset = computed(() => {
@@ -146,12 +167,19 @@ const isSaved = computed(() => {
 
 const isPresetModified = computed(() => {
   if (!matchingPreset.value) return false;
+  const parsedContextWindow = parseContextLimitInput(modelContextWindow.value);
+  const parsedAutoCompactLimit = parseContextLimitInput(modelAutoCompactTokenLimit.value);
+  if (!parsedContextWindow.valid || !parsedAutoCompactLimit.valid) {
+    return true;
+  }
   return !isPresetContentEqual(matchingPreset.value, {
     key: apiKey.value,
     providerUrl: providerUrl.value,
     model: customModel.value,
     modelReasoningEffort: reasoningEffort.value,
     modelAliases: modelAliases.value,
+    modelContextWindow: parsedContextWindow.value,
+    modelAutoCompactTokenLimit: parsedAutoCompactLimit.value,
   });
 });
 </script>
@@ -259,6 +287,8 @@ const isPresetModified = computed(() => {
       v-model="customModel"
       v-model:reasoning-effort="reasoningEffort"
       v-model:model-aliases="modelAliases"
+      v-model:model-context-window="modelContextWindow"
+      v-model:model-auto-compact-token-limit="modelAutoCompactTokenLimit"
       :api-key="apiKey"
       :provider-url="providerUrl"
       @close="closeConfigDrawer"

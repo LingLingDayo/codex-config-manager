@@ -95,3 +95,43 @@ export function formatDate(timestamp?: number): string {
   if (!timestamp) return '';
   return new Date(timestamp).toLocaleDateString();
 }
+
+/**
+ * 将正整数或正整数字符串规范化为安全正整数；空值或非法值返回 null
+ */
+export function normalizePositiveInt(value?: number | string | null): number | null {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!/^\d+$/.test(trimmed)) return null;
+    const parsed = Number(trimmed);
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+  }
+  return null;
+}
+
+/**
+ * 解析并校验上下文长度类输入框字符串：
+ * 留空视为有效清空（value = null）；非空时必须为大于 0 的安全整数
+ */
+export function parseContextLimitInput(raw: string): { valid: boolean; value: number | null } {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { valid: true, value: null };
+  }
+  const normalized = normalizePositiveInt(trimmed);
+  if (normalized === null) {
+    return { valid: false, value: null };
+  }
+  return { valid: true, value: normalized };
+}
+
+/**
+ * 将可选正整数格式化为输入框展示字符串
+ */
+export function formatOptionalPositiveInt(value?: number | null): string {
+  const normalized = normalizePositiveInt(value);
+  return normalized !== null ? String(normalized) : '';
+}

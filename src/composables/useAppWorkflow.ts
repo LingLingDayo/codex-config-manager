@@ -5,6 +5,7 @@ import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
   isDefaultStation,
+  normalizePositiveInt,
 } from '../utils/format';
 import { matchesPresetIdentity } from '../utils/preset';
 import { useCodexConfig } from './useCodexConfig';
@@ -36,6 +37,8 @@ export function useAppWorkflow() {
     modelReasoningEffort: data.modelReasoningEffort,
     modelDisplayName: data.modelDisplayName,
     modelAliases: data.modelAliases,
+    modelContextWindow: data.modelContextWindow,
+    modelAutoCompactTokenLimit: data.modelAutoCompactTokenLimit,
   });
 
   const handleSaveCurrentConfig = (data: ConfigFormPayload) => {
@@ -56,6 +59,8 @@ export function useAppWorkflow() {
         preset.model,
         preset.model_display_name
       ),
+      modelContextWindow: normalizePositiveInt(preset.model_context_window),
+      modelAutoCompactTokenLimit: normalizePositiveInt(preset.model_auto_compact_token_limit),
     });
     if (success) {
       if (closeModal) {
@@ -156,6 +161,14 @@ export function useAppWorkflow() {
                 matched.model,
                 matched.model_display_name
               ),
+        model_context_window:
+          data.modelContextWindow !== undefined
+            ? normalizePositiveInt(data.modelContextWindow)
+            : normalizePositiveInt(matched.model_context_window),
+        model_auto_compact_token_limit:
+          data.modelAutoCompactTokenLimit !== undefined
+            ? normalizePositiveInt(data.modelAutoCompactTokenLimit)
+            : normalizePositiveInt(matched.model_auto_compact_token_limit),
       });
       return;
     }
@@ -173,6 +186,8 @@ export function useAppWorkflow() {
       model: data.model || '',
       model_reasoning_effort: data.modelReasoningEffort || '',
       model_aliases: cloneModelAliases(data.modelAliases),
+      model_context_window: normalizePositiveInt(data.modelContextWindow),
+      model_auto_compact_token_limit: normalizePositiveInt(data.modelAutoCompactTokenLimit),
     };
     isModalVisible.value = true;
   };
@@ -199,6 +214,8 @@ export function useAppWorkflow() {
         preset.model,
         preset.model_display_name
       ),
+      model_context_window: normalizePositiveInt(preset.model_context_window),
+      model_auto_compact_token_limit: normalizePositiveInt(preset.model_auto_compact_token_limit),
     };
     isModalVisible.value = true;
   };

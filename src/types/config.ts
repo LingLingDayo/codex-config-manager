@@ -11,6 +11,8 @@ export interface CodexConfig {
   model_reasoning_effort?: string;
   model_display_name?: string;
   model_aliases?: ModelAlias[];
+  model_context_window?: number | null;
+  model_auto_compact_token_limit?: number | null;
 }
 
 /** saveConfig 的可选模型配置载荷，未提供的字段不会写入 config.toml */
@@ -19,6 +21,8 @@ export interface SaveConfigPayload {
   modelReasoningEffort?: string;
   modelDisplayName?: string;
   modelAliases?: ModelAlias[];
+  modelContextWindow?: number | null;
+  modelAutoCompactTokenLimit?: number | null;
 }
 
 /** 主配置卡片提交给编排层的表单快照 */
@@ -36,6 +40,8 @@ export interface PresetConfig {
   model_reasoning_effort?: string;
   model_display_name?: string;
   model_aliases?: ModelAlias[];
+  model_context_window?: number | null;
+  model_auto_compact_token_limit?: number | null;
   updated_at?: number;
 }
 
@@ -56,6 +62,8 @@ export interface PresetFormData {
   model_reasoning_effort?: string;
   model_display_name?: string;
   model_aliases?: ModelAlias[];
+  model_context_window?: number | null;
+  model_auto_compact_token_limit?: number | null;
 }
 
 export interface ModelReasoningSpec {

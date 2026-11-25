@@ -156,7 +156,7 @@ describe('usePresets composable', () => {
       ]);
     });
 
-    it('新增预设时应正确持久化更多配置参数（model, reasoning_effort, aliases）', async () => {
+    it('新增预设时应正确持久化更多配置参数（model, reasoning_effort, aliases, context_limits）', async () => {
       mockedInvoke.mockResolvedValue(undefined);
       const { presets, saveOrUpdatePreset } = usePresets();
       presets.value = [];
@@ -168,6 +168,8 @@ describe('usePresets composable', () => {
         model: 'deepseek-reasoner',
         model_reasoning_effort: 'max',
         model_aliases: [{ slug: 'deepseek-reasoner', display_name: 'DS-Reasoner' }],
+        model_context_window: 272000,
+        model_auto_compact_token_limit: 244800,
       });
 
       expect(success).toBe(true);
@@ -176,6 +178,8 @@ describe('usePresets composable', () => {
       expect(presets.value[0].model_aliases).toEqual([
         { slug: 'deepseek-reasoner', display_name: 'DS-Reasoner' },
       ]);
+      expect(presets.value[0].model_context_window).toBe(272000);
+      expect(presets.value[0].model_auto_compact_token_limit).toBe(244800);
     });
   });
 

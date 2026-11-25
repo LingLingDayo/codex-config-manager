@@ -7,12 +7,16 @@ const props = withDefaults(
     disabled?: boolean;
     clearable?: boolean;
     id?: string;
+    title?: string;
+    inputmode?: 'text' | 'numeric' | 'decimal';
+    digitsOnly?: boolean;
   }>(),
   {
     placeholder: '',
     type: 'text',
     disabled: false,
     clearable: true,
+    digitsOnly: false,
   }
 );
 
@@ -23,7 +27,12 @@ const emit = defineEmits<{
 }>();
 
 const handleInput = (event: Event) => {
-  const val = (event.target as HTMLInputElement).value;
+  const inputEl = event.target as HTMLInputElement;
+  const raw = inputEl.value;
+  const val = props.digitsOnly ? raw.replace(/\D+/g, '') : raw;
+  if (props.digitsOnly && inputEl.value !== val) {
+    inputEl.value = val;
+  }
   emit('update:modelValue', val);
   emit('change', val);
 };
@@ -43,6 +52,8 @@ const handleClear = () => {
       :value="modelValue"
       :placeholder="placeholder"
       :disabled="disabled"
+      :title="title"
+      :inputmode="inputmode"
       class="setting-input"
       autocomplete="off"
       @input="handleInput"

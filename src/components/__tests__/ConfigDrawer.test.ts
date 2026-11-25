@@ -35,10 +35,12 @@ describe('ConfigDrawer.vue component', () => {
     expect(drawerContent).not.toBeNull();
 
     const items = document.body.querySelectorAll('.setting-item');
-    expect(items.length).toBe(3);
+    expect(items.length).toBe(5);
     expect(items[0].classList.contains('col-span-1')).toBe(true);
     expect(items[1].classList.contains('col-span-1')).toBe(true);
-    expect(items[2].classList.contains('col-span-2')).toBe(true);
+    expect(items[2].classList.contains('col-span-1')).toBe(true);
+    expect(items[3].classList.contains('col-span-1')).toBe(true);
+    expect(items[4].classList.contains('col-span-2')).toBe(true);
 
     const aliasInput = document.body.querySelector(
       'input[id$="-alias"]'
@@ -119,6 +121,38 @@ describe('ConfigDrawer.vue component', () => {
     expect(wrapper.emitted('update:modelAliases')?.[0]).toEqual([
       [{ slug: 'gpt-5.6-sol', display_name: '5.6 Sol' }],
     ]);
+
+    wrapper.unmount();
+  });
+
+  it('修改上下文窗口与自动压缩阈值时触发对应的 update 事件', async () => {
+    const wrapper = mount(ConfigDrawer, {
+      props: {
+        visible: true,
+        modelValue: 'gpt-6-sol',
+        modelContextWindow: '',
+        modelAutoCompactTokenLimit: '',
+      },
+      attachTo: document.body,
+    });
+
+    const contextInput = document.body.querySelector('#context-window-input') as HTMLInputElement;
+    expect(contextInput).not.toBeNull();
+    contextInput.value = '272000';
+    contextInput.dispatchEvent(new Event('input'));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('update:modelContextWindow')?.[0]).toEqual(['272000']);
+
+    const compactInput = document.body.querySelector(
+      '#auto-compact-token-limit-input'
+    ) as HTMLInputElement;
+    expect(compactInput).not.toBeNull();
+    compactInput.value = '244800';
+    compactInput.dispatchEvent(new Event('input'));
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('update:modelAutoCompactTokenLimit')?.[0]).toEqual(['244800']);
 
     wrapper.unmount();
   });

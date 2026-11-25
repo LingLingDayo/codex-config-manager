@@ -3,13 +3,16 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import type { ModelAlias, PresetFormData } from '../types/config';
 import { cloneModelAliases, migrateLegacyDisplayName } from '../utils/modelAliases';
 import { useSettings } from '../composables/useSettings';
+import { useToast } from '../composables/useToast';
 import MoreConfigFields from './config/MoreConfigFields.vue';
 import { PROVIDER_PRESETS } from '../constants/providers';
 import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
   applyStationAlias,
+  formatOptionalPositiveInt,
   isDefaultStation,
+  parseContextLimitInput,
 } from '../utils/format';
 
 const props = defineProps<{
@@ -24,6 +27,7 @@ const emit = defineEmits<{
 }>();
 
 const { settings } = useSettings();
+const { showToast } = useToast();
 
 const formName = ref<string>('');
 const formUrl = ref<string>('');
@@ -31,6 +35,8 @@ const formKey = ref<string>('');
 const formModel = ref<string>('');
 const formReasoningEffort = ref<string>('');
 const formAliases = ref<ModelAlias[]>([]);
+const formContextWindow = ref<string>('');
+const formAutoCompactTokenLimit = ref<string>('');
 const isMoreExpanded = ref<boolean>(false);
 const showKey = ref<boolean>(false);
 const nameInputRef = ref<HTMLInputElement | null>(null);
@@ -48,6 +54,8 @@ const hasConfiguredMore = computed(() => {
   return Boolean(
     formModel.value.trim() ||
       formReasoningEffort.value.trim() ||
+      formContextWindow.value.trim() ||
+      formAutoCompactTokenLimit.value.trim() ||
       formAliases.value.some((item) => item.slug.trim() || item.display_name.trim())
   );
 });
@@ -69,6 +77,12 @@ watch(
           props.initialData.model,
           props.initialData.model_display_name
         );
+        formContextWindow.value = formatOptionalPositiveInt(
+          props.initialData.model_context_window
+        );
+        formAutoCompactTokenLimit.value = formatOptionalPositiveInt(
+          props.initialData.model_auto_compact_token_limit
+        );
       } else {
         formName.value = '';
         formUrl.value = '';
@@ -76,6 +90,8 @@ watch(
         formModel.value = '';
         formReasoningEffort.value = '';
         formAliases.value = [];
+        formContextWindow.value = '';
+        formAutoCompactTokenLimit.value = '';
       }
       showKey.value = false;
       isMoreExpanded.value = false;
@@ -100,6 +116,17 @@ const handleClose = () => {
 };
 
 const handleSubmit = () => {
+  const parsedContextWindow = parseContextLimitInput(formContextWindow.value);
+  if (!parsedContextWindow.valid) {
+    showToast('上下文窗口必须为大于 0 的整数', 'error');
+    return;
+  }
+  const parsedAutoCompactLimit = parseContextLimitInput(formAutoCompactTokenLimit.value);
+  if (!parsedAutoCompactLimit.valid) {
+    showToast('自动压缩阈值必须为大于 0 的整数', 'error');
+    return;
+  }
+
   emit('save', {
     id: props.initialData?.id,
     name: formName.value,
@@ -108,6 +135,8 @@ const handleSubmit = () => {
     model: formModel.value.trim(),
     model_reasoning_effort: formReasoningEffort.value.trim(),
     model_aliases: cloneModelAliases(formAliases.value),
+    model_context_window: parsedContextWindow.value,
+    model_auto_compact_token_limit: parsedAutoCompactLimit.value,
   });
 };
 
@@ -273,6 +302,8 @@ onUnmounted(() => {
                 v-model:model="formModel"
                 v-model:reasoning-effort="formReasoningEffort"
                 v-model:model-aliases="formAliases"
+                v-model:model-context-window="formContextWindow"
+                v-model:model-auto-compact-token-limit="formAutoCompactTokenLimit"
                 :api-key="formKey"
                 :provider-url="formUrl"
                 id-prefix="modal-preset"

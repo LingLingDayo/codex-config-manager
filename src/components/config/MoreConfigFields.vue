@@ -15,6 +15,18 @@ export const MORE_CONFIG_META = {
       '对应 config.toml 中的 model_reasoning_effort 字段。用于配置模型的深度思考与推理强度，请务必选择所选模型实际支持的思考强度档位（若模型不支持思考请设为 none 或留空）。',
     placeholder: '例如: low / medium / high',
   },
+  contextWindow: {
+    label: '上下文窗口 (Context Window)',
+    title:
+      '对应 config.toml 中的 model_context_window 字段。用于指定模型上下文窗口总长度（单位：tokens），留空则不写入该项。',
+    placeholder: '例如: 272000',
+  },
+  autoCompactTokenLimit: {
+    label: '自动压缩阈值 (Auto Compact)',
+    title:
+      '对应 config.toml 中的 model_auto_compact_token_limit 字段。当上下文 token 数达到该阈值时触发自动压缩，留空则不写入该项。',
+    placeholder: '例如: 244800',
+  },
   aliases: {
     label: '模型列表 (Models)',
     title:
@@ -26,6 +38,7 @@ export const MORE_CONFIG_META = {
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import SettingItem from '../settings/SettingItem.vue';
+import SettingInput from '../settings/SettingInput.vue';
 import SettingSelect from '../settings/SettingSelect.vue';
 import ModelSelect from './ModelSelect.vue';
 import ModelAliasList from './ModelAliasList.vue';
@@ -42,6 +55,8 @@ const props = withDefaults(
     model?: string;
     reasoningEffort?: string;
     modelAliases?: ModelAlias[];
+    modelContextWindow?: string;
+    modelAutoCompactTokenLimit?: string;
     idPrefix?: string;
     apiKey?: string;
     providerUrl?: string;
@@ -51,6 +66,8 @@ const props = withDefaults(
     model: '',
     reasoningEffort: '',
     modelAliases: () => [],
+    modelContextWindow: '',
+    modelAutoCompactTokenLimit: '',
     idPrefix: '',
     apiKey: '',
     providerUrl: '',
@@ -62,6 +79,8 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
   (e: 'update:reasoningEffort', value: string): void;
   (e: 'update:modelAliases', value: ModelAlias[]): void;
+  (e: 'update:modelContextWindow', value: string): void;
+  (e: 'update:modelAutoCompactTokenLimit', value: string): void;
   (e: 'enter'): void;
 }>();
 
@@ -89,6 +108,12 @@ const modelInputId = computed(() =>
 );
 const reasoningSelectId = computed(() =>
   props.idPrefix ? `${props.idPrefix}-reasoning` : 'reasoning-effort-select'
+);
+const contextWindowInputId = computed(() =>
+  props.idPrefix ? `${props.idPrefix}-context-window` : 'context-window-input'
+);
+const autoCompactInputId = computed(() =>
+  props.idPrefix ? `${props.idPrefix}-auto-compact` : 'auto-compact-token-limit-input'
 );
 const aliasesListId = computed(() =>
   props.idPrefix ? `${props.idPrefix}-aliases` : 'model-aliases'
@@ -143,6 +168,46 @@ const handleModelUpdate = (val: string) => {
       />
     </SettingItem>
 
+    <!-- 上下文窗口 -->
+    <SettingItem
+      class="field-context-window"
+      :label="MORE_CONFIG_META.contextWindow.label"
+      direction="vertical"
+      :span="1"
+      :title="MORE_CONFIG_META.contextWindow.title"
+    >
+      <SettingInput
+        :id="contextWindowInputId"
+        :model-value="modelContextWindow"
+        :placeholder="MORE_CONFIG_META.contextWindow.placeholder"
+        :title="MORE_CONFIG_META.contextWindow.title"
+        inputmode="numeric"
+        :digits-only="true"
+        @update:model-value="emit('update:modelContextWindow', $event)"
+        @keydown.enter="emit('enter')"
+      />
+    </SettingItem>
+
+    <!-- 自动压缩阈值 -->
+    <SettingItem
+      class="field-auto-compact"
+      :label="MORE_CONFIG_META.autoCompactTokenLimit.label"
+      direction="vertical"
+      :span="1"
+      :title="MORE_CONFIG_META.autoCompactTokenLimit.title"
+    >
+      <SettingInput
+        :id="autoCompactInputId"
+        :model-value="modelAutoCompactTokenLimit"
+        :placeholder="MORE_CONFIG_META.autoCompactTokenLimit.placeholder"
+        :title="MORE_CONFIG_META.autoCompactTokenLimit.title"
+        inputmode="numeric"
+        :digits-only="true"
+        @update:model-value="emit('update:modelAutoCompactTokenLimit', $event)"
+        @keydown.enter="emit('enter')"
+      />
+    </SettingItem>
+
     <!-- 模型列表 -->
     <SettingItem
       class="field-aliases"
@@ -178,6 +243,16 @@ const handleModelUpdate = (val: string) => {
   }
 
   .field-reasoning {
+    grid-column: 2 / 3;
+    min-width: 0;
+  }
+
+  .field-context-window {
+    grid-column: 1 / 2;
+    min-width: 0;
+  }
+
+  .field-auto-compact {
     grid-column: 2 / 3;
     min-width: 0;
   }

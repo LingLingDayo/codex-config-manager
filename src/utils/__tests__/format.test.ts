@@ -8,6 +8,9 @@ import {
   normalizeUrl,
   maskKey,
   formatDate,
+  normalizePositiveInt,
+  parseContextLimitInput,
+  formatOptionalPositiveInt,
 } from '../format';
 
 describe('format utils', () => {
@@ -125,6 +128,35 @@ describe('format utils', () => {
     it('提供有效时间戳时格式化为日期字符串', () => {
       const ts = new Date('2026-01-15T12:00:00Z').getTime();
       expect(formatDate(ts)).toBe(new Date(ts).toLocaleDateString());
+    });
+  });
+
+  describe('context limit helpers', () => {
+    it('normalizePositiveInt 仅接受大于 0 的安全整数或纯数字字符串', () => {
+      expect(normalizePositiveInt(272000)).toBe(272000);
+      expect(normalizePositiveInt(' 244800 ')).toBe(244800);
+      expect(normalizePositiveInt(0)).toBeNull();
+      expect(normalizePositiveInt('0')).toBeNull();
+      expect(normalizePositiveInt(-100)).toBeNull();
+      expect(normalizePositiveInt('12.5')).toBeNull();
+      expect(normalizePositiveInt('abc')).toBeNull();
+      expect(normalizePositiveInt(null)).toBeNull();
+      expect(normalizePositiveInt(undefined)).toBeNull();
+    });
+
+    it('parseContextLimitInput 区分留空、合法正整数与非法输入', () => {
+      expect(parseContextLimitInput('')).toEqual({ valid: true, value: null });
+      expect(parseContextLimitInput('   ')).toEqual({ valid: true, value: null });
+      expect(parseContextLimitInput('272000')).toEqual({ valid: true, value: 272000 });
+      expect(parseContextLimitInput('0')).toEqual({ valid: false, value: null });
+      expect(parseContextLimitInput('abc')).toEqual({ valid: false, value: null });
+    });
+
+    it('formatOptionalPositiveInt 正确格式化展示字符串', () => {
+      expect(formatOptionalPositiveInt(272000)).toBe('272000');
+      expect(formatOptionalPositiveInt(0)).toBe('');
+      expect(formatOptionalPositiveInt(null)).toBe('');
+      expect(formatOptionalPositiveInt(undefined)).toBe('');
     });
   });
 });

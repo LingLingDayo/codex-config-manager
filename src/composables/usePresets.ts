@@ -5,6 +5,7 @@ import {
   DEFAULT_STATION_NAME,
   DEFAULT_STATION_URL,
   isDefaultStation,
+  normalizePositiveInt,
 } from '../utils/format';
 import { invokeCommand, readLocalJson, writeLocalJson } from '../utils/hybridStorage';
 import { isPresetActive } from '../utils/preset';
@@ -25,6 +26,8 @@ export const DEFAULT_PRESETS: PresetConfig[] = [
     model_reasoning_effort: '',
     model_display_name: '',
     model_aliases: [],
+    model_context_window: null,
+    model_auto_compact_token_limit: null,
     updated_at: Date.now(),
   },
 ];
@@ -104,6 +107,23 @@ export function usePresets() {
       return false;
     }
 
+    if (
+      data.model_context_window !== undefined &&
+      data.model_context_window !== null &&
+      normalizePositiveInt(data.model_context_window) === null
+    ) {
+      showToast('上下文窗口必须为大于 0 的整数', 'error');
+      return false;
+    }
+    if (
+      data.model_auto_compact_token_limit !== undefined &&
+      data.model_auto_compact_token_limit !== null &&
+      normalizePositiveInt(data.model_auto_compact_token_limit) === null
+    ) {
+      showToast('自动压缩阈值必须为大于 0 的整数', 'error');
+      return false;
+    }
+
     const currentList = [...presets.value];
     if (data.id) {
       const index = currentList.findIndex((p) => p.id === data.id);
@@ -128,6 +148,14 @@ export function usePresets() {
                     ? data.model_display_name.trim()
                     : currentList[index].model_display_name
                 ),
+          model_context_window:
+            data.model_context_window !== undefined
+              ? normalizePositiveInt(data.model_context_window)
+              : normalizePositiveInt(currentList[index].model_context_window),
+          model_auto_compact_token_limit:
+            data.model_auto_compact_token_limit !== undefined
+              ? normalizePositiveInt(data.model_auto_compact_token_limit)
+              : normalizePositiveInt(currentList[index].model_auto_compact_token_limit),
           updated_at: Date.now(),
         };
         showToast(`配置「${name}」已更新！`);
@@ -144,6 +172,8 @@ export function usePresets() {
           data.model_aliases ??
             migrateLegacyDisplayName([], data.model, data.model_display_name)
         ),
+        model_context_window: normalizePositiveInt(data.model_context_window),
+        model_auto_compact_token_limit: normalizePositiveInt(data.model_auto_compact_token_limit),
         updated_at: Date.now(),
       };
       currentList.unshift(newPreset);

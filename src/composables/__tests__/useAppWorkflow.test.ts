@@ -219,5 +219,29 @@ describe('useAppWorkflow', () => {
     expect(workflow.isPresetListModalVisible.value).toBe(false);
     expect(message.value).toContain('已快捷切换至「配置一」并生效');
   });
+
+  it('切换至未配置上下文长度的预设时应主动清空旧的上下文长度配置', async () => {
+    (window as any).__TAURI_INTERNALS__ = {};
+    mockedInvoke.mockResolvedValue(undefined);
+    const workflow = useAppWorkflow();
+
+    await workflow.handleSelectPreset({
+      id: 'p_empty_ctx',
+      name: '普通配置',
+      provider_url: 'https://p1.com/v1',
+      key: 'sk-valid-key',
+      model_context_window: null,
+      model_auto_compact_token_limit: null,
+    });
+
+    expect(mockedInvoke).toHaveBeenCalledWith(
+      'save_codex_config',
+      expect.objectContaining({
+        modelContextWindow: '',
+        modelAutoCompactTokenLimit: '',
+      })
+    );
+    delete (window as any).__TAURI_INTERNALS__;
+  });
 });
 

@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue';
 import type { CodexConfig, SaveConfigPayload } from '../types/config';
-import { normalizeUrl } from '../utils/format';
+import { normalizePositiveInt, normalizeUrl } from '../utils/format';
 import { cloneModelAliases, migrateLegacyDisplayName, normalizeModelAliases } from '../utils/modelAliases';
 import {
   invokeCommand,
@@ -22,6 +22,8 @@ function createEmptyConfig(): CodexConfig {
     model_reasoning_effort: '',
     model_display_name: '',
     model_aliases: [],
+    model_context_window: null,
+    model_auto_compact_token_limit: null,
   };
 }
 
@@ -44,6 +46,10 @@ function hydrateConfig(source: Partial<CodexConfig> | null | undefined) {
     (item) => item.slug === (currentConfig.model || '').trim()
   );
   currentConfig.model_display_name = activeAlias?.display_name || source.model_display_name || '';
+  currentConfig.model_context_window = normalizePositiveInt(source.model_context_window);
+  currentConfig.model_auto_compact_token_limit = normalizePositiveInt(
+    source.model_auto_compact_token_limit
+  );
 }
 
 export function resetCodexConfigState() {
@@ -105,6 +111,32 @@ export function useCodexConfig() {
     const modelDisplayName = payload?.modelDisplayName;
     const modelAliases =
       payload?.modelAliases !== undefined ? normalizeModelAliases(payload.modelAliases) : undefined;
+    const modelContextWindow = payload?.modelContextWindow;
+    const modelAutoCompactTokenLimit = payload?.modelAutoCompactTokenLimit;
+
+    if (
+      modelContextWindow !== undefined &&
+      modelContextWindow !== null &&
+      normalizePositiveInt(modelContextWindow) === null
+    ) {
+      showToast('上下文窗口必须为大于 0 的整数', 'error');
+      return false;
+    }
+    if (
+      modelAutoCompactTokenLimit !== undefined &&
+      modelAutoCompactTokenLimit !== null &&
+      normalizePositiveInt(modelAutoCompactTokenLimit) === null
+    ) {
+      showToast('自动压缩阈值必须为大于 0 的整数', 'error');
+      return false;
+    }
+
+    const normalizedContextWindow =
+      modelContextWindow !== undefined ? normalizePositiveInt(modelContextWindow) : undefined;
+    const normalizedAutoCompactLimit =
+      modelAutoCompactTokenLimit !== undefined
+        ? normalizePositiveInt(modelAutoCompactTokenLimit)
+        : undefined;
 
     try {
       if (isTauriEnv()) {
@@ -116,6 +148,18 @@ export function useCodexConfig() {
             modelReasoningEffort !== undefined ? modelReasoningEffort.trim() : undefined,
           modelDisplayName: modelDisplayName !== undefined ? modelDisplayName.trim() : undefined,
           modelAliases,
+          modelContextWindow:
+            normalizedContextWindow !== undefined
+              ? normalizedContextWindow === null
+                ? ''
+                : String(normalizedContextWindow)
+              : undefined,
+          modelAutoCompactTokenLimit:
+            normalizedAutoCompactLimit !== undefined
+              ? normalizedAutoCompactLimit === null
+                ? ''
+                : String(normalizedAutoCompactLimit)
+              : undefined,
         });
       }
 
@@ -135,6 +179,12 @@ export function useCodexConfig() {
           modelAliases.find((item) => item.slug === activeSlug)?.display_name || '';
       } else if (modelDisplayName !== undefined) {
         currentConfig.model_display_name = modelDisplayName.trim();
+      }
+      if (normalizedContextWindow !== undefined) {
+        currentConfig.model_context_window = normalizedContextWindow;
+      }
+      if (normalizedAutoCompactLimit !== undefined) {
+        currentConfig.model_auto_compact_token_limit = normalizedAutoCompactLimit;
       }
 
       writeLocalJson(CODEX_CONFIG_STORAGE_KEY, currentConfig);

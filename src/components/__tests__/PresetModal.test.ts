@@ -117,6 +117,8 @@ describe('PresetModal.vue component', () => {
     expect(wrapper.find('.more-config-fields').exists()).toBe(true);
     expect(wrapper.find('#modal-preset-model').exists()).toBe(true);
     expect(wrapper.find('#modal-preset-reasoning').exists()).toBe(true);
+    expect(wrapper.find('#modal-preset-context-window').exists()).toBe(true);
+    expect(wrapper.find('#modal-preset-auto-compact').exists()).toBe(true);
     expect(wrapper.find('.model-alias-list').exists()).toBe(true);
 
     // 再次点击收起
@@ -171,6 +173,8 @@ describe('PresetModal.vue component', () => {
     // 展开更多配置并填写
     await wrapper.find('.more-config-toggle').trigger('click');
     await wrapper.find('#modal-preset-model').setValue('gpt-5.6-turbo');
+    await wrapper.find('#modal-preset-context-window').setValue('272000');
+    await wrapper.find('#modal-preset-auto-compact').setValue('244800');
     await wrapper.find('.model-alias-list .btn-text:last-child').trigger('click');
     const slugInput = wrapper.find<HTMLInputElement>('input[id$="-slug"]');
     const aliasInput = wrapper.find<HTMLInputElement>('input[id$="-alias"]');
@@ -190,6 +194,38 @@ describe('PresetModal.vue component', () => {
       model: 'gpt-5.6-turbo',
       model_reasoning_effort: '',
       model_aliases: [{ slug: 'gpt-5.6-turbo', display_name: 'Turbo 5.6' }],
+      model_context_window: 272000,
+      model_auto_compact_token_limit: 244800,
     });
+  });
+
+  it('仅配置上下文长度时应显示已配置徽章，且非法值 0 应拦截提交', async () => {
+    const wrapper = mount(PresetModal, {
+      props: {
+        visible: true,
+        title: '编辑中转站配置',
+        initialData: {
+          id: 'p_ctx',
+          name: '大上下文站',
+          provider_url: 'https://api.example.com/v1',
+          key: 'sk-ctx',
+          model_context_window: 272000,
+          model_auto_compact_token_limit: 244800,
+        },
+      },
+    });
+
+    expect(wrapper.find('.configured-badge').exists()).toBe(true);
+    await wrapper.find('.more-config-toggle').trigger('click');
+    expect(
+      wrapper.find<HTMLInputElement>('#modal-preset-context-window').element.value
+    ).toBe('272000');
+    expect(
+      wrapper.find<HTMLInputElement>('#modal-preset-auto-compact').element.value
+    ).toBe('244800');
+
+    await wrapper.find('#modal-preset-context-window').setValue('0');
+    await wrapper.find('form.modal-form').trigger('submit.prevent');
+    expect(wrapper.emitted('save')).toBeUndefined();
   });
 });
