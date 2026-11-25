@@ -83,12 +83,12 @@ export const REASONING_EFFORT_OPTIONS = [
 ];
 
 export const CONTEXT_WINDOW_OPTIONS = [
-  { label: '128k', value: '128000', description: '128,000 tokens' },
-  { label: '200k', value: '200000', description: '200,000 tokens' },
-  { label: '272k', value: '272000', description: '272,000 tokens' },
-  { label: '400k', value: '400000', description: '400,000 tokens' },
-  { label: '500k', value: '500000', description: '500,000 tokens' },
-  { label: '1M', value: '1000000', description: '1,000,000 tokens' },
+  { label: '128k', value: '128000' },
+  { label: '200k', value: '200000' },
+  { label: '272k', value: '272000' },
+  { label: '400k', value: '400000' },
+  { label: '500k', value: '500000' },
+  { label: '1M', value: '1000000' },
 ];
 
 export type ConfirmType = 'danger' | 'warning' | 'info' | 'success';
